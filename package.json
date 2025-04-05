@@ -1,0 +1,42 @@
+{
+  "name": "registry-factory-lib",
+  "version": "1.0.0",
+  "description": "TypeScript library providing factory and registry templates with clean architecture",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/esm/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "typescript",
+    "factory",
+    "registry",
+    "clean-architecture"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.39.0",
+    "rollup-plugin-dts-path-alias": "^0.0.3",
+    "rollup-plugin-generate-package-json": "^3.2.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

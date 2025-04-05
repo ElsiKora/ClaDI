@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"esModuleInterop": true,
+		"strict": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictBindCallApply": true,
+		"strictPropertyInitialization": true,
+		"noImplicitThis": true,
+		"noImplicitAny": true,
+		"alwaysStrict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"baseUrl": "./",
+		"paths": {
+			"@domain/*": ["src/domain/*"],
+			"@application/*": ["src/application/*"],
+			"@infrastructure/*": ["src/infrastructure/*"],
+			"@presentation/*": ["src/presentation/*"]
+		}
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "dist", "tests"]
+}
