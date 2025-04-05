@@ -1,9 +1,9 @@
 
 
-export * from './domain/interfaces';
+export * from './domain/interface';
 
-export * from './application/services';
+export * from './application/service';
 
-export * from './infrastructure/implementations';
+export * from './infrastructure/implementation';
 
-export * from './presentation/helpers';
+export * from './presentation/helper';

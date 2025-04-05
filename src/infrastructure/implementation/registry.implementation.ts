@@ -1,4 +1,4 @@
-import { IRegistry } from '../../domain/interfaces';
+import { IRegistry } from '../../domain/interface/registry.interface';
 
 /**
  * Generic registry implementation that stores items by name.

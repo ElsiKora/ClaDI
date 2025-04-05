@@ -1,5 +1,6 @@
-import { IFactory, IRegistry } from '../../domain/interfaces';
-import { RegistryFactoryService } from '../../application/services';
+import { IFactory } from '../../domain/interface/factory.interface';
+import { IRegistry } from '../../domain/interface/registry.interface';
+import { RegistryFactoryService } from '../../application/service/registry-factory.service';
 
 /**
  * Helper functions for creating and working with registries and factories.

@@ -1,6 +1,6 @@
-import { IFactory, IRegistry } from '../../domain/interfaces';
-import { IFactoryOptions } from '../../domain/interfaces/factory-options.interface';
-import { Factory, Registry } from '../../infrastructure/implementations';
+import { IFactory, IRegistry } from '../../domain/interface';
+import { IFactoryOptions } from '../../domain/interface/factory-options.interface';
+import { Factory, Registry } from '../../infrastructure/implementation';
 
 /**
  * Service that provides factory methods for creating registries and factories.

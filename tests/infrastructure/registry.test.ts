@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Registry } from '../../src/infrastructure/implementations';
+import { Registry } from '../../src/infrastructure/implementation';
 
 interface TestItem {
     name: string;

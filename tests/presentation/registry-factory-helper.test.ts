@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { RegistryFactoryHelper } from '../../src/presentation/helpers';
-import { Registry } from '../../src/infrastructure/implementations';
+import { RegistryFactoryHelper } from '../../src/presentation/helper';
+import { Registry } from '../../src/infrastructure/implementation';
 
 interface TestItem {
     name: string;

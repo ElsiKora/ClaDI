@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RegistryFactoryService } from '../../src/application/services';
-import { IFactory, IRegistry } from '../../src/domain/interfaces';
-import { Registry } from '../../src/infrastructure/implementations';
+import { RegistryFactoryService } from '../../src/application/service';
+import { IFactory, IRegistry } from '../../src/domain/interface';
+import { Registry } from '../../src/infrastructure/implementation';
 
 interface TestItem {
     name: string;

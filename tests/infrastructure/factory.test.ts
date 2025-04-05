@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Factory } from '../../src/infrastructure/implementations';
-import { Registry } from '../../src/infrastructure/implementations';
-import { IRegistry } from '../../src/domain/interfaces';
+import { Factory } from '../../src/infrastructure/implementation';
+import { Registry } from '../../src/infrastructure/implementation';
+import { IRegistry } from '../../src/domain/interface';
 
 interface TestItem {
     name: string;
