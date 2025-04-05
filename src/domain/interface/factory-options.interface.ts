@@ -1,4 +1,5 @@
 import { IRegistry } from './registry.interface';
+import { ILogger } from './logger.interface';
 
 /**
  * Factory creation options.
@@ -16,4 +17,9 @@ export interface IFactoryOptions<T> {
      * @returns A new instance based on the template.
      */
     transformer?: (template: T) => T;
+    
+    /**
+     * Optional logger to use for logging.
+     */
+    logger?: ILogger;
 }
