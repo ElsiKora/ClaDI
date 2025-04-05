@@ -1,4 +1,5 @@
-import { IFactory, IFactoryOptions, IRegistry } from '../../domain/interfaces';
+import { IFactory, IRegistry } from '../../domain/interfaces';
+import { IFactoryOptions } from '../../domain/interfaces/factory-options.interface';
 import { Factory, Registry } from '../../infrastructure/implementations';
 
 /**

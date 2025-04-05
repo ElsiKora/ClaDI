@@ -1,4 +1,5 @@
-import { IFactory, IFactoryOptions, IRegistry } from '../../domain/interfaces';
+import { IFactory, IRegistry } from '../../domain/interfaces';
+import { IFactoryOptions } from '../../domain/interfaces/factory-options.interface';
 
 /**
  * Generic factory implementation that creates items by name using a registry as data source.
