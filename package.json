@@ -1,42 +1,79 @@
 {
-  "name": "registry-factory-lib",
-  "version": "1.0.0",
-  "description": "TypeScript library providing factory and registry templates with clean architecture",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/esm/index.d.ts"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "rollup -c",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
-  },
-  "keywords": [
-    "typescript",
-    "factory",
-    "registry",
-    "clean-architecture"
-  ],
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.2",
-    "rollup": "^4.39.0",
-    "rollup-plugin-dts-path-alias": "^0.0.3",
-    "rollup-plugin-generate-package-json": "^3.2.0",
-    "tslib": "^2.8.1",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.1"
-  }
+	"name": "registry-factory-lib",
+	"version": "1.0.0",
+	"description": "TypeScript library providing factory and registry templates with clean architecture",
+	"keywords": [
+		"typescript",
+		"factory",
+		"registry",
+		"clean-architecture"
+	],
+	"license": "MIT",
+	"author": "",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.js",
+			"types": "./dist/esm/index.d.ts"
+		}
+	},
+	"main": "dist/cjs/index.js",
+	"module": "dist/esm/index.js",
+	"types": "dist/esm/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rollup -c",
+		"commit": "cz",
+		"format": "prettier --check .",
+		"format:fix": "prettier --write .",
+		"lint": "eslint ./",
+		"lint:all": "npm run lint && npm run lint:types",
+		"lint:all:fix": "npm run lint:fix && npm run lint:types:fix",
+		"lint:fix": "eslint --fix ./",
+		"lint:types": "tsc --noEmit",
+		"lint:types:fix": "tsc --noEmit --skipLibCheck",
+		"prepare": "husky",
+		"release": "semantic-release",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:watch": "vitest"
+	},
+	"config": {
+		"commitizen": {
+			"path": "@elsikora/commitizen-plugin-commitlint-ai"
+		}
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^19.8.0",
+		"@commitlint/config-conventional": "^19.8.0",
+		"@elsikora/commitizen-plugin-commitlint-ai": "^1.0.0",
+		"@elsikora/eslint-config": "^3.7.13",
+		"@rollup/plugin-node-resolve": "^16.0.1",
+		"@rollup/plugin-typescript": "^12.1.2",
+		"@saithodev/semantic-release-backmerge": "^4.0.1",
+		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/commit-analyzer": "^13.0.1",
+		"@semantic-release/git": "^10.0.1",
+		"@semantic-release/github": "^11.0.1",
+		"@semantic-release/npm": "^12.0.1",
+		"@semantic-release/release-notes-generator": "^14.0.3",
+		"commitizen": "^4.3.1",
+		"conventional-changelog-conventionalcommits": "^8.0.0",
+		"eslint": "^9.24.0",
+		"eslint-plugin-n": "^17.17.0",
+		"eslint-plugin-no-secrets": "^2.2.1",
+		"husky": "^9.1.7",
+		"lint-staged": "^15.5.0",
+		"prettier": "^3.5.3",
+		"rollup": "^4.39.0",
+		"rollup-plugin-dts-path-alias": "^0.0.3",
+		"rollup-plugin-generate-package-json": "^3.2.0",
+		"semantic-release": "^24.2.3",
+		"tslib": "^2.8.1",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.1"
+	}
 }
