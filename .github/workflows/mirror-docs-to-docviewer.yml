@@ -51,7 +51,7 @@ jobs:
         run: |
           cd destination
 
-          BASE_BRANCH_NAME="feature/docs-${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}_${{ steps.vars.outputs.DATE }}"
+          BASE_BRANCH_NAME="feature/docs-${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}-${{ steps.vars.outputs.DATE }}"
 
           REMOTE_BRANCHES=$(git ls-remote --heads origin "$BASE_BRANCH_NAME")
 
