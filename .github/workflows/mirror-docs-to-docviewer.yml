@@ -1,0 +1,52 @@
+name: Mirror Docs to DocViewer
+
+env:
+  CHECKOUT_DEPTH: 0
+  DESTINATION_REPOSITORY_NAME: ElsiKora/DocViewer
+  DESTINATION_BRANCH: dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+
+jobs:
+  mirror_docs_to_docviewer:
+    name: Mirror Docs to DocViewer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          path: source
+          fetch-depth: ${{ env.CHECKOUT_DEPTH }}
+
+      - name: Get repo name and date
+        id: vars
+        run: |
+          echo "REPO_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_OUTPUT
+          echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: Checkout destination repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ env.CHECKOUT_DEPTH }}
+          repository: ${{ env.DESTINATION_REPOSITORY_NAME }}
+          path: destination
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: ${{ env.DESTINATION_BRANCH }}
+
+      - name: Create and push to feature branch
+        run: |
+          cd destination
+          git checkout -b feature/${{ steps.vars.outputs.REPO_NAME }}_${{ steps.vars.outputs.DATE }}
+
+          cp -r ../source/docs ./
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs(documentation): sync docs from ${{ steps.vars.outputs.REPO_NAME }} repo on ${{ steps.vars.outputs.DATE }}" && git push --set-upstream origin feature/${{ steps.vars.outputs.REPO_NAME }}_${{ steps.vars.outputs.DATE }})
