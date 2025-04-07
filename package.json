@@ -8,6 +8,10 @@
 		"registry",
 		"clean-architecture"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ElsiKora/ClaDI"
+	},
 	"license": "MIT",
 	"author": "ElsiKora",
 	"type": "module",

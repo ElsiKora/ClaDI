@@ -46,7 +46,7 @@ const config = {
 			},
 		],
 	],
-	repositoryUrl: "https://github.com/ElsiKora/Bootstrap",
+	repositoryUrl: "https://github.com/ElsiKora/ClaDI",
 };
 
 const isPrereleaseBranch = config.branches.some((b) => typeof b === "object" && branch.includes(b.name) && b.prerelease);
