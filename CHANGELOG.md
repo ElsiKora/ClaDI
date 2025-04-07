@@ -1,0 +1,9 @@
+# 1.0.0 (2025-04-07)
+
+
+### Bug Fixes
+
+* **ci:** add kebab case repo name handling in docs mirroring workflow ([a1694b3](https://github.com/ElsiKora/ClaDI/commit/a1694b3f86b1def9461bd268eba65e4cceaac27e))
+* **ci:** correct variable substitution in docs workflow and simplify index text ([6946f19](https://github.com/ElsiKora/ClaDI/commit/6946f1920e9748a57f974d68c02042b28ba1a81d))
+* **ci:** replace underscore with hyphen in branch name generation ([1ddb6f6](https://github.com/ElsiKora/ClaDI/commit/1ddb6f62c8b007271ab4dcea121ca7b9d941041c))
+* **workflows:** improve docs mirroring workflow with better kebab case naming ([be6adc1](https://github.com/ElsiKora/ClaDI/commit/be6adc1de42d60f24a36b83788f66b6f061da804))
