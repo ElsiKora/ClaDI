@@ -30,11 +30,11 @@ jobs:
           REPO_NAME=$(basename $GITHUB_REPOSITORY)
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_OUTPUT
 
-          KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | sed -E 's/([A-Z])/-\L\1/g' | sed -E 's/[_\s]+/-/g' | sed -E 's/^-//' | tr '[:upper:]' '[:lower:]')
+          KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g; s/_/-/g' | tr '[:upper:]' '[:lower:]')
           echo "KEBAB_CASE_REPO_NAME=$KEBAB_CASE_REPO_NAME" >> $GITHUB_OUTPUT
 
-          echo "Debug - REPO_NAME: $REPO_NAME"
-          echo "Debug - KEBAB_CASE_REPO_NAME: $KEBAB_CASE_REPO_NAME"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
 
           echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
 
@@ -49,9 +49,20 @@ jobs:
 
       - name: Create and push to feature branch
         run: |
-          BRANCH_NAME="feature/docs-${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}_${{ steps.vars.outputs.DATE }}"
-
           cd destination
+
+          BASE_BRANCH_NAME="feature/docs-${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}_${{ steps.vars.outputs.DATE }}"
+
+          REMOTE_BRANCHES=$(git ls-remote --heads origin "$BASE_BRANCH_NAME")
+
+          if [ -n "$REMOTE_BRANCHES" ]; then
+            echo "Branch $BASE_BRANCH_NAME already exists, adding timestamp for uniqueness"
+            BRANCH_NAME="${BASE_BRANCH_NAME}-${{ steps.vars.outputs.TIMESTAMP }}"
+          else
+            BRANCH_NAME="$BASE_BRANCH_NAME"
+          fi
+
+          echo "Using branch name: $BRANCH_NAME"
           git checkout -b "$BRANCH_NAME"
 
           TARGET_DIR="src/app/${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}"
