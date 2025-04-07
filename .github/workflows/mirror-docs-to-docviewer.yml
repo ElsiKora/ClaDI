@@ -43,7 +43,10 @@ jobs:
           cd destination
           git checkout -b feature/${{ steps.vars.outputs.REPO_NAME }}_${{ steps.vars.outputs.DATE }}
 
-          cp -r ../source/docs ./
+          TARGET_DIR="src/app/${{ steps.vars.outputs.KEBAB_CASE }}"
+          mkdir -p "$TARGET_DIR"
+
+          cp -r ../source/docs/* "$TARGET_DIR/"
 
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
