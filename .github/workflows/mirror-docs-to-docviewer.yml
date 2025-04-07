@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "REPO_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_OUTPUT
           KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | sed -E 's/([A-Z])/-\L\1/g' | sed -E 's/[_\s]+/-/g' | sed -E 's/^-//' | tr '[:upper:]' '[:lower:]')
-          echo "KEBAB_CASE_REPO_NAME=KEBAB_CASE_REPO_NAME" >> $GITHUB_OUTPUT
+          echo "KEBAB_CASE_REPO_NAME=$KEBAB_CASE_REPO_NAME" >> $GITHUB_OUTPUT
           echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
 
       - name: Checkout destination repository
