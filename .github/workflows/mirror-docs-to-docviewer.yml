@@ -28,6 +28,8 @@ jobs:
         id: vars
         run: |
           echo "REPO_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_OUTPUT
+          KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | sed -E 's/([A-Z])/-\L\1/g' | sed -E 's/[_\s]+/-/g' | sed -E 's/^-//' | tr '[:upper:]' '[:lower:]')
+          echo "KEBAB_CASE_REPO_NAME=KEBAB_CASE_REPO_NAME" >> $GITHUB_OUTPUT
           echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
 
       - name: Checkout destination repository
@@ -44,7 +46,7 @@ jobs:
           cd destination
           git checkout -b feature/${{ steps.vars.outputs.REPO_NAME }}_${{ steps.vars.outputs.DATE }}
 
-          TARGET_DIR="src/app/${{ steps.vars.outputs.KEBAB_CASE }}"
+          TARGET_DIR="src/app/${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}"
           mkdir -p "$TARGET_DIR"
 
           cp -r ../source/docs/* "$TARGET_DIR/"
@@ -53,4 +55,4 @@ jobs:
           git config user.email "<>"
 
           git add .
-          git diff --quiet && git diff --staged --quiet || (git commit -m "docs(documentation): sync docs from ${{ steps.vars.outputs.REPO_NAME }} repo on ${{ steps.vars.outputs.DATE }}" && git push --set-upstream origin feature/${{ steps.vars.outputs.REPO_NAME }}_${{ steps.vars.outputs.DATE }})
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs(documentation): sync docs from ${{ steps.vars.outputs.REPO_NAME }} repo on ${{ steps.vars.outputs.DATE }}" && git push --set-upstream origin feature/docs-${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}_${{ steps.vars.outputs.DATE }})
