@@ -4,7 +4,7 @@ This guide will walk you through the basic setup and usage of the core utilities
 
 ## Installation
 
-```bash
+```bash copy
 # Using npm
 npm install @elsikora/cladi
 
@@ -19,7 +19,7 @@ pnpm add @elsikora/cladi
 
 Here's a simple example of creating and using the core components:
 
-```typescript
+```typescript copy
 import {
 	createContainer,
 	createRegistry,
@@ -72,7 +72,7 @@ Let's structure a small application using `@elsikora/cladi`.
 
 **1. Define Types (`src/types.ts`)**
 
-```typescript filename="src/types.ts"
+```typescript filename="src/types.ts" copy
 // Define configuration structure
 export interface IAppConfig {
   name: string; // Required for Registry
@@ -94,7 +94,7 @@ export const ServiceTokens = {
 
 **2. Create Services (`src/services.ts`)**
 
-```typescript filename="src/services.ts"
+```typescript filename="src/services.ts" copy
 import type { IUserService, IAppConfig } from "./types";
 import type { ILogger } from "@elsikora/cladi";
 
@@ -121,7 +121,7 @@ export class UserServiceImpl implements IUserService {
 
 **3. Configure Container (`src/container.ts`)**
 
-```typescript filename="src/container-config.ts"
+```typescript filename="src/container-config.ts" copy
 import {
   createContainer,
   createRegistry,
@@ -182,7 +182,7 @@ export { container }; // Export the configured container
 
 **4. Application Entry Point (`src/main.ts`)**
 
-```typescript filename="src/main.ts"
+```typescript filename="src/main.ts" copy
 import { container } from "./container-config";
 import { type IUserService, ServiceTokens } from "./types";
 import { EServiceToken, type ILogger } from "@elsikora/cladi";

@@ -30,7 +30,7 @@ jobs:
           REPO_NAME=$(basename $GITHUB_REPOSITORY)
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_OUTPUT
 
-          KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g; s/_/-/g' | tr '[:upper:]' '[:lower:]')
+          KEBAB_CASE_REPO_NAME=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')
           echo "KEBAB_CASE_REPO_NAME=$KEBAB_CASE_REPO_NAME" >> $GITHUB_OUTPUT
 
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -65,7 +65,7 @@ jobs:
           echo "Using branch name: $BRANCH_NAME"
           git checkout -b "$BRANCH_NAME"
 
-          TARGET_DIR="src/app/${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}"
+          TARGET_DIR="src/app/docs/${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}"
           mkdir -p "$TARGET_DIR"
 
           cp -r ../source/docs/* "$TARGET_DIR/"

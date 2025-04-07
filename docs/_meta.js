@@ -1,8 +1,8 @@
-{
-	"_": "Introduction",
+export default {
 	"api-reference": "API Reference",
 	"core-concepts": "Core Concepts",
 	"getting-started": "Getting Started",
-	"services": "Services",
-	"utilities": "Utilities"
-}
+	index: "Introduction",
+	services: "Services",
+	utilities: "Utilities",
+};

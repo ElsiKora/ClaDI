@@ -9,7 +9,7 @@ This page details the core interfaces used throughout the library.
 Defines the contract for a dependency injection container.
 *Defined in: `src/domain/interface/container.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IContainer {
 	clear(): void;
 	get<T>(token: symbol): T | undefined;
@@ -22,14 +22,14 @@ export interface IContainer {
 	unregisterMany(tokens: Array<symbol>): void;
 }
 ```
-*(See Core Concepts: [Dependency Injection](../../core-concepts/container))* 
+*(See Core Concepts: [Dependency Injection](/core-concepts/container))* 
 
 ### `IRegistry<T>`
 
 Defines the contract for a registry storing items of type `T`, where `T` must have a `name: string` property.
 *Defined in: `src/domain/interface/registry.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IRegistry<T extends { name: string }> {
 	clear(): void;
 	get(name: string): T | undefined;
@@ -42,27 +42,27 @@ export interface IRegistry<T extends { name: string }> {
 	unregisterMany(names: Array<string>): void;
 }
 ```
-*(See Core Concepts: [Registry Pattern](../../core-concepts/registry))* 
+*(See Core Concepts: [Registry Pattern](/core-concepts/registry))* 
 
 ### `IFactory<T>`
 
 Defines the contract for a factory creating items of type `T`.
 *Defined in: `src/domain/interface/factory.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IFactory<T> {
 	create(name: string): T;
 	getRegistry(): IRegistry<T>;
 }
 ```
-*(See Core Concepts: [Factory Pattern](../../core-concepts/factory))* 
+*(See Core Concepts: [Factory Pattern](/core-concepts/factory))* 
 
 ### `ILogger`
 
 Defines the contract for a logging service.
 *Defined in: `src/domain/interface/logger/interface.ts`*
 
-```typescript
+```typescript copy
 export interface ILogger {
 	debug(message: string, options?: ILoggerMethodOptions): void;
 	error(message: string, options?: ILoggerMethodOptions): void;
@@ -71,21 +71,21 @@ export interface ILogger {
 	warn(message: string, options?: ILoggerMethodOptions): void;
 }
 ```
-*(See Services: [Logging Service](../../services/logging))* 
+*(See Services: [Logging Service](/services/logging))* 
 
 ### `IError`
 
 Extends the standard `Error` interface with additional structured properties.
 *Defined in: `src/domain/interface/error.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IError extends Error {
 	CODE: string;
 	CAUSE?: Error;
 	context?: Record<string, unknown>;
 }
 ```
-*(See Core Concepts: [Error Handling](../../core-concepts/error-handling))* 
+*(See Core Concepts: [Error Handling](/core-concepts/error-handling))* 
 
 ## Options Interfaces
 
@@ -96,7 +96,7 @@ These interfaces define the configuration options for creating instances of the 
 Options for `BaseContainer`.
 *Defined in: `src/infrastructure/interface/base/container-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IBaseContainerOptions {
 	logger?: ILogger;
 }
@@ -107,7 +107,7 @@ export interface IBaseContainerOptions {
 Options for `BaseRegistry`.
 *Defined in: `src/infrastructure/interface/base/registry-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IBaseRegistryOptions {
 	logger?: ILogger;
 }
@@ -118,7 +118,7 @@ export interface IBaseRegistryOptions {
 Options for `BaseFactory`.
 *Defined in: `src/infrastructure/interface/base/factory-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IBaseFactoryOptions<T> {
 	logger?: ILogger;
 	registry: IRegistry<T>;
@@ -131,9 +131,9 @@ export interface IBaseFactoryOptions<T> {
 Options for `ConsoleLoggerService`.
 *Defined in: `src/infrastructure/interface/console-logger-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IConsoleLoggerOptions {
-	level: ELoggerLogLevel; // Minimum level to log - See ELoggerLogLevel in Enums
+	level: ELoggerLogLevel; // Minimum level to log - See [ELoggerLogLevel](/api-reference/enums#eloggerloglevel)
 	source?: string; // Default source identifier for the logger instance
 }
 ```
@@ -143,7 +143,7 @@ export interface IConsoleLoggerOptions {
 Options passed to individual `ILogger` methods.
 *Defined in: `src/domain/interface/logger/method-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface ILoggerMethodOptions {
 	context?: Record<string, unknown>; // Additional data for this specific log entry
 	source?: string; // Overrides the logger's default source for this entry
@@ -155,7 +155,7 @@ export interface ILoggerMethodOptions {
 Options for `BaseError` constructor.
 *Defined in: `src/infrastructure/interface/base/error-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface IBaseErrorOptions {
 	cause?: Error;
 	code: string;
@@ -169,7 +169,7 @@ export interface IBaseErrorOptions {
 Options for the `CoreFactory` singleton.
 *Defined in: `src/infrastructure/interface/core-factory-options.interface.ts`*
 
-```typescript
+```typescript copy
 export interface ICoreFactoryOptions {
 	logger?: ILogger;
 }
