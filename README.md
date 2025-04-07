@@ -1,164 +1,325 @@
-# Project: TypeScript DI Container & Registry Pattern Example
+<p align="center">
+  <img src="https://6jft62zmy9nx2oea.public.blob.vercel-storage.com/cladi-eBDDJPOc5fj21RO45PzAwrdkkqGCHi.png" width="500" alt="project-logo">
+</p>
 
-This project demonstrates a basic implementation of Dependency Injection (DI) Container and Registry/Factory patterns in TypeScript, structured using a layered architecture.
+<h1 align="center">ClaDI 🧩</h1>
+<p align="center"><em>ClaDI is a library for creating and managing classes in TypeScript</em></p>
 
-## Architecture
+<p align="center">
+    <a aria-label="ElsiKora logo" href="https://elsikora.com">
+  <img src="https://img.shields.io/badge/MADE%20BY%20ElsiKora-333333.svg?style=for-the-badge" alt="ElsiKora">
+</a> <img src="https://img.shields.io/badge/typescript-blue.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="typescript"> <img src="https://img.shields.io/badge/npm-red.svg?style=for-the-badge&logo=npm&logoColor=white" alt="npm"> <img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=for-the-badge&logo=license&logoColor=white" alt="license-MIT"> <img src="https://img.shields.io/badge/Node.js-green.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"> <img src="https://img.shields.io/badge/ESM-orange.svg?style=for-the-badge&logo=javascript&logoColor=white" alt="ESM"> <img src="https://img.shields.io/badge/CJS-teal.svg?style=for-the-badge&logo=javascript&logoColor=white" alt="CJS"> <img src="https://img.shields.io/badge/zero-deps-brightgreen.svg?style=for-the-badge&logo=checkmarx&logoColor=white" alt="zero-deps">
+</p>
 
-The codebase follows a clean architecture approach with distinct layers:
 
--   **`src/domain`**: Contains the core business logic and abstractions (interfaces like `IContainer`, `IRegistry`, `IFactory`, `ILogger`) and shared enums (`EServiceToken`). This layer has no dependencies on other layers.
--   **`src/infrastructure`**: Provides concrete implementations of the interfaces defined in the `domain` layer (e.g., `Container`, `Registry`, `Factory`, `ConsoleLogger`). This layer depends only on the `domain` layer.
--   **`src/presentation`**: Contains UI-related logic or, in this case, helpers (`ContainerHelper`) that simplify interaction with the application's core services for the outermost layer. This layer depends on `domain` and the `composition-root`.
--   **`src/composition-root.ts`**: The central point where the application's object graph is composed. It creates instances of infrastructure components, wires them together according to domain interfaces, and configures the main DI container (`appContainer`). This is the only place (ideally) that should have knowledge of both `domain` and `infrastructure`.
+## 📚 Table of Contents
+- [Description](#-description)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Roadmap](#-roadmap)
+- [FAQ](#-faq)
+- [License](#-license)
 
-## Core Concepts
 
--   **`IContainer`**: A simple Dependency Injection container responsible for managing the lifecycle and providing instances of registered dependencies (services, components) identified by string tokens.
--   **`IRegistry<T>`**: A generic registry for managing collections of named items (`T`, where `T` must have a `name: string` property). Useful for storing configurations, templates, or strategies.
--   **`IFactory<T>`**: A generic factory that typically uses an `IRegistry<T>` as a source to create instances of `T` based on a name/template.
+## 📖 Description
+ClaDI is a powerful TypeScript library that provides a robust foundation for building scalable applications through class-based dependency injection. With ClaDI, you can easily create, manage, and organize your application's classes and dependencies with a clean, modular architecture. The library offers a comprehensive set of tools for class instantiation, dependency registration, and lifecycle management, making it ideal for both small projects and enterprise-level applications. Whether you're building a simple utility or a complex system, ClaDI helps establish a solid architectural foundation with minimal overhead.
 
-## Setup
+## 🚀 Features
+- ✨ **🚀 Zero dependencies - Lightweight footprint with no external runtime dependencies**
+- ✨ **📦 Registry system - Store, retrieve, and manage class templates efficiently**
+- ✨ **🏭 Factory pattern - Create class instances with automatic deep cloning**
+- ✨ **💉 Dependency injection - Simple yet powerful container for managing application services**
+- ✨ **🔄 Caching mechanism - Performance optimization for frequently used classes**
+- ✨ **🧩 Modular architecture - Clean separation of concerns with domain, infrastructure, and presentation layers**
+- ✨ **📝 Comprehensive logging - Built-in logging system with multiple log levels and context support**
+- ✨ **🔌 Multiple format support - Works with both ESM and CommonJS module systems**
+- ✨ **✅ Fully tested - Extensive unit and E2E test coverage ensures reliability**
 
-1.  **Prerequisites**: Node.js and npm/yarn installed.
-2.  **Install Dependencies**: (Assuming a `package.json` exists or will be created)
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-3.  **Build**: (Assuming a build script in `package.json`)
-    ```bash
-    npm run build
-    # or
-    yarn build
-    ```
+## 🛠 Installation
+```bash
+# Using npm
+npm install @elsikora/cladi
 
-## Usage
+# Using yarn
+yarn add @elsikora/cladi
 
-### 1. Accessing Pre-configured Dependencies
+# Using pnpm
+pnpm add @elsikora/cladi
 
-The `composition-root.ts` configures and exports a singleton instance of the DI container: `appContainer`.
-You can access pre-registered services (like the default logger) using the `ContainerHelper`:
-
-```typescript
-import { ContainerHelper } from "./presentation/helper"; // Adjust path as needed
-import type { ILogger } from "./domain/interface";
-
-const logger: ILogger = ContainerHelper.getLogger();
-logger.info("Application started using the default logger.");
-
-// Access other dependencies registered in composition-root
-// Assuming a 'NotificationService' was registered with token 'notification'
-// const notifier = ContainerHelper.getRequiredDependency<INotificationService>('notification');
-// notifier.send("Hello!");
+# Using bun
+bun add @elsikora/cladi
 ```
 
-### 2. Creating New Registries and Factories On-Demand
+## 💡 Usage
+## Basic Usage
 
-If you need to create instances of `IRegistry` or `IFactory` dynamically (not just use pre-configured ones), you can use the `ContainerHelper` methods that leverage the registered `IInfrastructureFactory`:
+The following example demonstrates how to create and use the core components of ClaDI:
 
 ```typescript
-import { ContainerHelper } from "./presentation/helper";
-import type { IRegistry, IFactory, IFactoryOptions } from "./domain/interface";
+import { createContainer, createFactory, createLogger, createRegistry, ELoggerLogLevel } from '@elsikora/cladi';
 
-interface MyItem { name: string; id: number }
+// Define a simple model with required 'name' property
+interface User {
+  name: string;
+  email: string;
+  role: string;
+}
 
-// Create a new Registry
-const myDynamicRegistry: IRegistry<MyItem> = ContainerHelper.createNewRegistry<MyItem>();
-myDynamicRegistry.register({ name: "dynamicItem1", id: 1 });
+// Create a logger
+const logger = createLogger({ 
+  level: ELoggerLogLevel.DEBUG,
+  source: 'UserModule' 
+});
 
-// Create a new Factory using the dynamic registry
-const factoryOptions: Omit<IFactoryOptions<MyItem>, 'logger'> = {
-    registry: myDynamicRegistry,
-    // transformer: (item) => ({ ...item, name: item.name + "_transformed" }) // Optional transformer
+// Create a registry to store user templates
+const registry = createRegistry<User>({ logger });
+
+// Register user templates
+registry.register({ name: 'admin', email: 'admin@example.com', role: 'admin' });
+registry.register({ name: 'user', email: 'user@example.com', role: 'user' });
+
+// Create a factory to instantiate users from templates
+const factory = createFactory<User>({ registry, logger });
+
+// Create a user instance (returns a deep clone of the template)
+const adminUser = factory.create('admin');
+console.log(adminUser); // { name: 'admin', email: 'admin@example.com', role: 'admin' }
+
+// Modify instance (won't affect the original template)
+adminUser.email = 'new-admin@example.com';
+```
+
+## Dependency Injection Container
+
+Use the container to manage application services:
+
+```typescript
+import { createContainer, ELoggerLogLevel, type ILogger } from '@elsikora/cladi';
+
+// Create symbols for service identification
+const LoggerToken = Symbol('Logger');
+const DatabaseToken = Symbol('Database');
+
+// Create a container
+const container = createContainer({});
+
+// Register services
+container.register(LoggerToken, createLogger({ 
+  level: ELoggerLogLevel.INFO,
+  source: 'AppRoot' 
+}));
+
+container.register(DatabaseToken, {
+  connect: () => console.log('Connected to database'),
+  query: (sql: string) => console.log(`Executing query: ${sql}`)
+});
+
+// Retrieve services
+const logger = container.get<ILogger>(LoggerToken);
+const db = container.get(DatabaseToken);
+
+logger?.info('Application started');
+db?.connect();
+db?.query('SELECT * FROM users');
+```
+
+## Advanced Logging
+
+The built-in logger provides extensive capabilities:
+
+```typescript
+import { createLogger, ELoggerLogLevel } from '@elsikora/cladi';
+
+const logger = createLogger({
+  level: ELoggerLogLevel.TRACE,  // Most detailed logging level
+  source: 'PaymentService'
+});
+
+// Basic logging
+logger.info('Processing payment');
+
+// Logging with context data
+logger.debug('Payment details received', {
+  context: {
+    paymentId: '12345',
+    amount: 99.99,
+    currency: 'USD'
+  }
+});
+
+// Method-specific source
+logger.warn('Retry attempt required', {
+  source: 'PaymentGateway',  // Will be combined with constructor source
+  context: {
+    attempt: 2,
+    maxAttempts: 3
+  }
+});
+
+// Sample output:
+// [2023-07-15T12:34:56.789Z] INFO: [PaymentService] Processing payment
+// [2023-07-15T12:34:56.790Z] DEBUG: [PaymentService] Payment details received {"paymentId":"12345","amount":99.99,"currency":"USD"}
+// [2023-07-15T12:34:56.791Z] WARN: [PaymentService → PaymentGateway] Retry attempt required {"attempt":2,"maxAttempts":3}
+```
+
+## Core Factory Pattern
+
+For more advanced scenarios, use the CoreFactory singleton:
+
+```typescript
+import { CoreFactory, ELoggerLogLevel, type IRegistry, type IFactory, type IContainer } from '@elsikora/cladi';
+
+// Create the core factory instance with options
+const coreFactory = CoreFactory.getInstance({
+  logger: createLogger({
+    level: ELoggerLogLevel.INFO,
+    source: 'CoreFactory'
+  })
+});
+
+// Define a product model
+interface Product {
+  name: string;
+  price: number;
+  inStock: boolean;
+}
+
+// Create infrastructure components
+const productRegistry = coreFactory.createRegistry<Product>({});
+const productFactory = coreFactory.createFactory<Product>({ registry: productRegistry });
+const appContainer = coreFactory.createContainer({});
+
+// Register product templates
+productRegistry.register({ name: 'Basic Widget', price: 9.99, inStock: true });
+productRegistry.register({ name: 'Premium Widget', price: 19.99, inStock: false });
+
+// Create product instances
+const basicWidget = productFactory.create('Basic Widget');
+console.log(basicWidget); // { name: 'Basic Widget', price: 9.99, inStock: true }
+```
+
+## Custom Transformers
+
+You can provide custom transformers to modify objects during instantiation:
+
+```typescript
+import { createFactory, createRegistry } from '@elsikora/cladi';
+
+interface OrderTemplate {
+  name: string;
+  basePrice: number;
+  discountPercent: number;
+}
+
+// Create registry and register templates
+const orderRegistry = createRegistry<OrderTemplate>({});
+orderRegistry.register({
+  name: 'standard',
+  basePrice: 100,
+  discountPercent: 0
+});
+orderRegistry.register({
+  name: 'sale',
+  basePrice: 100,
+  discountPercent: 20
+});
+
+// Custom transformer that adds calculated fields
+const orderTransformer = (template: OrderTemplate) => {
+  const discount = template.basePrice * (template.discountPercent / 100);
+  return {
+    ...template,
+    discount,
+    finalPrice: template.basePrice - discount,
+    timestamp: new Date().toISOString()
+  };
 };
-const myDynamicFactory: IFactory<MyItem> = ContainerHelper.createNewFactory<MyItem>(factoryOptions);
 
-const createdItem: MyItem = myDynamicFactory.create("dynamicItem1");
-console.log("Created item:", createdItem);
+// Create factory with custom transformer
+const orderFactory = createFactory<ReturnType<typeof orderTransformer>>({
+  registry: orderRegistry as any,
+  transformer: orderTransformer
+});
+
+// Create instances with transformed properties
+const standardOrder = orderFactory.create('standard');
+console.log(standardOrder);
+// {
+//   name: 'standard',
+//   basePrice: 100,
+//   discountPercent: 0,
+//   discount: 0,
+//   finalPrice: 100,
+//   timestamp: '2023-07-15T12:34:56.789Z'
+// }
+
+const saleOrder = orderFactory.create('sale');
+console.log(saleOrder);
+// {
+//   name: 'sale',
+//   basePrice: 100,
+//   discountPercent: 20,
+//   discount: 20,
+//   finalPrice: 80,
+//   timestamp: '2023-07-15T12:34:56.790Z'
+// }
 ```
 
-### 3. Registering Custom Dependencies
+## 🛣 Roadmap
+| Task / Feature | Status |
+|----------------|--------|
+| Core Registry implementation | ✅ Done |
+| Core Factory implementation | ✅ Done |
+| Dependency Injection Container | ✅ Done |
+| Logging System | ✅ Done |
+| Support for ESM and CJS modules | ✅ Done |
+| Registry caching mechanism | ✅ Done |
+| Factory deep cloning | ✅ Done |
+| Custom transformers | ✅ Done |
+| API documentation | 🚧 In Progress |
+| Type safety improvements | 🚧 In Progress |
+| Async factory support | 🚧 In Progress |
+| Schema validation | 🚧 In Progress |
+| Event system | 🚧 In Progress |
+| Circular dependency detection | 🚧 In Progress |
+| Lifecycle hooks | 🚧 In Progress |
+| Lazy loading | 🚧 In Progress |
+| Serialization/deserialization utilities | 🚧 In Progress |
+| Performance benchmarks | 🚧 In Progress |
+| Web framework integrations | 🚧 In Progress |
 
-The primary place to register application-wide dependencies is within the `configureContainer` function in `src/composition-root.ts`:
+## ❓ FAQ
+## Frequently Asked Questions
 
-```typescript
-// src/composition-root.ts
-import type { IContainer, ILogger, IRegistry, IFactory } from "@domain/interface";
-import { EServiceToken } from "@domain/interface";
-import {
-	ConsoleLogger,
-	Container,
-	Registry,
-	Factory,
-} from "@infrastructure/implementation";
+### Is ClaDI suitable for small projects?
+Yes, ClaDI is designed to be scalable for projects of all sizes. For small projects, you can use just the components you need, such as the Registry and Factory, without implementing the full dependency injection system.
 
-// Example custom type
-interface IMyService { name: string; doWork(): void; }
-class MyServiceImpl implements IMyService { 
-    name = 'MyService'; 
-    doWork() { console.log('Working...'); } 
-}
+### How does ClaDI compare to other DI frameworks like InversifyJS or TypeDI?
+ClaDI is more lightweight and focused, with zero external dependencies. It provides core building blocks rather than a full-featured DI framework. It's suitable for projects that need a clean, extensible foundation with minimal overhead.
 
-function configureContainer(): IContainer {
-	const container: IContainer = new Container();
+### Does ClaDI work with browser environments?
+Yes, ClaDI is designed to work in both Node.js and browser environments. It's built with ES modules and also provides CommonJS compatibility.
 
-	// Register essential services
-	const logger = new ConsoleLogger();
-	container.register<ILogger>(EServiceToken.LOGGER, logger);
+### How does the registry's caching mechanism work?
+The registry implements an internal cache for `getAll()` and `getMany()` operations. When you register or unregister items, the cache is automatically cleared to ensure you always get fresh data.
 
-	// Register custom service
-	container.register<IMyService>("MyServiceToken", new MyServiceImpl());
+### Can I use ClaDI with React, Angular, or Vue?
+Yes, ClaDI can be used with any frontend framework. It's framework-agnostic and provides core infrastructure that can be integrated into your component system.
 
-	// Register a registry and factory
-	const myRegistry = new Registry<{ name: string; value: number }>(logger);
-	myRegistry.register({ name: "config1", value: 100 });
-	container.register<IRegistry<{ name: string; value: number }>>(
-		EServiceToken.REGISTRY + ":MyConfig", // Use specific tokens
-		myRegistry,
-	);
+### How do I handle circular dependencies?
+Currently, circular dependencies must be managed manually. However, the roadmap includes adding circular dependency detection to help identify and resolve these issues.
 
-	const myFactory = new Factory<{ name: string; value: number }>({
-		registry: myRegistry,
-		logger: logger,
-	});
-	container.register<IFactory<{ name: string; value: number }>>(
-		EServiceToken.FACTORY + ":MyConfig",
-		myFactory,
-	);
+### Is there a performance penalty for using the factory pattern?
+The factory performs deep cloning of templates using `structuredClone()`, which has better performance than JSON serialization methods. For most applications, this overhead is negligible, and the benefits of immutability outweigh the performance cost.
 
-	return container;
-}
+## 🔒 License
+This project is licensed under **MIT License
 
-export const appContainer: IContainer = configureContainer();
-```
+Copyright (c) 2025 ElsiKora
 
-### 4. Dynamic Registration/Access (Use Sparingly)
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-While most dependencies should be configured centrally, the `ContainerHelper` allows dynamic interaction with the *container itself* if needed:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-```typescript
-import { ContainerHelper } from "./presentation/helper";
-
-// Check if a dependency exists
-if (!ContainerHelper.hasDependency("DynamicService")) {
-	console.log("Registering DynamicService...");
-	ContainerHelper.registerDependency("DynamicService", { 
-        message: "I was registered dynamically" 
-    });
-}
-
-const dynamicService = ContainerHelper.getDependency<{ message: string }>("DynamicService");
-console.log(dynamicService?.message);
-
-// Clean up
-ContainerHelper.removeDependency("DynamicService");
-```
-
-## Key Files
-
--   `src/index.ts`: Main entry point, exporting key modules.
--   `src/composition-root.ts`: Configures and exports the main `appContainer`, including the `IInfrastructureFactory`.
--   `src/domain/interface/`: Contains all core interfaces (`IContainer`, `IRegistry`, `IInfrastructureFactory`, etc.).
--   `src/infrastructure/implementation/`: Contains concrete implementations (`Container`, `Registry`, `InfrastructureFactory`, etc.).
--   `src/presentation/helper/container.helper.ts`: Provides static methods for easy access to the `appContainer` and for creating new registries/factories. 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.**.

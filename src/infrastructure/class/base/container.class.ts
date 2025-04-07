@@ -40,13 +40,13 @@ export class BaseContainer implements IContainer {
 	 */
 	// eslint-disable-next-line @elsikora/typescript/no-unnecessary-type-parameters
 	public get<T>(token: symbol): T | undefined {
-		this.LOGGER.debug(`Getting dependency with token: ${String(token.description)}`, { source: "Container" });
-
 		if (!token) {
 			this.LOGGER.warn("Attempted to get dependency with empty token", { source: "Container" });
 
 			return undefined;
 		}
+
+		this.LOGGER.debug(`Getting dependency with token: ${String(token.description)}`, { source: "Container" });
 
 		const dependency: T | undefined = this.DEPENDENCIES.get(token) as T | undefined;
 
@@ -106,11 +106,11 @@ export class BaseContainer implements IContainer {
 	 * @returns {boolean} True if the dependency exists, false otherwise.
 	 */
 	public has(token: symbol): boolean {
-		this.LOGGER.debug(`Checking if dependency exists: ${String(token.description)}`, { source: "Container" });
-
 		if (!token) {
 			return false;
 		}
+
+		this.LOGGER.debug(`Checking if dependency exists: ${String(token.description)}`, { source: "Container" });
 
 		const isExists: boolean = this.DEPENDENCIES.has(token);
 
@@ -126,14 +126,14 @@ export class BaseContainer implements IContainer {
 	 * @template T The type of the dependency.
 	 */
 	public register(token: symbol, implementation: unknown): void {
-		this.LOGGER.debug(`Registering dependency with token: ${String(token.description)}`, { source: "Container" });
-
 		if (!token) {
 			throw new BaseError("Token cannot be null or undefined", {
 				code: "CONTAINER_TOKEN_NOT_NULL_OR_UNDEFINED",
 				source: "Container",
 			});
 		}
+
+		this.LOGGER.debug(`Registering dependency with token: ${String(token.description)}`, { source: "Container" });
 
 		if (this.has(token)) {
 			throw new BaseError("Dependency already exists in container", {
@@ -184,14 +184,14 @@ export class BaseContainer implements IContainer {
 	 * @param {symbol} token Token that identifies the dependency.
 	 */
 	public unregister(token: symbol): void {
-		this.LOGGER.debug(`Unregistering dependency with token: ${String(token.description)}`, { source: "Container" });
-
 		if (!token) {
 			throw new BaseError("Token cannot be null or undefined", {
 				code: "CONTAINER_TOKEN_NOT_NULL_OR_UNDEFINED",
 				source: "Container",
 			});
 		}
+
+		this.LOGGER.debug(`Unregistering dependency with token: ${String(token.description)}`, { source: "Container" });
 
 		const wasDeleted: boolean = this.DEPENDENCIES.delete(token);
 

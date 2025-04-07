@@ -1,9 +1,9 @@
 import type { IContainer, IFactory, ILogger, IRegistry } from "@domain/interface";
 import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions } from "@infrastructure/index";
+import type { ICoreFactoryOptions } from "@infrastructure/interface/core-factory-options.interface";
 
-import { BaseContainer, BaseFactory, BaseRegistry, type ICoreFactoryOptions } from "@infrastructure/index";
+import { BaseContainer, BaseFactory, BaseRegistry } from "@infrastructure/class/base";
 import { ConsoleLoggerService } from "@infrastructure/service";
-
 /**
  * Factory for creating infrastructure components.
  * Provides methods to create instances of Registry, Factory, Container, and Logger.

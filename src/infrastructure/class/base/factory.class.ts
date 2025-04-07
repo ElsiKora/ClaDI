@@ -74,14 +74,15 @@ export class BaseFactory<T> implements IFactory<T> {
 			});
 		}
 
-		// eslint-disable-next-line @elsikora/typescript/no-unsafe-assignment
-		const result: T = this.TRANSFORMER ? this.TRANSFORMER(template) : { ...(template as any) };
+		// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
+		const result: T = this.TRANSFORMER ? this.TRANSFORMER(template) : structuredClone<T>(template);
 
 		this.CACHE.set(name, result);
 
 		this.LOGGER.debug(`Created item: ${name}`, { source: "Factory" });
 
-		return { ...result };
+		// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
+		return structuredClone<T>(result);
 	}
 
 	/**

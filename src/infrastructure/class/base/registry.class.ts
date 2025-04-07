@@ -152,14 +152,14 @@ export class BaseRegistry<T extends { name: string }> implements IRegistry<T> {
 	 * @throws ValidationError if the item is invalid.
 	 */
 	public register(item: T): void {
-		this.LOGGER.debug(`Registering item with name: ${item.name}`, { source: "Registry" });
-
 		if (!item) {
 			throw new BaseError("Item cannot be null or undefined", {
 				code: "REGISTRY_ITEM_NOT_NULL_OR_UNDEFINED",
 				source: "Registry",
 			});
 		}
+
+		this.LOGGER.debug(`Registering item with name: ${item.name}`, { source: "Registry" });
 
 		if (this.has(item.name)) {
 			throw new BaseError("Item already exists in registry", {
