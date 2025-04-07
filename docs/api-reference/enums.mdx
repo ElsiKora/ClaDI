@@ -1,0 +1,33 @@
+# Enums
+
+## `ELoggerLogLevel`
+
+Defines the available log levels for the `ILogger`.
+
+```typescript
+export enum ELoggerLogLevel {
+	DEBUG = "debug",
+	ERROR = "error",
+	INFO = "info",
+	TRACE = "trace",
+	WARN = "warn",
+}
+```
+
+- **Hierarchy**: `TRACE` > `DEBUG` > `INFO` > `WARN` > `ERROR` (most verbose to least verbose).
+- **Usage**: Used in `IConsoleLoggerOptions` to set the minimum logging level.
+
+## `EServiceToken`
+
+Defines standard `symbol` tokens for commonly used services within the `IContainer`.
+
+```typescript
+export enum EServiceToken {
+	CONTAINER = "container", // Typically used to register the container itself
+	FACTORY = "factory",     // For the main application Factory
+	LOGGER = "logger",       // For the main application Logger
+	REGISTRY = "registry",   // For the main application Registry
+}
+```
+
+- **Purpose**: Provides consistent, well-known symbols for core service registration and retrieval, reducing the need for custom symbols for basic services. 

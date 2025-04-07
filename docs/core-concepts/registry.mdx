@@ -1,0 +1,95 @@
+# Registry Pattern
+
+The `Registry` pattern, implemented by `IRegistry` and `BaseRegistry`, provides a way to store and retrieve objects or configuration templates using a simple string name.
+It's often used as the data source for a `Factory`.
+
+Imagine needing different sets of configuration for different environments (dev, staging, prod) or different types of resources (small server, large server). A Registry is ideal for managing these named variations.
+
+## Key Features & Examples
+
+- **Registration (`register`/`registerMany`)**: Store items. Each item **must** have a `name: string` property that serves as its unique key.
+
+  ```typescript filename="src/config-registry.ts"
+  import { createRegistry, type IRegistry } from '@elsikora/cladi';
+
+  // Define the structure of our configuration objects
+  interface ServerConfig {
+    name: string; // Mandatory for the registry key
+    cpu: number;
+    memory: string;
+    storage: string;
+    region: 'us-east-1' | 'eu-west-1';
+  }
+
+  const registry: IRegistry<ServerConfig> = createRegistry<ServerConfig>({}); // Logger can be passed in options
+
+  // Register different server configurations
+  registry.register({
+    name: "standard-dev",
+    cpu: 2,
+    memory: "4Gi",
+    storage: "50Gi",
+    region: "us-east-1",
+  });
+
+  registry.register({
+    name: "high-mem-prod",
+    cpu: 8,
+    memory: "32Gi",
+    storage: "500Gi",
+    region: "eu-west-1",
+  });
+
+  console.log(`Registry contains 'standard-dev': ${registry.has("standard-dev")}`); // true
+  ```
+
+- **Retrieval (`get`/`getMany`/`getAll`)**: Fetch items by their registered name(s). `getAll` retrieves all registered items.
+
+  ```typescript
+  // Assuming registry from previous example
+
+  const devConfig = registry.get("standard-dev");
+  console.log(`Dev CPU: ${devConfig?.cpu}`); // 2
+
+  const prodConfig = registry.get("high-mem-prod");
+  console.log(`Prod Memory: ${prodConfig?.memory}`); // "32Gi"
+
+  const allConfigs = registry.getAll();
+  console.log(`Total configs registered: ${allConfigs.length}`); // 2
+
+  const specificConfigs = registry.getMany(["standard-dev", "non-existent"]);
+  console.log(`Found specific configs: ${specificConfigs.length}`); // 1 (only standard-dev)
+  ```
+
+- **Checking Existence (`has`)**: Quickly check if a name is registered without retrieving the object.
+  ```typescript
+  if (registry.has("high-mem-prod")) {
+    console.log("Production configuration is available.");
+  }
+  ```
+
+- **Unregistration (`unregister`/`unregisterMany`)**: Remove items by name.
+  ```typescript
+  registry.unregister("standard-dev");
+  console.log(`Registry contains 'standard-dev' after unregister: ${registry.has("standard-dev")}`); // false
+  ```
+
+- **Clearing (`clear`)**: Empty the entire registry.
+  ```typescript
+  registry.clear();
+  console.log(`Total configs after clear: ${registry.getAll().length}`); // 0
+  ```
+
+- **Caching (Internal)**: The `BaseRegistry` implementation automatically caches the results of `getAll` and `getMany` calls. Subsequent identical calls return the cached result for performance. The cache is automatically cleared whenever `register`, `registerMany`, `unregister`, `unregisterMany`, or `clear` is called.
+
+## Purpose & Use Cases
+
+- **Managing Variations**: Store different versions or configurations of an object (e.g., environment settings, feature flag states, UI themes, resource definitions).
+- **Decoupling Definitions**: Separates the *definition* of these variations from the code that *uses* them.
+- **Data Source for Factories**: Provide the named templates that a `Factory` will use to create actual instances (see the [Factory Pattern](./factory.mdx) docs).
+
+## Core Implementation
+
+- **`IRegistry<T>` (Interface)**: Located in `src/domain/interface/registry.interface.ts`. Defines the contract. The generic type `T` is constrained to be an object with at least a `name: string` property (`T extends { name: string }`).
+- **`BaseRegistry<T>` (Class)**: Located in `src/infrastructure/class/base/registry.class.ts`. The default implementation, featuring internal caching and optional logging.
+- **`createRegistry<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseRegistry`, accepting `IBaseRegistryOptions` (primarily for passing a logger). 

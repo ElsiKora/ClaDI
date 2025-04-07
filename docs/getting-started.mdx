@@ -1,0 +1,229 @@
+# Getting Started
+
+This guide will walk you through the basic setup and usage of the core utilities.
+
+## Installation
+
+```bash
+# Using npm
+npm install @elsikora/cladi
+
+# Using yarn
+yarn add @elsikora/cladi
+
+# Using pnpm
+pnpm add @elsikora/cladi
+```
+
+## Basic Usage
+
+Here's a simple example of creating and using the core components:
+
+```typescript
+import {
+	createContainer,
+	createRegistry,
+	createFactory,
+	createLogger,
+	EServiceToken,
+	type IContainer,
+	type IRegistry,
+	type IFactory,
+	type ILogger,
+} from "@elsikora/cladi"; // Adjust import path as needed
+
+// 1. Create a Logger
+const logger: ILogger = createLogger({ level: "debug" });
+logger.info("Logger created.");
+
+// 2. Create a Registry
+interface MyItem { name: string; value: number; }
+const registryOptions = { logger };
+const registry: IRegistry<MyItem> = createRegistry<MyItem>(registryOptions);
+registry.register({ name: "item1", value: 100 });
+logger.info("Registry created and item registered.");
+
+// 3. Create a Factory
+const factoryOptions = { registry, logger };
+const factory: IFactory<MyItem> = createFactory<MyItem>(factoryOptions);
+const myItemInstance = factory.create("item1");
+logger.info(`Item created via factory: ${JSON.stringify(myItemInstance)}`);
+
+// 4. Create a Container
+const containerOptions = { logger };
+const container: IContainer = createContainer(containerOptions);
+
+// Register services/components
+container.register(EServiceToken.LOGGER, logger);
+container.register(EServiceToken.REGISTRY, registry);
+container.register(EServiceToken.FACTORY, factory);
+logger.info("Container created and components registered.");
+
+// Retrieve a service
+const retrievedLogger = container.get<ILogger>(EServiceToken.LOGGER);
+retrievedLogger?.info("Logger retrieved from container.");
+```
+
+This example demonstrates the basic workflow of initializing and using the logger, registry, factory, and container.
+
+## Full Integration Example (Multi-File)
+
+Let's structure a small application using `@elsikora/cladi`.
+
+**1. Define Types (`src/types.ts`)**
+
+```typescript filename="src/types.ts"
+// Define configuration structure
+export interface IAppConfig {
+  name: string; // Required for Registry
+  logLevel: "debug" | "info" | "warn" | "error" | "trace";
+  apiUrl: string;
+}
+
+// Define a service interface
+export interface IUserService {
+  getUser(id: number): Promise<{ id: number; name: string } | null>;
+}
+
+// Define specific service tokens
+export const ServiceTokens = {
+  AppConfig: Symbol.for("AppConfig"),
+  UserService: Symbol.for("UserService"),
+};
+```
+
+**2. Create Services (`src/services.ts`)**
+
+```typescript filename="src/services.ts"
+import type { IUserService, IAppConfig } from "./types";
+import type { ILogger } from "@elsikora/cladi";
+
+// Concrete implementation of IUserService
+export class UserServiceImpl implements IUserService {
+  constructor(private readonly config: IAppConfig, private readonly logger: ILogger) {
+    this.logger.debug("UserService initialized", { source: "UserServiceImpl" });
+  }
+
+  async getUser(id: number): Promise<{ id: number; name: string } | null> {
+    this.logger.info(`Fetching user with id: ${id}`, {
+      source: "UserServiceImpl",
+      context: { apiUrl: this.config.apiUrl },
+    });
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 50)); 
+    if (id === 1) {
+      return { id: 1, name: "Alice" };
+    }
+    return null;
+  }
+}
+```
+
+**3. Configure Container (`src/container.ts`)**
+
+```typescript filename="src/container-config.ts"
+import {
+  createContainer,
+  createRegistry,
+  createFactory,
+  createLogger,
+  EServiceToken,
+  ELoggerLogLevel,
+  type IContainer,
+  type IRegistry,
+  type IFactory,
+  type ILogger,
+} from "@elsikora/cladi";
+import { type IAppConfig, type IUserService, ServiceTokens } from "./types";
+import { UserServiceImpl } from "./services";
+
+// --- Configuration Registry/Factory ---
+const configRegistry: IRegistry<IAppConfig> = createRegistry<IAppConfig>({});
+configRegistry.register({ 
+  name: "development", 
+  logLevel: ELoggerLogLevel.DEBUG,
+  apiUrl: "http://localhost:3000/api",
+});
+configRegistry.register({ 
+  name: "production", 
+  logLevel: ELoggerLogLevel.INFO,
+  apiUrl: "https://api.example.com/v1",
+});
+
+const configFactory: IFactory<IAppConfig> = createFactory<IAppConfig>({ registry: configRegistry });
+
+// Determine environment (simple example)
+const env = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const appConfig = configFactory.create(env);
+
+// --- Logger ---
+const logger: ILogger = createLogger({ level: appConfig.logLevel, source: "App" });
+
+// --- Main Application Container ---
+const container: IContainer = createContainer({ logger });
+
+// Register core services
+container.register(EServiceToken.LOGGER, logger);
+container.register(ServiceTokens.AppConfig, appConfig);
+
+// Register application services (dependencies injected from container)
+const userService = new UserServiceImpl(
+  container.get<IAppConfig>(ServiceTokens.AppConfig)!,
+  container.get<ILogger>(EServiceToken.LOGGER)!
+);
+container.register(ServiceTokens.UserService, userService);
+
+logger.info(`Application configured for [${env}] environment.`, {
+  context: { config: appConfig },
+});
+
+export { container }; // Export the configured container
+```
+
+**4. Application Entry Point (`src/main.ts`)**
+
+```typescript filename="src/main.ts"
+import { container } from "./container-config";
+import { type IUserService, ServiceTokens } from "./types";
+import { EServiceToken, type ILogger } from "@elsikora/cladi";
+
+async function main() {
+  const logger = container.get<ILogger>(EServiceToken.LOGGER)!;
+  const userService = container.get<IUserService>(ServiceTokens.UserService)!;
+
+  logger.info("Application starting...");
+
+  const user = await userService.getUser(1);
+  if (user) {
+    logger.info(`Found user: ${user.name}`);
+  } else {
+    logger.warn("User with ID 1 not found.");
+  }
+
+  const nonExistentUser = await userService.getUser(2);
+  if (!nonExistentUser) {
+    logger.info("User with ID 2 correctly not found.");
+  }
+
+  logger.info("Application finished.");
+}
+
+main().catch(error => {
+  // Attempt to get logger, fallback to console if container setup failed
+  let logger = container.get<ILogger>(EServiceToken.LOGGER);
+  if (!logger) {
+    console.error("Logger not available in container, logging directly to console.");
+    logger = console; 
+  }
+  logger.error("Unhandled error during application execution:", error);
+  process.exit(1);
+});
+
+```
+
+This example shows how to:
+- Define application-specific types and service tokens.
+- Implement services that receive dependencies (`ILogger`, `IAppConfig`) via their constructor.
+- Use a Registry and Factory to manage different application configurations (e.g., development vs. production).
+- Centralize container setup and registration.
+- Retrieve and use services from the container in the main application logic. 
