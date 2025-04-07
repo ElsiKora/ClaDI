@@ -1,0 +1,135 @@
+# Error Handling
+
+`@elsikora/cladi` promotes a structured approach to error handling using the `IError` interface and the `BaseError` class. This provides more context and allows for better programmatic handling compared to standard JavaScript `Error` objects.
+
+## `IError` Interface
+
+This is the core contract for errors within the library. It extends the built-in `Error` and adds fields crucial for robust error management:
+
+```typescript
+// Located in: src/domain/interface/error.interface.ts
+export interface IError extends Error {
+  /**
+   * A unique, machine-readable code identifying the specific error type.
+   * Examples: "REGISTRY_ITEM_NOT_FOUND", "CONTAINER_DEPENDENCY_ALREADY_EXISTS"
+   */
+  CODE: string;
+
+  /**
+   * The original error that caused this error, if any (error chaining).
+   */
+  CAUSE?: Error;
+
+  /**
+   * Additional key-value data providing context about the error scenario.
+   * Example: { userId: 123, missingParam: 'email' }
+   */
+  context?: Record<string, unknown>;
+
+  // Inherited from Error: `name` (usually the class name), `message` (human-readable description)
+}
+```
+
+## `BaseError` Class
+
+This is the concrete implementation of `IError` provided by the library. Use it to throw structured errors from your own code or within library extensions.
+
+```typescript filename="src/data-service.ts"
+import { BaseError } from '@elsikora/cladi';
+
+// Assume item is declared elsewhere
+declare const item: any;
+
+async function fetchData(id: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/data/${id}`);
+
+    if (response.status === 404) {
+      // Throw a structured error when data is not found
+      throw new BaseError(`Data item with ID '${id}' not found.`, {
+        code: "DATA_NOT_FOUND",
+        context: { requestedId: id, status: 404 },
+        source: "DataService.fetchData", // Identify the origin
+      });
+    }
+
+    if (!response.ok) {
+      // Throw a generic error for other HTTP issues, including the original status
+      throw new BaseError(`Failed to fetch data. Status: ${response.status}`, {
+        code: "FETCH_FAILED",
+        context: { requestedId: id, status: response.status, statusText: response.statusText },
+        source: "DataService.fetchData",
+      });
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    // Catch potential network errors or errors thrown above
+    // Wrap the original error if it's not already a BaseError
+    if (error instanceof BaseError) {
+      throw error; // Re-throw if already structured
+    } else if (error instanceof Error) {
+      throw new BaseError(`Network or unexpected error during fetch: ${error.message}`, {
+        code: "FETCH_UNEXPECTED_ERROR",
+        context: { requestedId: id },
+        source: "DataService.fetchData",
+        cause: error, // Chain the original error
+      });
+    } else {
+      // Handle non-Error throws (less common)
+      throw new BaseError("An unknown error occurred during fetch.", {
+        code: "FETCH_UNKNOWN_ERROR",
+        context: { requestedId: id, originalError: String(error) },
+        source: "DataService.fetchData",
+      });
+    }
+  }
+}
+
+async function processItem(id: string) {
+    try {
+        const data = await fetchData(id);
+        console.log("Data processed:", data);
+    } catch (error) {
+        if (error instanceof BaseError) {
+            console.error(`[${error.CODE}] ${error.message}`);
+            if (error.context) {
+                console.error(`  Context: ${JSON.stringify(error.context)}`);
+            }
+            if (error.source) {
+                console.error(`  Source: ${error.source}`);
+            }
+            if (error.cause) {
+                console.error(`  Caused by: ${error.cause.name} - ${error.cause.message}`);
+            }
+            // Perform specific actions based on CODE
+            if (error.CODE === 'DATA_NOT_FOUND') {
+                // Maybe show a user-friendly message
+            } else {
+                // Log more severely or retry?
+            }
+        } else {
+            // Handle unexpected non-BaseError errors
+            console.error("An unexpected error occurred:", error);
+        }
+    }
+}
+
+// Example usage (in a real scenario, call processItem)
+// processItem("item123");
+// processItem("item404"); // Example to trigger DATA_NOT_FOUND
+```
+
+## Benefits
+
+- **Consistency**: Standardizes error reporting across different parts of an application.
+- **Programmatic Handling**: The `CODE` property allows reliable `switch` statements or `if/else` blocks to handle specific error scenarios differently (e.g., retry logic for network errors, user feedback for validation errors).
+- **Rich Debugging**: `context`, `CAUSE`, and `source` provide invaluable information for diagnosing issues, far beyond a simple error message.
+- **Error Chaining**: The `CAUSE` property preserves the original error stack trace when wrapping errors.
+
+## Core Implementation
+
+- **`IError` (Interface)**: Located in `src/domain/interface/error.interface.ts`.
+- **`BaseError` (Class)**: Located in `src/infrastructure/class/base/error.class.ts`. Implements `IError` and captures stack traces.
+- **`IBaseErrorOptions` (Interface)**: Located in `src/infrastructure/interface/base/error-options.interface.ts`. Defines the options object passed to the `BaseError` constructor. 

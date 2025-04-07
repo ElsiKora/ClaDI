@@ -1,13 +1,13 @@
 # Factory Pattern
 
-The `Factory` pattern, implemented via `IFactory` and `BaseFactory`, provides a standardized way to create instances of objects based on named templates stored in a `Registry`.
+The `Factory` pattern, implemented via `IFactory` and `BaseFactory`, provides a standardized way to create instances of objects based on named templates stored in a [`Registry`](../registry).
 
 Instead of scattering `new MyObject(...)` calls throughout your code, you ask the factory to `create('objectName')`.
 This centralizes creation logic and makes it easy to switch out implementations or configurations.
 
 ## Key Features & Examples
 
-- **Creation (`create`)**: The core method. It takes a `name`, looks up the corresponding template object in its associated `Registry`, clones it (by default using `structuredClone`), potentially transforms it, caches it, and returns the final instance.
+- **Creation (`create`)**: The core method. It takes a `name`, looks up the corresponding template object in its associated [`Registry`](../registry), clones it (by default using `structuredClone`), potentially transforms it, caches it, and returns the final instance.
 
   ```typescript filename="src/user-factory.ts"
   import { createFactory, createRegistry, type IFactory, type IRegistry } from '@elsikora/cladi';
@@ -65,6 +65,9 @@ This centralizes creation logic and makes it easy to switch out implementations 
   ```typescript
   // ... registry setup as before ...
 
+  // Assume userRegistry is declared and populated
+  declare const userRegistry: IRegistry<UserProfile>;
+
   const transformingFactory = createFactory<UserProfile>({
     registry: userRegistry,
     transformer: (template) => {
@@ -82,14 +85,14 @@ This centralizes creation logic and makes it easy to switch out implementations 
 
 - **Caching (Internal)**: The `BaseFactory` caches the *first transformed template* for each name. Subsequent calls to `create` for the same name will `structuredClone` this cached template, avoiding repeated lookups and transformations.
 
-- **Cache Clearing (`clearCache`)**: If the underlying `Registry` changes, you *must* call `factory.clearCache(name?)` to remove the factory's cached template(s) and force it to re-fetch (and re-transform) from the registry on the next `create` call. If `name` is omitted, the entire factory cache is cleared.
+- **Cache Clearing (`clearCache`)**: If the underlying [`Registry`](../registry) changes, you *must* call `factory.clearCache(name?)` to remove the factory's cached template(s) and force it to re-fetch (and re-transform) from the registry on the next `create` call. If `name` is omitted, the entire factory cache is cleared.
 
 ## Purpose & Use Cases
 
 - **Decouple Object Creation**: Hides the complexity of creating objects (`new ...`, setting defaults, etc.) behind a simple `create(name)` interface.
 - **Manage Instance Variations**: Easily create different pre-configured instances of the same base object type (like user profiles, database connections, API clients).
 - **Enforce Consistency**: Ensures objects are created according to the defined templates in the registry.
-- **Combine with DI**: Factories themselves can be registered in the `Container` to provide on-demand creation of specific object types throughout the application.
+- **Combine with DI**: Factories themselves can be registered in the [`Container`](../container) to provide on-demand creation of specific object types throughout the application.
 
 ## Core Implementation
 
