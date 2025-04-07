@@ -22,7 +22,7 @@ export interface IContainer {
 	unregisterMany(tokens: Array<symbol>): void;
 }
 ```
-*(See Core Concepts: [Dependency Injection](./../core-concepts/container.mdx))* 
+*(See Core Concepts: [Dependency Injection](../../core-concepts/container))* 
 
 ### `IRegistry<T>`
 
@@ -42,7 +42,7 @@ export interface IRegistry<T extends { name: string }> {
 	unregisterMany(names: Array<string>): void;
 }
 ```
-*(See Core Concepts: [Registry Pattern](./../core-concepts/registry.mdx))* 
+*(See Core Concepts: [Registry Pattern](../../core-concepts/registry))* 
 
 ### `IFactory<T>`
 
@@ -55,7 +55,7 @@ export interface IFactory<T> {
 	getRegistry(): IRegistry<T>;
 }
 ```
-*(See Core Concepts: [Factory Pattern](./../core-concepts/factory.mdx))* 
+*(See Core Concepts: [Factory Pattern](../../core-concepts/factory))* 
 
 ### `ILogger`
 
@@ -71,7 +71,7 @@ export interface ILogger {
 	warn(message: string, options?: ILoggerMethodOptions): void;
 }
 ```
-*(See Services: [Logging Service](./../services/logging.mdx))* 
+*(See Services: [Logging Service](../../services/logging))* 
 
 ### `IError`
 
@@ -85,7 +85,7 @@ export interface IError extends Error {
 	context?: Record<string, unknown>;
 }
 ```
-*(See Core Concepts: [Error Handling](./../core-concepts/error-handling.mdx))* 
+*(See Core Concepts: [Error Handling](../../core-concepts/error-handling))* 
 
 ## Options Interfaces
 
@@ -133,7 +133,7 @@ Options for `ConsoleLoggerService`.
 
 ```typescript
 export interface IConsoleLoggerOptions {
-	level: ELoggerLogLevel; // Minimum level to log
+	level: ELoggerLogLevel; // Minimum level to log - See ELoggerLogLevel in Enums
 	source?: string; // Default source identifier for the logger instance
 }
 ```

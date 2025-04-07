@@ -1,7 +1,7 @@
 # Registry Pattern
 
 The `Registry` pattern, implemented by `IRegistry` and `BaseRegistry`, provides a way to store and retrieve objects or configuration templates using a simple string name.
-It's often used as the data source for a `Factory`.
+It's often used as the data source for a [Factory](../factory).
 
 Imagine needing different sets of configuration for different environments (dev, staging, prod) or different types of resources (small server, large server). A Registry is ideal for managing these named variations.
 
@@ -86,7 +86,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Managing Variations**: Store different versions or configurations of an object (e.g., environment settings, feature flag states, UI themes, resource definitions).
 - **Decoupling Definitions**: Separates the *definition* of these variations from the code that *uses* them.
-- **Data Source for Factories**: Provide the named templates that a `Factory` will use to create actual instances (see the [Factory Pattern](./factory.mdx) docs).
+- **Data Source for Factories**: Provide the named templates that a [Factory](../factory) will use to create actual instances.
 
 ## Core Implementation
 

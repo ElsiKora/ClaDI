@@ -112,11 +112,11 @@ const debugLogger = createLogger({
 
 ## Integrating with Dependency Injection
 
-Typically, you create a logger instance early in your application setup and register it with the `Container` using `EServiceToken.LOGGER`. Other services can then receive the logger via constructor injection.
+Typically, you create a logger instance early in your application setup and register it with the [`Container`](../../core-concepts/container) using `EServiceToken.LOGGER`. Other services can then receive the logger via constructor injection.
 
 ```typescript filename="src/container-setup.ts"
 // ... other imports
-import { createLogger, EServiceToken, ELoggerLogLevel, type ILogger, createContainer } from '@elsikora/cladi';
+import { createLogger, EServiceToken, ELoggerLogLevel, type ILogger, createContainer, type IContainer } from '@elsikora/cladi';
 
 const logger = createLogger({ level: ELoggerLogLevel.INFO, source: "App" });
 const container = createContainer({ logger }); // Optionally log container operations
@@ -127,7 +127,7 @@ container.register(EServiceToken.LOGGER, logger);
 ```
 
 ```typescript filename="src/some-service.ts"
-import { EServiceToken, type ILogger } from '@elsikora/cladi';
+import { EServiceToken, type ILogger, type IContainer } from '@elsikora/cladi';
 // Assume container is accessible or passed in
 declare const container: IContainer;
 
