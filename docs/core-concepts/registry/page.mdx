@@ -1,7 +1,7 @@
 # Registry Pattern
 
 The `Registry` pattern, implemented by `IRegistry` and `BaseRegistry`, provides a way to store and retrieve objects or configuration templates using a simple string name.
-It's often used as the data source for a [Factory](../factory).
+It's often used as the data source for a [Factory](/core-concepts/factory).
 
 Imagine needing different sets of configuration for different environments (dev, staging, prod) or different types of resources (small server, large server). A Registry is ideal for managing these named variations.
 
@@ -9,7 +9,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Registration (`register`/`registerMany`)**: Store items. Each item **must** have a `name: string` property that serves as its unique key.
 
-  ```typescript filename="src/config-registry.ts"
+  ```typescript filename="src/config-registry.ts" copy
   import { createRegistry, type IRegistry } from '@elsikora/cladi';
 
   // Define the structure of our configuration objects
@@ -45,7 +45,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Retrieval (`get`/`getMany`/`getAll`)**: Fetch items by their registered name(s). `getAll` retrieves all registered items.
 
-  ```typescript
+  ```typescript copy
   // Assuming registry from previous example
 
   const devConfig = registry.get("standard-dev");
@@ -62,20 +62,20 @@ Imagine needing different sets of configuration for different environments (dev,
   ```
 
 - **Checking Existence (`has`)**: Quickly check if a name is registered without retrieving the object.
-  ```typescript
+  ```typescript copy
   if (registry.has("high-mem-prod")) {
     console.log("Production configuration is available.");
   }
   ```
 
 - **Unregistration (`unregister`/`unregisterMany`)**: Remove items by name.
-  ```typescript
+  ```typescript copy
   registry.unregister("standard-dev");
   console.log(`Registry contains 'standard-dev' after unregister: ${registry.has("standard-dev")}`); // false
   ```
 
 - **Clearing (`clear`)**: Empty the entire registry.
-  ```typescript
+  ```typescript copy
   registry.clear();
   console.log(`Total configs after clear: ${registry.getAll().length}`); // 0
   ```
@@ -86,7 +86,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Managing Variations**: Store different versions or configurations of an object (e.g., environment settings, feature flag states, UI themes, resource definitions).
 - **Decoupling Definitions**: Separates the *definition* of these variations from the code that *uses* them.
-- **Data Source for Factories**: Provide the named templates that a [Factory](../factory) will use to create actual instances.
+- **Data Source for Factories**: Provide the named templates that a [Factory](/core-concepts/factory) will use to create actual instances.
 
 ## Core Implementation
 

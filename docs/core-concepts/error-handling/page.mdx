@@ -6,7 +6,7 @@
 
 This is the core contract for errors within the library. It extends the built-in `Error` and adds fields crucial for robust error management:
 
-```typescript
+```typescript copy
 // Located in: src/domain/interface/error.interface.ts
 export interface IError extends Error {
   /**
@@ -34,7 +34,7 @@ export interface IError extends Error {
 
 This is the concrete implementation of `IError` provided by the library. Use it to throw structured errors from your own code or within library extensions.
 
-```typescript filename="src/data-service.ts"
+```typescript filename="src/data-service.ts" copy
 import { BaseError } from '@elsikora/cladi';
 
 // Assume item is declared elsewhere
@@ -132,4 +132,4 @@ async function processItem(id: string) {
 
 - **`IError` (Interface)**: Located in `src/domain/interface/error.interface.ts`.
 - **`BaseError` (Class)**: Located in `src/infrastructure/class/base/error.class.ts`. Implements `IError` and captures stack traces.
-- **`IBaseErrorOptions` (Interface)**: Located in `src/infrastructure/interface/base/error-options.interface.ts`. Defines the options object passed to the `BaseError` constructor. 
+- **`IBaseErrorOptions` (Interface)**: Located in `src/infrastructure/interface/base/error-options.interface.ts`. Defines the options object passed to the `BaseError`

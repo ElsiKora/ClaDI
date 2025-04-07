@@ -8,7 +8,7 @@ Think of the container as a central hub where you register all the building bloc
 
 - **Registration (`register`/`registerMany`)**: Store dependencies using a unique `symbol` as a key (token). You can use predefined `EServiceToken` for core services or create your own `Symbol.for('YourToken')` for application-specific dependencies.
 
-  ```typescript filename="src/container-setup.ts"
+  ```typescript filename="src/container-setup.ts" copy
   import { createContainer, EServiceToken, type ILogger } from '@elsikora/cladi';
   import { SomeService, AnotherService } from './services';
   import { ApiConfig } from './config';
@@ -42,7 +42,7 @@ Think of the container as a central hub where you register all the building bloc
 
 - **Retrieval (`get`/`getMany`)**: Fetch dependencies using their registered token. The type parameter `<T>` ensures type safety.
 
-  ```typescript filename="src/some-module.ts"
+  ```typescript filename="src/some-module.ts" copy
   import { container, Tokens } from './container-setup';
   import { type ILogger, EServiceToken } from '@elsikora/cladi';
   import type { SomeService } from './services';
@@ -66,7 +66,7 @@ Think of the container as a central hub where you register all the building bloc
   ```
 
 - **Checking Existence (`has`)**: Verify if a token is registered before attempting retrieval.
-  ```typescript
+  ```typescript copy
   declare const logger: ILogger;
   if (container.has(Tokens.SomeService)) {
     const service = container.get<SomeService>(Tokens.SomeService);
@@ -77,14 +77,14 @@ Think of the container as a central hub where you register all the building bloc
   ```
 
 - **Unregistration (`unregister`/`unregisterMany`)**: Remove dependencies, useful in testing or dynamic scenarios (less common in typical application flow).
-  ```typescript
+  ```typescript copy
   declare const logger: ILogger;
   container.unregister(Tokens.SomeService);
   logger.debug(`Has SomeService after unregister: ${container.has(Tokens.SomeService)}`); // Logs: false
   ```
 
 - **Clearing (`clear`)**: Remove all registered dependencies, primarily for test environment teardown to ensure test isolation.
-  ```typescript
+  ```typescript copy
   declare const logger: ILogger;
   container.clear();
   logger.debug(`Has Logger after clear: ${container.has(EServiceToken.LOGGER)}`); // Logs: false

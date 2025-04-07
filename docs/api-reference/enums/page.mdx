@@ -6,7 +6,7 @@
 
 Defines the available log levels for the `ILogger`.
 
-```typescript
+```typescript copy
 export enum ELoggerLogLevel {
 	DEBUG = "debug",
 	ERROR = "error",
@@ -17,15 +17,15 @@ export enum ELoggerLogLevel {
 ```
 
 - **Hierarchy**: `TRACE` > `DEBUG` > `INFO` > `WARN` > `ERROR` (most verbose to least verbose).
-- **Usage**: Used in [`IConsoleLoggerOptions`](../interfaces#iconsoleloggeroptions) to set the minimum logging level.
+- **Usage**: Used in [`IConsoleLoggerOptions`](/api-reference/interfaces#iconsoleloggeroptions) to set the minimum logging level.
 
 ## `EServiceToken`
 
 *Defined in: `src/domain/enum/service-token.enum.ts`*
 
-Defines standard `symbol` tokens for commonly used services within the [`IContainer`](../interfaces#icontainer).
+Defines standard `symbol` tokens for commonly used services within the [`IContainer`](/api-reference/interfaces#icontainer).
 
-```typescript
+```typescript copy
 export enum EServiceToken {
 	CONTAINER = "container", // Typically used to register the container itself
 	FACTORY = "factory",     // For the main application Factory
