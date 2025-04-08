@@ -1,5 +1,4 @@
-import type { IRegistry } from "@domain/interface";
-import type { ILogger } from "@domain/interface/logger/interface";
+import type { ILogger, IRegistry } from "@domain/interface";
 
 /**
  * Base factory creation options.

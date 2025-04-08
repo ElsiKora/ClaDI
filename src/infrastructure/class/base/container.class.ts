@@ -1,10 +1,8 @@
-import type { IContainer } from "@domain/interface/container.interface";
-import type { ILogger } from "@domain/interface/logger/interface";
+import type { IContainer, ILogger } from "@domain/interface";
 import type { IBaseContainerOptions } from "@infrastructure/interface";
 
+import { BaseError } from "@infrastructure/class/base/error.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
-
-import { BaseError } from "./error.class";
 
 /**
  * Simple dependency injection container implementation.

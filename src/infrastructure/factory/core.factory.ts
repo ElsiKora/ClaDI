@@ -1,9 +1,9 @@
 import type { IContainer, IFactory, ILogger, IRegistry } from "@domain/interface";
-import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions } from "@infrastructure/index";
-import type { ICoreFactoryOptions } from "@infrastructure/interface/core-factory-options.interface";
+import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "@infrastructure/interface";
 
 import { BaseContainer, BaseFactory, BaseRegistry } from "@infrastructure/class/base";
 import { ConsoleLoggerService } from "@infrastructure/service";
+
 /**
  * Factory for creating infrastructure components.
  * Provides methods to create instances of Registry, Factory, Container, and Logger.
@@ -96,7 +96,7 @@ export class CoreFactory {
 	 * @returns {IRegistry<T>} A new registry instance.
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
 	 */
-	public createRegistry<T extends { name: string }>(options: IBaseRegistryOptions): IRegistry<T> {
+	public createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
 		this.LOGGER?.debug("Creating new registry instance", { source: "InfrastructureFactory" });
 
 		const registry: IRegistry<T> = new BaseRegistry<T>(options);

@@ -14,9 +14,15 @@ const mockLogger: ILogger = {
 
 // Mock Item Type
 interface IMockItem {
-	name: string;
+	getName(): string;
 	value: number;
 }
+
+// Helper to create mock items consistently
+const createMockItem = (name: string, value: number): IMockItem => ({
+	getName: () => name,
+	value,
+});
 
 describe("BaseRegistry", () => {
 	let registry: BaseRegistry<IMockItem>;
@@ -33,18 +39,18 @@ describe("BaseRegistry", () => {
 
 	describe("register", () => {
 		it("should register a new item successfully", () => {
-			const item: IMockItem = { name: "item1", value: 10 };
+			const item = createMockItem("item1", 10);
 			registry.register(item);
 			expect(registry.has("item1")).toBe(true);
 			expect(registry.get("item1")).toEqual(item);
-			expect(mockLogger.debug).toHaveBeenCalledWith("Registering item with name: item1", { source: "Registry" });
-			expect(mockLogger.debug).toHaveBeenCalledWith("Item registered successfully: item1", { source: "Registry" });
+			expect(mockLogger.debug).toHaveBeenCalledWith(`Registering item with name: ${item.getName()}`, { source: "Registry" });
+			expect(mockLogger.debug).toHaveBeenCalledWith(`Item registered successfully: ${item.getName()}`, { source: "Registry" });
 			expect(mockLogger.debug).toHaveBeenCalledWith("All caches cleared", { source: "Registry" }); // Cache cleared on register
 		});
 
 		it("should throw an error if registering an item with an existing name", () => {
-			const item1: IMockItem = { name: "item1", value: 10 };
-			const item2: IMockItem = { name: "item1", value: 20 }; // Same name
+			const item1 = createMockItem("item1", 10);
+			const item2 = createMockItem("item1", 20); // Same name
 			registry.register(item1);
 			expect(() => {
 				registry.register(item2);
@@ -64,8 +70,8 @@ describe("BaseRegistry", () => {
 		});
 
 		it("register should clear the getAll cache", () => {
-			const item1: IMockItem = { name: "item1", value: 10 };
-			const item2: IMockItem = { name: "item2", value: 20 };
+			const item1 = createMockItem("item1", 10);
+			const item2 = createMockItem("item2", 20);
 			registry.register(item1);
 			registry.register(item2);
 
@@ -75,7 +81,7 @@ describe("BaseRegistry", () => {
 			vi.clearAllMocks();
 
 			// Register a new item, which should clear the cache (hitting lines 266-267)
-			const item3: IMockItem = { name: "item3", value: 30 };
+			const item3 = createMockItem("item3", 30);
 			registry.register(item3);
 			expect(mockLogger.debug).toHaveBeenCalledWith("All caches cleared", { source: "Registry" });
 
@@ -89,7 +95,7 @@ describe("BaseRegistry", () => {
 
 	describe("get", () => {
 		it("should return the item if it exists", () => {
-			const item: IMockItem = { name: "item1", value: 10 };
+			const item = createMockItem("item1", 10);
 			registry.register(item);
 			const retrievedItem = registry.get("item1");
 			expect(retrievedItem).toEqual(item);
@@ -113,7 +119,7 @@ describe("BaseRegistry", () => {
 
 	describe("has", () => {
 		it("should return true if the item exists", () => {
-			const item: IMockItem = { name: "item1", value: 10 };
+			const item = createMockItem("item1", 10);
 			registry.register(item);
 			expect(registry.has("item1")).toBe(true);
 			expect(mockLogger.debug).toHaveBeenCalledWith("Checking if item exists: item1", { source: "Registry" });
@@ -134,7 +140,7 @@ describe("BaseRegistry", () => {
 
 	describe("unregister", () => {
 		it("should remove an existing item", () => {
-			const item: IMockItem = { name: "item1", value: 10 };
+			const item = createMockItem("item1", 10);
 			registry.register(item);
 			expect(registry.has("item1")).toBe(true);
 			registry.unregister("item1");
@@ -165,8 +171,8 @@ describe("BaseRegistry", () => {
 
 	describe("clear", () => {
 		it("should remove all items from the registry", () => {
-			const item1: IMockItem = { name: "item1", value: 10 };
-			const item2: IMockItem = { name: "item2", value: 20 };
+			const item1 = createMockItem("item1", 10);
+			const item2 = createMockItem("item2", 20);
 			registry.register(item1);
 			registry.register(item2);
 			expect(registry.has("item1")).toBe(true);
@@ -196,9 +202,9 @@ describe("BaseRegistry", () => {
 
 		it("should ensure internal CACHE map is cleared via clearCache()", () => {
 			// Register an item and manually add something to the cache
-			const item1: IMockItem = { name: "item1", value: 10 };
+			const item1 = createMockItem("item1", 10);
 			registry.register(item1);
-			(registry as any).CACHE.set("manualKey", [{ name: "cachedItem", value: 99 }]);
+			(registry as any).CACHE.set("manualKey", [createMockItem("cachedItem", 99)]);
 			expect((registry as any).CACHE.size).toBeGreaterThan(0);
 			vi.clearAllMocks(); // Clear mocks before calling clear()
 
@@ -214,8 +220,8 @@ describe("BaseRegistry", () => {
 	describe("registerMany", () => {
 		it("should register multiple items successfully", () => {
 			const items: Array<IMockItem> = [
-				{ name: "item1", value: 10 },
-				{ name: "item2", value: 20 },
+				createMockItem("item1", 10),
+				createMockItem("item2", 20),
 			];
 			registry.registerMany(items);
 			expect(registry.has("item1")).toBe(true);
@@ -226,12 +232,12 @@ describe("BaseRegistry", () => {
 		});
 
 		it("should throw an error if any item has an existing name", () => {
-			const item1: IMockItem = { name: "item1", value: 10 };
+			const item1 = createMockItem("item1", 10);
 			registry.register(item1);
 
 			const items: Array<IMockItem> = [
-				{ name: "item2", value: 20 },
-				{ name: "item1", value: 30 }, // Duplicate name
+				createMockItem("item2", 20),
+				createMockItem("item1", 30), // Duplicate name
 			];
 			expect(() => {
 				registry.registerMany(items);
@@ -257,9 +263,9 @@ describe("BaseRegistry", () => {
 	describe("getMany", () => {
 		beforeEach(() => {
 			const items: Array<IMockItem> = [
-				{ name: "item1", value: 10 },
-				{ name: "item2", value: 20 },
-				{ name: "item3", value: 30 },
+				createMockItem("item1", 10),
+				createMockItem("item2", 20),
+				createMockItem("item3", 30),
 			];
 			registry.registerMany(items);
 			vi.clearAllMocks(); // Clear mocks after setup
@@ -271,8 +277,8 @@ describe("BaseRegistry", () => {
 			expect(retrievedItems).toHaveLength(2);
 			expect(retrievedItems).toEqual(
 				expect.arrayContaining([
-					{ name: "item1", value: 10 },
-					{ name: "item3", value: 30 },
+					expect.objectContaining({ value: 10 }),
+					expect.objectContaining({ value: 30 }),
 				]),
 			);
 			expect(mockLogger.debug).toHaveBeenCalledWith(`Getting ${names.length} items by name`, { source: "Registry" });
@@ -285,8 +291,8 @@ describe("BaseRegistry", () => {
 			expect(retrievedItems).toHaveLength(2);
 			expect(retrievedItems).toEqual(
 				expect.arrayContaining([
-					{ name: "item1", value: 10 },
-					{ name: "item3", value: 30 },
+					expect.objectContaining({ value: 10 }),
+					expect.objectContaining({ value: 30 }),
 				]),
 			);
 		});
@@ -305,6 +311,12 @@ describe("BaseRegistry", () => {
 
 			const retrievedItems = registry.getMany(names); // Second call - should hit cache
 			expect(retrievedItems).toHaveLength(2);
+			expect(retrievedItems).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ value: 10 }),
+					expect.objectContaining({ value: 20 }),
+				]),
+			);
 			expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining("Cache hit for query: getMany:item1,item2"), { source: "Registry" });
 			// Ensure individual 'get' was not called this time
 			expect(mockLogger.debug).not.toHaveBeenCalledWith("Getting item with name: item1", { source: "Registry" });
@@ -322,8 +334,8 @@ describe("BaseRegistry", () => {
 	});
 
 	describe("getAll", () => {
-		const item1: IMockItem = { name: "item1", value: 10 };
-		const item2: IMockItem = { name: "item2", value: 20 };
+		const item1 = createMockItem("item1", 10);
+		const item2 = createMockItem("item2", 20);
 
 		beforeEach(() => {
 			registry.register(item1);
@@ -361,7 +373,7 @@ describe("BaseRegistry", () => {
 
 		it("should return fresh items after cache is cleared by register", () => {
 			registry.getAll(); // Populate cache
-			const item3: IMockItem = { name: "item3", value: 30 };
+			const item3 = createMockItem("item3", 30);
 			registry.register(item3); // Clears cache
 			vi.clearAllMocks();
 
@@ -398,9 +410,9 @@ describe("BaseRegistry", () => {
 	describe("unregisterMany", () => {
 		beforeEach(() => {
 			const items: Array<IMockItem> = [
-				{ name: "item1", value: 10 },
-				{ name: "item2", value: 20 },
-				{ name: "item3", value: 30 },
+				createMockItem("item1", 10),
+				createMockItem("item2", 20),
+				createMockItem("item3", 30),
 			];
 			registry.registerMany(items);
 			vi.clearAllMocks(); // Clear mocks after setup

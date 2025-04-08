@@ -1,7 +1,7 @@
 import type { IRegistry } from "@domain/interface";
-import type { IBaseRegistryOptions } from "@infrastructure/index";
+import type { IBaseRegistryOptions } from "@infrastructure/interface";
 
-import { BaseRegistry } from "@infrastructure/index";
+import { BaseRegistry } from "@infrastructure/class/base";
 
 /**
  * Creates a new registry instance.
@@ -10,6 +10,6 @@ import { BaseRegistry } from "@infrastructure/index";
  * @template T The type of items stored in the registry.
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry} for more information on registries.
  */
-export function createRegistry<T extends { name: string }>(options: IBaseRegistryOptions): IRegistry<T> {
+export function createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
 	return new BaseRegistry<T>(options);
 }
