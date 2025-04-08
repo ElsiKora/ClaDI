@@ -2,6 +2,7 @@ import type { ILoggerMethodOptions } from "./method-options.interface";
 
 /**
  * Logger interface.
+ * @see {@link https://elsikora.com/docs/cladi/services/logging}
  */
 export interface ILogger {
 	/**

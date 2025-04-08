@@ -1,25 +1,39 @@
+import { Tabs } from 'nextra/components'
+
 # Getting Started
 
 This guide will walk you through the basic setup and usage of the core utilities.
 
 ## Installation
 
-```bash copy
-# Using npm
-npm install @elsikora/cladi
-
-# Using yarn
-yarn add @elsikora/cladi
-
-# Using pnpm
-pnpm add @elsikora/cladi
-```
+<Tabs items={['npm', 'yarn', 'pnpm', 'bun']} storageKey="cladi-install-tabs">
+  <Tabs.Tab>
+    ```bash copy
+    npm install @elsikora/cladi
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash copy
+    yarn add @elsikora/cladi
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash copy
+    pnpm add @elsikora/cladi
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash copy
+    bun install @elsikora/cladi
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 ## Basic Usage
 
 Here's a simple example of creating and using the core components:
 
-```typescript copy
+```typescript filename="basic-usage.ts" copy
 import {
 	createContainer,
 	createRegistry,

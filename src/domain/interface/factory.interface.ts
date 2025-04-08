@@ -3,6 +3,7 @@ import type { IRegistry } from "./registry.interface";
 /**
  * Generic factory interface for creating items by name.
  * @template T The type of items created by the factory.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
  */
 export interface IFactory<T> {
 	/**

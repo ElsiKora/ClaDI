@@ -1,5 +1,6 @@
 /**
  * Standard error interface for all application errors.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/error-handling}
  */
 export interface IError extends Error {
 	/**

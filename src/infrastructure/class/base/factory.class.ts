@@ -10,6 +10,7 @@ import { BaseError } from "./error.class";
 /**
  * Generic factory implementation that creates items by name using a registry as data source.
  * @template T The type of items created by the factory.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
  */
 export class BaseFactory<T> implements IFactory<T> {
 	private readonly CACHE: Map<string, T>;

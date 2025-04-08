@@ -6,6 +6,7 @@ import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
 
 /**
  * Console logger implementation.
+ * @see {@link https://elsikora.com/docs/cladi/services/logging}
  */
 export class ConsoleLoggerService implements ILogger {
 	/**
@@ -20,7 +21,8 @@ export class ConsoleLoggerService implements ILogger {
 
 	/**
 	 * Create a new console logger.
-	 * @param {IConsoleLoggerOptions} options - The options to use for the logger.
+	 * @param {IConsoleLoggerOptions} [options] - The options to use for the logger.
+	 * @default
 	 */
 	constructor(options: IConsoleLoggerOptions = CONSOLE_LOGGER_DEFAULT_OPTIONS) {
 		this.LEVEL = options.level;

@@ -7,6 +7,7 @@ import { ConsoleLoggerService } from "@infrastructure/service";
 /**
  * Factory for creating infrastructure components.
  * Provides methods to create instances of Registry, Factory, Container, and Logger.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory} for more details on factories.
  */
 export class CoreFactory {
 	private static instance: CoreFactory;
@@ -16,6 +17,7 @@ export class CoreFactory {
 	/**
 	 * Creates a new infrastructure factory.
 	 * @param {ICoreFactoryOptions} options - The options to use for the factory.
+	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
 	 */
 	constructor(options: ICoreFactoryOptions) {
 		this.LOGGER = options.logger ?? new ConsoleLoggerService();
@@ -25,6 +27,7 @@ export class CoreFactory {
 	 * Gets the singleton instance of the InfrastructureFactory.
 	 * @param {ICoreFactoryOptions} options - The options to use for the factory.
 	 * @returns {CoreFactory} The singleton instance.
+	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
 	 */
 	public static getInstance(options: ICoreFactoryOptions): CoreFactory {
 		if (!CoreFactory.instance) {
@@ -38,6 +41,7 @@ export class CoreFactory {
 	 * Creates a new container instance.
 	 * @param {IBaseContainerOptions} options - The options to use for the container.
 	 * @returns {IContainer} A new container instance.
+	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/container}
 	 */
 	public createContainer(options: IBaseContainerOptions): IContainer {
 		this.LOGGER?.debug("Creating new container instance", { source: "InfrastructureFactory" });
@@ -54,6 +58,7 @@ export class CoreFactory {
 	 * @template T The type of items created by the factory.
 	 * @param {IBaseFactoryOptions<T>} options Factory creation options.
 	 * @returns {IFactory<T>} A new factory instance.
+	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
 	 */
 	public createFactory<T>(options: IBaseFactoryOptions<T>): IFactory<T> {
 		this.LOGGER?.debug("Creating new factory instance", { source: "InfrastructureFactory" });
@@ -69,6 +74,7 @@ export class CoreFactory {
 	 * Creates a new logger instance.
 	 * @param {IConsoleLoggerOptions} options - The options to use for the logger.
 	 * @returns {ILogger} A new logger instance.
+	 * @see {@link https://elsikora.com/docs/cladi/services/logging}
 	 */
 	public createLogger(options: IConsoleLoggerOptions): ILogger {
 		this.LOGGER?.debug("Creating new logger instance", {
@@ -88,6 +94,7 @@ export class CoreFactory {
 	 * @template T The type of items stored in the registry (must have a name property).
 	 * @param {IBaseRegistryOptions} options - The options to use for the registry.
 	 * @returns {IRegistry<T>} A new registry instance.
+	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
 	 */
 	public createRegistry<T extends { name: string }>(options: IBaseRegistryOptions): IRegistry<T> {
 		this.LOGGER?.debug("Creating new registry instance", { source: "InfrastructureFactory" });

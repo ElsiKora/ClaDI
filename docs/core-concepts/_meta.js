@@ -1,7 +1,6 @@
 export default {
-	container: "Dependency Injection (Container)",
+	container: "Container Pattern",
 	"error-handling": "Error Handling",
 	factory: "Factory Pattern",
-	index: "Overview",
 	registry: "Registry Pattern",
 };

@@ -1,13 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Factory Pattern
 
-The `Factory` pattern, implemented via `IFactory` and `BaseFactory`, provides a standardized way to create instances of objects based on named templates stored in a [`Registry`](/core-concepts/registry).
+The `Factory` pattern, implemented via `IFactory` and `BaseFactory`, provides a standardized way to create instances of objects based on named templates stored in a [`Registry`](/docs/cladi/core-concepts/registry).
 
 Instead of scattering `new MyObject(...)` calls throughout your code, you ask the factory to `create('objectName')`.
 This centralizes creation logic and makes it easy to switch out implementations or configurations.
 
 ## Key Features & Examples
 
-- **Creation (`create`)**: The core method. It takes a `name`, looks up the corresponding template object in its associated [`Registry`](/core-concepts/registry), clones it (by default using `structuredClone`), potentially transforms it, caches it, and returns the final instance.
+- **Creation (`create`)**: The core method. It takes a `name`, looks up the corresponding template object in its associated [`Registry`](/docs/cladi/core-concepts/registry), clones it (by default using `structuredClone`), potentially transforms it, caches it, and returns the final instance.
 
   ```typescript filename="src/user-factory.ts" copy
   import { createFactory, createRegistry, type IFactory, type IRegistry } from '@elsikora/cladi';
@@ -62,7 +64,7 @@ This centralizes creation logic and makes it easy to switch out implementations 
 
 - **Optional Transformation (`transformer`)**: You can provide a function (`IBaseFactoryOptions.transformer`) that takes the template from the registry and returns a modified version *before* it's cached and cloned by the factory. This is useful for applying defaults, adding dynamic properties, or performing complex setup.
 
-  ```typescript copy
+  ```typescript filename="src/transforming-factory.ts" copy
   // ... registry setup as before ...
 
   // Assume userRegistry is declared and populated
@@ -85,17 +87,22 @@ This centralizes creation logic and makes it easy to switch out implementations 
 
 - **Caching (Internal)**: The `BaseFactory` caches the *first transformed template* for each name. Subsequent calls to `create` for the same name will `structuredClone` this cached template, avoiding repeated lookups and transformations.
 
-- **Cache Clearing (`clearCache`)**: If the underlying [`Registry`](/core-concepts/registry) changes, you *must* call `factory.clearCache(name?)` to remove the factory's cached template(s) and force it to re-fetch (and re-transform) from the registry on the next `create` call. If `name` is omitted, the entire factory cache is cleared.
+- **Cache Clearing (`clearCache`)**: If the underlying [`Registry`](/docs/cladi/core-concepts/registry) changes, you *must* call `factory.clearCache(name?)` to remove the factory's cached template(s) and force it to re-fetch (and re-transform) from the registry on the next `create` call. If `name` is omitted, the entire factory cache is cleared.
 
 ## Purpose & Use Cases
 
 - **Decouple Object Creation**: Hides the complexity of creating objects (`new ...`, setting defaults, etc.) behind a simple `create(name)` interface.
 - **Manage Instance Variations**: Easily create different pre-configured instances of the same base object type (like user profiles, database connections, API clients).
 - **Enforce Consistency**: Ensures objects are created according to the defined templates in the registry.
-- **Combine with DI**: Factories themselves can be registered in the [`Container`](/core-concepts/container) to provide on-demand creation of specific object types throughout the application.
+- **Combine with DI**: Factories themselves can be registered in the [`Container`](/docs/cladi/core-concepts/container) to provide on-demand creation of specific object types throughout the application.
 
 ## Core Implementation
 
 - **`IFactory<T>` (Interface)**: Located in `src/domain/interface/factory.interface.ts`. Defines the `create` method and `getRegistry`.
 - **`BaseFactory<T>` (Class)**: Located in `src/infrastructure/class/base/factory.class.ts`. The default implementation using an associated `Registry`, with template caching, cloning, and optional transformation.
-- **`createFactory<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseFactory`, requiring `IBaseFactoryOptions` (which must include a `registry`). 
+- **`createFactory<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseFactory`, requiring `IBaseFactoryOptions` (which must include a `registry`).
+
+### Base Implementation Options (`IBaseFactoryOptions`)
+
+<TSDoc code={`import type { IBaseFactoryOptions } from '@elsikora/cladi';
+export default IBaseFactoryOptions`} /> 
