@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 // Define a simple data structure for testing registry/factory
 interface ITestConfig {
 	id: number;
-	name: string; // Required by BaseRegistry
+	name: string; // Keep name for easy access in the test itself
+	getName(): string; // Required by BaseRegistry
 	settings: { enabled: boolean };
 }
 
@@ -22,6 +23,9 @@ describe("Core Infrastructure E2E Integration", () => {
 	const testConfigTemplate: ITestConfig = {
 		id: 1,
 		name: "DefaultConfig",
+		getName: function () {
+			return this.name;
+		},
 		settings: { enabled: true },
 	};
 
@@ -40,17 +44,27 @@ describe("Core Infrastructure E2E Integration", () => {
 
 		// Create components using the factory
 		registry = coreFactory.createRegistry<ITestConfig>({});
-		itemFactory = coreFactory.createFactory<ITestConfig>({ registry });
+		itemFactory = coreFactory.createFactory<ITestConfig>({
+			registry,
+			transformer: (template: ITestConfig): ITestConfig => {
+				// Manual clone that preserves the function reference (or creates a new one)
+				return {
+					...template,
+					settings: { ...template.settings }, // Deep clone nested objects if necessary
+					getName: template.getName, // Assign the method
+				};
+			},
+		});
 		container = coreFactory.createContainer({});
 	});
 
 	it("should allow registering, creating via factory, registering in container, and retrieving", () => {
 		// 1. Register template in Registry
 		registry.register(testConfigTemplate);
-		expect(registry.has(testConfigTemplate.name)).toBe(true);
+		expect(registry.has(testConfigTemplate.getName())).toBe(true);
 
 		// 2. Create new instance using Item Factory (should be a clone)
-		const createdInstance = itemFactory.create(testConfigTemplate.name);
+		const createdInstance = itemFactory.create(testConfigTemplate.getName());
 		expect(createdInstance).toBeDefined();
 		expect(createdInstance).toEqual(testConfigTemplate);
 		expect(createdInstance).not.toBe(testConfigTemplate);

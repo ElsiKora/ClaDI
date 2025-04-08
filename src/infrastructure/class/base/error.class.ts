@@ -1,5 +1,5 @@
 import type { IError } from "@domain/interface";
-import type { IBaseErrorOptions } from "@infrastructure/interface/base";
+import type { IBaseErrorOptions } from "@infrastructure/interface";
 
 /**
  * Base error class.

@@ -1,6 +1,8 @@
 import type { ILogger } from "@domain/interface";
+import type { IConsoleLoggerOptions } from "@infrastructure/interface";
 
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS, ConsoleLoggerService, type IConsoleLoggerOptions } from "@infrastructure/index";
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
+import { ConsoleLoggerService } from "@infrastructure/service";
 
 /**
  * Creates a new logger instance.

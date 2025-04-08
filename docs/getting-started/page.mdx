@@ -39,7 +39,6 @@ import {
 	createRegistry,
 	createFactory,
 	createLogger,
-	EServiceToken,
 	type IContainer,
 	type IRegistry,
 	type IFactory,
@@ -68,13 +67,13 @@ const containerOptions = { logger };
 const container: IContainer = createContainer(containerOptions);
 
 // Register services/components
-container.register(EServiceToken.LOGGER, logger);
-container.register(EServiceToken.REGISTRY, registry);
-container.register(EServiceToken.FACTORY, factory);
+container.register(Tokens.Logger, logger);
+container.register(Tokens.Registry, registry);
+container.register(Tokens.Factory, factory);
 logger.info("Container created and components registered.");
 
 // Retrieve a service
-const retrievedLogger = container.get<ILogger>(EServiceToken.LOGGER);
+const retrievedLogger = container.get<ILogger>(Tokens.Logger);
 retrievedLogger?.info("Logger retrieved from container.");
 ```
 
@@ -141,7 +140,6 @@ import {
   createRegistry,
   createFactory,
   createLogger,
-  EServiceToken,
   ELoggerLogLevel,
   type IContainer,
   type IRegistry,
@@ -177,13 +175,13 @@ const logger: ILogger = createLogger({ level: appConfig.logLevel, source: "App" 
 const container: IContainer = createContainer({ logger });
 
 // Register core services
-container.register(EServiceToken.LOGGER, logger);
+container.register(ServiceTokens.Logger, logger);
 container.register(ServiceTokens.AppConfig, appConfig);
 
 // Register application services (dependencies injected from container)
 const userService = new UserServiceImpl(
   container.get<IAppConfig>(ServiceTokens.AppConfig)!,
-  container.get<ILogger>(EServiceToken.LOGGER)!
+  container.get<ILogger>(ServiceTokens.Logger)!
 );
 container.register(ServiceTokens.UserService, userService);
 
@@ -199,10 +197,10 @@ export { container }; // Export the configured container
 ```typescript filename="src/main.ts" copy
 import { container } from "./container-config";
 import { type IUserService, ServiceTokens } from "./types";
-import { EServiceToken, type ILogger } from "@elsikora/cladi";
+import { type ILogger } from "@elsikora/cladi";
 
 async function main() {
-  const logger = container.get<ILogger>(EServiceToken.LOGGER)!;
+  const logger = container.get<ILogger>(ServiceTokens.Logger)!;
   const userService = container.get<IUserService>(ServiceTokens.UserService)!;
 
   logger.info("Application starting...");
@@ -224,7 +222,7 @@ async function main() {
 
 main().catch(error => {
   // Attempt to get logger, fallback to console if container setup failed
-  let logger = container.get<ILogger>(EServiceToken.LOGGER);
+  let logger = container.get<ILogger>(ServiceTokens.Logger);
   if (!logger) {
     console.error("Logger not available in container, logging directly to console.");
     logger = console; 

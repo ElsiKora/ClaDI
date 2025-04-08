@@ -92,7 +92,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 ## Core Implementation
 
-- **`IRegistry<T>` (Interface)**: Located in `src/domain/interface/registry.interface.ts`. Defines the contract. The generic type `T` is constrained to be an object with at least a `name: string` property (`T extends { name: string }`).
+- **`IRegistry<T>` (Interface)**: Located in `src/domain/interface/registry.interface.ts`. Defines the contract. The generic type `T` is constrained to be an object with at least a `name: string` property (`T extends { getName(): string }`).
 - **`BaseRegistry<T>` (Class)**: Located in `src/infrastructure/class/base/registry.class.ts`. The default implementation, featuring internal caching and optional logging.
 - **`createRegistry<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseRegistry`, accepting `IBaseRegistryOptions` (primarily for passing a logger).
 
