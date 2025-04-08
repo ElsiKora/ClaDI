@@ -1,6 +1,9 @@
-import type { IFactory, ILogger, IRegistry } from "@domain/interface";
+import type { IFactory } from "@domain/interface";
+import type { ILogger } from "@domain/interface";
+import type { IRegistry } from "@domain/interface";
 import type { IBaseFactoryOptions } from "@infrastructure/interface";
 
+import { safeDeepClone } from "@application/utility";
 import { BaseError } from "@infrastructure/class/base/error.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
 
@@ -10,30 +13,40 @@ import { ConsoleLoggerService } from "@infrastructure/service";
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
  */
 export class BaseFactory<T> implements IFactory<T> {
+	/**
+	 * Internal cache of created items.
+	 */
 	private readonly CACHE: Map<string, T>;
 
+	/**
+	 * Logger instance.
+	 */
 	private readonly LOGGER: ILogger;
 
+	/**
+	 * Registry instance.
+	 */
 	private readonly REGISTRY: IRegistry<T>;
 
+	/**
+	 * Optional custom transformer function.
+	 */
 	private readonly TRANSFORMER?: (template: T) => T;
 
 	/**
-	 * Creates a new factory instance.
-	 * @param {IBaseFactoryOptions<T>} options Factory creation options including registry, optional transformer, and logger.
+	 * Create a new factory instance.
+	 * @param {IBaseFactoryOptions<T>} options Factory options.
 	 */
 	constructor(options: IBaseFactoryOptions<T>) {
+		this.CACHE = new Map<string, T>();
+		this.LOGGER = options.logger ?? new ConsoleLoggerService();
 		this.REGISTRY = options.registry;
 		this.TRANSFORMER = options.transformer;
-		this.LOGGER = options.logger ?? new ConsoleLoggerService();
-		this.CACHE = new Map<string, T>();
 	}
 
 	/**
-	 * Clear the factory's item cache.
-	 * This should be called when the registry changes to ensure the factory
-	 * doesn't return stale items.
-	 * @param {string} [name] Optional name of the item to clear from cache. If not provided, all items are cleared.
+	 * Clear all cached items or a specific cached item.
+	 * @param {string} [name] Optional name of specific cached item to clear.
 	 */
 	public clearCache(name?: string): void {
 		if (name) {
@@ -59,8 +72,7 @@ export class BaseFactory<T> implements IFactory<T> {
 		if (cachedItem) {
 			this.LOGGER.debug(`Retrieved item from cache: ${name}`, { source: "Factory" });
 
-			// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
-			return structuredClone<T>(cachedItem);
+			return safeDeepClone(cachedItem);
 		}
 
 		const template: T | undefined = this.REGISTRY.get(name);
@@ -72,15 +84,13 @@ export class BaseFactory<T> implements IFactory<T> {
 			});
 		}
 
-		// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
-		const result: T = this.TRANSFORMER ? this.TRANSFORMER(template) : structuredClone<T>(template);
+		const result: T = this.TRANSFORMER ? this.TRANSFORMER(template) : safeDeepClone(template);
 
 		this.CACHE.set(name, result);
 
 		this.LOGGER.debug(`Created item: ${name}`, { source: "Factory" });
 
-		// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
-		return structuredClone<T>(result);
+		return safeDeepClone(result);
 	}
 
 	/**
