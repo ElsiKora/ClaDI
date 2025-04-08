@@ -66,6 +66,12 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           TARGET_DIR="src/app/docs/${{ steps.vars.outputs.KEBAB_CASE_REPO_NAME }}"
+
+          if [ -d "$TARGET_DIR" ]; then
+            echo "Cleaning target directory: $TARGET_DIR"
+            rm -rf "$TARGET_DIR"
+          fi
+
           mkdir -p "$TARGET_DIR"
 
           cp -r ../source/docs/* "$TARGET_DIR/"
