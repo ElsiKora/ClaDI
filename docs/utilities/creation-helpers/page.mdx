@@ -1,3 +1,5 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Creation Helpers
 
 `@elsikora/cladi` provides convenient utility functions (exported from the root of the package) to quickly instantiate the default implementations of the core components.
@@ -27,7 +29,11 @@ const container2: IContainer = createContainer(containerOptions);
 
 - **Purpose**: Quickly get a dependency injection container ready for registrations.
 - **Options (`IBaseContainerOptions`)**: Allows injecting a logger to monitor the container's own actions (register, get, etc.).
-- **See Also**: [Core Concepts: Container](/core-concepts/container)
+
+<TSDoc code={`import type { IBaseContainerOptions } from '@elsikora/cladi';
+export default IBaseContainerOptions`} />
+
+**See Also**: [Core Concepts: Container](/docs/cladi/core-concepts/container)
 
 ## `createRegistry<T>`
 
@@ -58,7 +64,11 @@ const registry2: IRegistry<ServiceEndpoint> = createRegistry<ServiceEndpoint>(re
 
 - **Purpose**: Set up a named collection for storing configuration templates or object prototypes.
 - **Options (`IBaseRegistryOptions`)**: Allows injecting a logger for monitoring registry operations.
-- **See Also**: [Core Concepts: Registry](/core-concepts/registry)
+
+<TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi';
+export default IBaseRegistryOptions`} />
+
+**See Also**: [Core Concepts: Registry](/docs/cladi/core-concepts/registry)
 
 ## `createFactory<T>`
 
@@ -87,7 +97,11 @@ const factory: IFactory<ServiceEndpoint> = createFactory<ServiceEndpoint>(factor
 
 - **Purpose**: Create an object factory that uses a registry as its source for templates.
 - **Options (`IBaseFactoryOptions`)**: Requires `registry`. Optionally takes a `logger` and a `transformer` function.
-- **See Also**: [Core Concepts: Factory](/core-concepts/factory)
+
+<TSDoc code={`import type { IBaseFactoryOptions } from '@elsikora/cladi';
+export default IBaseFactoryOptions`} />
+
+**See Also**: [Core Concepts: Factory](/docs/cladi/core-concepts/factory)
 
 ## `createLogger`
 
@@ -111,4 +125,8 @@ customLogger.debug("Debug message from MyModule.");
 
 - **Purpose**: Quickly get a standard console logger instance.
 - **Options (`IConsoleLoggerOptions`)**: Allows setting the minimum `level` and a default `source` identifier.
-- **See Also**: [Services: Logging](/services/logging) 
+
+<TSDoc code={`import type { IConsoleLoggerOptions } from '@elsikora/cladi';
+export default IConsoleLoggerOptions`} />
+
+**See Also**: [Services: Logging](/docs/cladi/services/logging) 

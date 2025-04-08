@@ -1,3 +1,5 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Interfaces
 
 This page details the core interfaces used throughout the library.
@@ -9,168 +11,49 @@ This page details the core interfaces used throughout the library.
 Defines the contract for a dependency injection container.
 *Defined in: `src/domain/interface/container.interface.ts`*
 
-```typescript copy
-export interface IContainer {
-	clear(): void;
-	get<T>(token: symbol): T | undefined;
-	getAll(): Array<unknown>;
-	getMany<T>(tokens: Array<symbol>): Array<T>;
-	has(token: symbol): boolean;
-	register<T>(token: symbol, implementation: T): void;
-	registerMany<T>(tokens: Array<symbol>, implementations: Record<symbol, T>): void;
-	unregister(token: symbol): void;
-	unregisterMany(tokens: Array<symbol>): void;
-}
-```
-*(See Core Concepts: [Dependency Injection](/core-concepts/container))* 
+<TSDoc code={`import type { IContainer } from '@elsikora/cladi';
+export default IContainer`} />
+
+*(See Core Concepts: [Container Pattern](/docs/cladi/core-concepts/container))*
 
 ### `IRegistry<T>`
 
 Defines the contract for a registry storing items of type `T`, where `T` must have a `name: string` property.
 *Defined in: `src/domain/interface/registry.interface.ts`*
 
-```typescript copy
-export interface IRegistry<T extends { name: string }> {
-	clear(): void;
-	get(name: string): T | undefined;
-	getAll(): Array<T>;
-	getMany(names: Array<string>): Array<T>;
-	has(name: string): boolean;
-	register(item: T): void;
-	registerMany(items: Array<T>): void;
-	unregister(name: string): void;
-	unregisterMany(names: Array<string>): void;
-}
-```
-*(See Core Concepts: [Registry Pattern](/core-concepts/registry))* 
+<TSDoc code={`import type { IRegistry } from '@elsikora/cladi';
+export default IRegistry`} />
+
+*(See Core Concepts: [Registry Pattern](/docs/cladi/core-concepts/registry))*
 
 ### `IFactory<T>`
 
 Defines the contract for a factory creating items of type `T`.
 *Defined in: `src/domain/interface/factory.interface.ts`*
 
-```typescript copy
-export interface IFactory<T> {
-	create(name: string): T;
-	getRegistry(): IRegistry<T>;
-}
-```
-*(See Core Concepts: [Factory Pattern](/core-concepts/factory))* 
+<TSDoc code={`import type { IFactory } from '@elsikora/cladi';
+export default IFactory`} />
+
+*(See Core Concepts: [Factory Pattern](/docs/cladi/core-concepts/factory))*
 
 ### `ILogger`
 
 Defines the contract for a logging service.
 *Defined in: `src/domain/interface/logger/interface.ts`*
 
-```typescript copy
-export interface ILogger {
-	debug(message: string, options?: ILoggerMethodOptions): void;
-	error(message: string, options?: ILoggerMethodOptions): void;
-	info(message: string, options?: ILoggerMethodOptions): void;
-	trace(message: string, options?: ILoggerMethodOptions): void;
-	warn(message: string, options?: ILoggerMethodOptions): void;
-}
-```
-*(See Services: [Logging Service](/services/logging))* 
+<TSDoc code={`import type { ILogger, ILoggerMethodOptions } from '@elsikora/cladi';
+// We need to export both ILogger and ILoggerMethodOptions if ILogger references it
+export interface ProcessedLogger extends ILogger {} // Helper to ensure ILoggerMethodOptions is picked up if referenced
+export default ProcessedLogger`} />
+
+*(See Services: [Logging Service](/docs/cladi/services/logging))*
 
 ### `IError`
 
 Extends the standard `Error` interface with additional structured properties.
 *Defined in: `src/domain/interface/error.interface.ts`*
 
-```typescript copy
-export interface IError extends Error {
-	CODE: string;
-	CAUSE?: Error;
-	context?: Record<string, unknown>;
-}
-```
-*(See Core Concepts: [Error Handling](/core-concepts/error-handling))* 
+<TSDoc code={`import type { IError } from '@elsikora/cladi';
+export default IError`} />
 
-## Options Interfaces
-
-These interfaces define the configuration options for creating instances of the base implementations.
-
-### `IBaseContainerOptions`
-
-Options for `BaseContainer`.
-*Defined in: `src/infrastructure/interface/base/container-options.interface.ts`*
-
-```typescript copy
-export interface IBaseContainerOptions {
-	logger?: ILogger;
-}
-```
-
-### `IBaseRegistryOptions`
-
-Options for `BaseRegistry`.
-*Defined in: `src/infrastructure/interface/base/registry-options.interface.ts`*
-
-```typescript copy
-export interface IBaseRegistryOptions {
-	logger?: ILogger;
-}
-```
-
-### `IBaseFactoryOptions<T>`
-
-Options for `BaseFactory`.
-*Defined in: `src/infrastructure/interface/base/factory-options.interface.ts`*
-
-```typescript copy
-export interface IBaseFactoryOptions<T> {
-	logger?: ILogger;
-	registry: IRegistry<T>;
-	transformer?: (template: T) => T; // Optional function to transform template before caching/cloning
-}
-```
-
-### `IConsoleLoggerOptions`
-
-Options for `ConsoleLoggerService`.
-*Defined in: `src/infrastructure/interface/console-logger-options.interface.ts`*
-
-```typescript copy
-export interface IConsoleLoggerOptions {
-	level: ELoggerLogLevel; // Minimum level to log - See [ELoggerLogLevel](/api-reference/enums#eloggerloglevel)
-	source?: string; // Default source identifier for the logger instance
-}
-```
-
-### `ILoggerMethodOptions`
-
-Options passed to individual `ILogger` methods.
-*Defined in: `src/domain/interface/logger/method-options.interface.ts`*
-
-```typescript copy
-export interface ILoggerMethodOptions {
-	context?: Record<string, unknown>; // Additional data for this specific log entry
-	source?: string; // Overrides the logger's default source for this entry
-}
-```
-
-### `IBaseErrorOptions`
-
-Options for `BaseError` constructor.
-*Defined in: `src/infrastructure/interface/base/error-options.interface.ts`*
-
-```typescript copy
-export interface IBaseErrorOptions {
-	cause?: Error;
-	code: string;
-	context?: Record<string, unknown>;
-	source?: string; // e.g., "[AuthService]", "[UserRepository]"
-}
-```
-
-### `ICoreFactoryOptions`
-
-Options for the `CoreFactory` singleton.
-*Defined in: `src/infrastructure/interface/core-factory-options.interface.ts`*
-
-```typescript copy
-export interface ICoreFactoryOptions {
-	logger?: ILogger;
-}
-``` 
+*(See Core Concepts: [Error Handling](/docs/cladi/core-concepts/error-handling))*

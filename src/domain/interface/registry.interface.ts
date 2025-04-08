@@ -1,6 +1,7 @@
 /**
  * Generic registry interface for managing items by name.
  * @template T The type of items stored in the registry.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
  */
 export interface IRegistry<T> {
 	/**

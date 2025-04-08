@@ -3,6 +3,7 @@ import type { IBaseErrorOptions } from "@infrastructure/interface/base";
 
 /**
  * Base error class.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/error-handling}
  */
 export class BaseError extends Error implements IError {
 	public readonly CAUSE?: Error;

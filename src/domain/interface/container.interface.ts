@@ -1,6 +1,7 @@
 /* eslint-disable @elsikora/typescript/no-unnecessary-type-parameters */
 /**
  * Simple dependency injection container interface.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/container}
  */
 export interface IContainer {
 	/**

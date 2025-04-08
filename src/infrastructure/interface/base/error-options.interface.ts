@@ -1,5 +1,6 @@
 /**
  * Base options interface.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/error-handling} for more details.
  */
 export interface IBaseErrorOptions {
 	/**

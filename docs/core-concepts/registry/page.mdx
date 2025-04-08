@@ -1,7 +1,9 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Registry Pattern
 
 The `Registry` pattern, implemented by `IRegistry` and `BaseRegistry`, provides a way to store and retrieve objects or configuration templates using a simple string name.
-It's often used as the data source for a [Factory](/core-concepts/factory).
+It's often used as the data source for a [Factory](/docs/cladi/core-concepts/factory).
 
 Imagine needing different sets of configuration for different environments (dev, staging, prod) or different types of resources (small server, large server). A Registry is ideal for managing these named variations.
 
@@ -45,7 +47,7 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Retrieval (`get`/`getMany`/`getAll`)**: Fetch items by their registered name(s). `getAll` retrieves all registered items.
 
-  ```typescript copy
+  ```typescript filename="src/retrieve-configs.ts" copy
   // Assuming registry from previous example
 
   const devConfig = registry.get("standard-dev");
@@ -62,20 +64,20 @@ Imagine needing different sets of configuration for different environments (dev,
   ```
 
 - **Checking Existence (`has`)**: Quickly check if a name is registered without retrieving the object.
-  ```typescript copy
+  ```typescript filename="src/check-config.ts" copy
   if (registry.has("high-mem-prod")) {
     console.log("Production configuration is available.");
   }
   ```
 
 - **Unregistration (`unregister`/`unregisterMany`)**: Remove items by name.
-  ```typescript copy
+  ```typescript filename="src/unregister-config.ts" copy
   registry.unregister("standard-dev");
   console.log(`Registry contains 'standard-dev' after unregister: ${registry.has("standard-dev")}`); // false
   ```
 
 - **Clearing (`clear`)**: Empty the entire registry.
-  ```typescript copy
+  ```typescript filename="src/clear-registry.ts" copy
   registry.clear();
   console.log(`Total configs after clear: ${registry.getAll().length}`); // 0
   ```
@@ -86,10 +88,15 @@ Imagine needing different sets of configuration for different environments (dev,
 
 - **Managing Variations**: Store different versions or configurations of an object (e.g., environment settings, feature flag states, UI themes, resource definitions).
 - **Decoupling Definitions**: Separates the *definition* of these variations from the code that *uses* them.
-- **Data Source for Factories**: Provide the named templates that a [Factory](/core-concepts/factory) will use to create actual instances.
+- **Data Source for Factories**: Provide the named templates that a [Factory](/docs/cladi/core-concepts/factory) will use to create actual instances.
 
 ## Core Implementation
 
 - **`IRegistry<T>` (Interface)**: Located in `src/domain/interface/registry.interface.ts`. Defines the contract. The generic type `T` is constrained to be an object with at least a `name: string` property (`T extends { name: string }`).
 - **`BaseRegistry<T>` (Class)**: Located in `src/infrastructure/class/base/registry.class.ts`. The default implementation, featuring internal caching and optional logging.
-- **`createRegistry<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseRegistry`, accepting `IBaseRegistryOptions` (primarily for passing a logger). 
+- **`createRegistry<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseRegistry`, accepting `IBaseRegistryOptions` (primarily for passing a logger).
+
+### Base Implementation Options (`IBaseRegistryOptions`)
+
+<TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi';
+export default IBaseRegistryOptions`} /> 

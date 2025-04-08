@@ -1,3 +1,5 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Logging Service
 
 Effective logging is crucial for understanding application behavior and debugging issues. `@elsikora/cladi` provides a flexible logging system through the `ILogger` interface and a ready-to-use `ConsoleLoggerService`.
@@ -6,7 +8,7 @@ Effective logging is crucial for understanding application behavior and debuggin
 
 This defines the standard contract for any logger implementation. It includes methods for different severity levels:
 
-```typescript copy
+```typescript filename="src/domain/interface/logger/interface.ts" copy
 // Located in: src/domain/interface/logger/interface.ts
 export interface ILogger {
   debug(message: string, options?: ILoggerMethodOptions): void;
@@ -28,6 +30,13 @@ export interface ILoggerMethodOptions {
 - **Levels**: `trace` (most verbose), `debug`, `info`, `warn`, `error` (least verbose).
 - **Options**: Allow passing extra `context` (like user ID, request details) and overriding the `source` identifier for specific messages.
 
+### `ILoggerMethodOptions`
+
+These options can be passed to individual logger methods (`.debug()`, `.info()`, etc.) to provide additional context or override the default source for that specific log entry.
+
+<TSDoc code={`import type { ILoggerMethodOptions } from '@elsikora/cladi';
+export default ILoggerMethodOptions`} />
+
 ## `ConsoleLoggerService`
 
 This is the default implementation provided, suitable for most Node.js and browser environments. It logs messages to the standard console (`console.debug`, `console.info`, etc.).
@@ -39,6 +48,13 @@ This is the default implementation provided, suitable for most Node.js and brows
 - **Level Display**: Clearly shows the log level (e.g., `[INFO]`).
 - **Source Identification**: Includes a source tag (e.g., `[AuthService]`, `[App -> DataProcessor]`) for easier filtering and context.
 - **Structured Context**: Appends the `context` object as a formatted JSON string.
+
+### Constructor Options (`IConsoleLoggerOptions`)
+
+These options are passed to the `createLogger` utility or the `ConsoleLoggerService` constructor to configure the logger instance.
+
+<TSDoc code={`import type { IConsoleLoggerOptions } from '@elsikora/cladi';
+export default IConsoleLoggerOptions`} />
 
 **Example Usage:**
 
@@ -85,7 +101,7 @@ logger.trace("Detailed trace message - only shown if level is TRACE"); // Won't 
 
 **Output Example (Conceptual):**
 
-```text
+```text filename="console-output.log" copy
 [2023-10-27T10:00:00.000Z] INFO: [MainApp] Application setup initiated.
 [2023-10-27T10:00:00.001Z] DEBUG: [MainApp -> UserProcessor] Starting user processing {"userId":123}
 [2023-10-27T10:00:00.002Z] INFO: [MainApp -> UserProcessor] User processed successfully {"userId":123,"status":"completed"}
@@ -97,7 +113,7 @@ logger.trace("Detailed trace message - only shown if level is TRACE"); // Won't 
 
 The easiest way to get a `ConsoleLoggerService` instance is via the `createLogger` helper:
 
-```typescript copy
+```typescript filename="src/create-logger-examples.ts" copy
 import { createLogger, ELoggerLogLevel } from '@elsikora/cladi';
 
 // Logger with default level (INFO) and no source
@@ -112,6 +128,4 @@ const debugLogger = createLogger({
 
 ## Integrating with Dependency Injection
 
-Typically, you create a logger instance early in your application setup and register it with the [`Container`](/core-concepts/container) using `EServiceToken.LOGGER`. Other services can then receive the logger via constructor injection.
-
-```
+Typically, you create a logger instance early in your application setup and register it with the [`Container`](/docs/cladi/core-concepts/container) using `EServiceToken.LOGGER`. Other services can then receive the logger via constructor injection.

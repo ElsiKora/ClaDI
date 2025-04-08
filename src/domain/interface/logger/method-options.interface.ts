@@ -1,5 +1,6 @@
 /**
  * Log options interface.
+ * @see {@link https://elsikora.com/docs/cladi/services/logging}
  */
 export interface ILoggerMethodOptions {
 	/**

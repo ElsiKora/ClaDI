@@ -1,3 +1,5 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
 # Error Handling
 
 `@elsikora/cladi` promotes a structured approach to error handling using the `IError` interface and the `BaseError` class. This provides more context and allows for better programmatic handling compared to standard JavaScript `Error` objects.
@@ -6,7 +8,7 @@
 
 This is the core contract for errors within the library. It extends the built-in `Error` and adds fields crucial for robust error management:
 
-```typescript copy
+```typescript filename="src/domain/interface/error.interface.ts" copy
 // Located in: src/domain/interface/error.interface.ts
 export interface IError extends Error {
   /**
@@ -132,4 +134,9 @@ async function processItem(id: string) {
 
 - **`IError` (Interface)**: Located in `src/domain/interface/error.interface.ts`.
 - **`BaseError` (Class)**: Located in `src/infrastructure/class/base/error.class.ts`. Implements `IError` and captures stack traces.
-- **`IBaseErrorOptions` (Interface)**: Located in `src/infrastructure/interface/base/error-options.interface.ts`. Defines the options object passed to the `BaseError`
+- **`IBaseErrorOptions` (Interface)**: Located in `src/infrastructure/interface/base/error-options.interface.ts`. Defines the options object passed to the `BaseError` constructor.
+
+### Base Implementation Options (`IBaseErrorOptions`)
+
+<TSDoc code={`import { BaseContainer } from '@elsikora/cladi';
+export default BaseContainer`} />

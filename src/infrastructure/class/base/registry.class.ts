@@ -9,6 +9,7 @@ import { BaseError } from "./error.class";
 /**
  * Generic registry implementation that stores items by name.
  * @template T The type of items stored in the registry.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
  */
 export class BaseRegistry<T extends { name: string }> implements IRegistry<T> {
 	private readonly CACHE: Map<string, Array<T>>;

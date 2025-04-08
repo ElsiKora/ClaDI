@@ -8,6 +8,7 @@ import { BaseError } from "./error.class";
 
 /**
  * Simple dependency injection container implementation.
+ * @see {@link https://elsikora.com/docs/cladi/core-concepts/container}
  */
 export class BaseContainer implements IContainer {
 	private readonly DEPENDENCIES: Map<symbol, unknown>;
