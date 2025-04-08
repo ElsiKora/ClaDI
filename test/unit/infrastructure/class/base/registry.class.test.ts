@@ -1,7 +1,7 @@
 import type { ILogger } from "@domain/interface";
 
-import { BaseError, BaseRegistry } from "src/infrastructure/class/base"; // Assuming index exports BaseRegistry
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BaseError, BaseRegistry } from "@infrastructure/class/base";
 
 // Mock Logger
 const mockLogger: ILogger = {
@@ -219,10 +219,7 @@ describe("BaseRegistry", () => {
 
 	describe("registerMany", () => {
 		it("should register multiple items successfully", () => {
-			const items: Array<IMockItem> = [
-				createMockItem("item1", 10),
-				createMockItem("item2", 20),
-			];
+			const items: Array<IMockItem> = [createMockItem("item1", 10), createMockItem("item2", 20)];
 			registry.registerMany(items);
 			expect(registry.has("item1")).toBe(true);
 			expect(registry.has("item2")).toBe(true);
@@ -262,11 +259,7 @@ describe("BaseRegistry", () => {
 
 	describe("getMany", () => {
 		beforeEach(() => {
-			const items: Array<IMockItem> = [
-				createMockItem("item1", 10),
-				createMockItem("item2", 20),
-				createMockItem("item3", 30),
-			];
+			const items: Array<IMockItem> = [createMockItem("item1", 10), createMockItem("item2", 20), createMockItem("item3", 30)];
 			registry.registerMany(items);
 			vi.clearAllMocks(); // Clear mocks after setup
 		});
@@ -275,12 +268,7 @@ describe("BaseRegistry", () => {
 			const names = ["item1", "item3"];
 			const retrievedItems = registry.getMany(names);
 			expect(retrievedItems).toHaveLength(2);
-			expect(retrievedItems).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({ value: 10 }),
-					expect.objectContaining({ value: 30 }),
-				]),
-			);
+			expect(retrievedItems).toEqual(expect.arrayContaining([expect.objectContaining({ value: 10 }), expect.objectContaining({ value: 30 })]));
 			expect(mockLogger.debug).toHaveBeenCalledWith(`Getting ${names.length} items by name`, { source: "Registry" });
 			expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining("Cached result for query: getMany:"), { source: "Registry" });
 		});
@@ -289,12 +277,7 @@ describe("BaseRegistry", () => {
 			const names = ["item1", "nonexistent", "item3"];
 			const retrievedItems = registry.getMany(names);
 			expect(retrievedItems).toHaveLength(2);
-			expect(retrievedItems).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({ value: 10 }),
-					expect.objectContaining({ value: 30 }),
-				]),
-			);
+			expect(retrievedItems).toEqual(expect.arrayContaining([expect.objectContaining({ value: 10 }), expect.objectContaining({ value: 30 })]));
 		});
 
 		it("should return an empty array if no items match", () => {
@@ -311,12 +294,7 @@ describe("BaseRegistry", () => {
 
 			const retrievedItems = registry.getMany(names); // Second call - should hit cache
 			expect(retrievedItems).toHaveLength(2);
-			expect(retrievedItems).toEqual(
-				expect.arrayContaining([
-					expect.objectContaining({ value: 10 }),
-					expect.objectContaining({ value: 20 }),
-				]),
-			);
+			expect(retrievedItems).toEqual(expect.arrayContaining([expect.objectContaining({ value: 10 }), expect.objectContaining({ value: 20 })]));
 			expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining("Cache hit for query: getMany:item1,item2"), { source: "Registry" });
 			// Ensure individual 'get' was not called this time
 			expect(mockLogger.debug).not.toHaveBeenCalledWith("Getting item with name: item1", { source: "Registry" });
@@ -409,11 +387,7 @@ describe("BaseRegistry", () => {
 
 	describe("unregisterMany", () => {
 		beforeEach(() => {
-			const items: Array<IMockItem> = [
-				createMockItem("item1", 10),
-				createMockItem("item2", 20),
-				createMockItem("item3", 30),
-			];
+			const items: Array<IMockItem> = [createMockItem("item1", 10), createMockItem("item2", 20), createMockItem("item3", 30)];
 			registry.registerMany(items);
 			vi.clearAllMocks(); // Clear mocks after setup
 		});

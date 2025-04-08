@@ -1,15 +1,15 @@
 import type { ILogger } from "@domain/interface";
-import type { IBaseRegistryOptions } from "src/infrastructure";
+import type { IBaseRegistryOptions } from "@infrastructure/interface";
 
-import { BaseRegistry } from "src/infrastructure";
-import { createRegistry } from "src/presentation/utility/create";
+import { BaseRegistry } from "@infrastructure/class/base";
+import { createRegistry } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Logger dependency
 const mockLogger: ILogger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), trace: vi.fn(), warn: vi.fn() };
 
 // Mock the actual BaseRegistry class
-vi.mock("src/infrastructure/class/base/registry.class", () => ({
+vi.mock("@infrastructure/class/base/registry.class", () => ({
 	BaseRegistry: vi.fn().mockImplementation((options) => ({
 		__type: "MockRegistry",
 		options: options,
