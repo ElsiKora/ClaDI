@@ -1,15 +1,12 @@
 import type { ILogger } from "@domain/interface";
-import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "src/infrastructure";
 
 import { ELoggerLogLevel } from "@domain/enum";
-import {
-	BaseContainer,
-	BaseFactory as BaseItemFactory, // Rename to avoid conflict with CoreFactory
-	BaseRegistry,
-	ConsoleLoggerService,
-	CoreFactory,
-} from "src/infrastructure"; // Assuming index exports needed classes/types
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "@infrastructure/interface";
+import { CoreFactory } from "@infrastructure/factory";
+import { BaseContainer, BaseFactory as BaseItemFactory } from "@infrastructure/class/base";
+import { BaseRegistry } from "@infrastructure/class/base";
+import { ConsoleLoggerService } from "@infrastructure/service";
 
 // Mock Logger for CoreFactory internal use
 const mockCoreLogger: ILogger = {
@@ -21,16 +18,16 @@ const mockCoreLogger: ILogger = {
 };
 
 // Mock classes (optional, but can help isolate CoreFactory logic)
-vi.mock("src/infrastructure/class/base/container.class", () => ({
+vi.mock("@infrastructure/class/base/container.class", () => ({
 	BaseContainer: vi.fn().mockImplementation((options) => ({ __type: "MockContainer", options })),
 }));
-vi.mock("src/infrastructure/class/base/factory.class", () => ({
+vi.mock("@infrastructure/class/base/factory.class", () => ({
 	BaseFactory: vi.fn().mockImplementation((options) => ({ __type: "MockItemFactory", options })),
 }));
-vi.mock("src/infrastructure/class/base/registry.class", () => ({
+vi.mock("@infrastructure/class/base/registry.class", () => ({
 	BaseRegistry: vi.fn().mockImplementation((options) => ({ __type: "MockRegistry", options })),
 }));
-vi.mock("src/infrastructure/service/console-logger.service", () => ({
+vi.mock("@infrastructure/service/console-logger.service", () => ({
 	ConsoleLoggerService: vi.fn().mockImplementation((options) => ({
 		__type: "MockLogger",
 		debug: vi.fn(),

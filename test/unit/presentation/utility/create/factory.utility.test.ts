@@ -1,16 +1,16 @@
 import type { ILogger, IRegistry } from "@domain/interface";
-import type { IBaseFactoryOptions } from "src/infrastructure";
+import type { IBaseFactoryOptions } from "@infrastructure/interface";
 
-import { BaseFactory } from "src/infrastructure";
-import { createFactory } from "src/presentation/utility/create";
+import { BaseFactory } from "@infrastructure/class/base";
+import { createFactory } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
 const mockLogger: ILogger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), trace: vi.fn(), warn: vi.fn() };
-const mockRegistry: IRegistry<any> = { get: vi.fn(), has: vi.fn() } as any; // Add other methods if needed by BaseFactory constructor
+const mockRegistry = { get: vi.fn(), has: vi.fn() } as unknown as IRegistry<any>; // Add other methods if needed by BaseFactory constructor
 
 // Mock the actual BaseFactory class
-vi.mock("src/infrastructure/class/base/factory.class", () => ({
+vi.mock("@infrastructure/class/base/factory.class", () => ({
 	BaseFactory: vi.fn().mockImplementation((options) => ({
 		__type: "MockItemFactory",
 		options: options,

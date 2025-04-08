@@ -1,15 +1,20 @@
-import type { IConsoleLoggerOptions } from "@infrastructure/interface";
-
 import { ELoggerLogLevel } from "@domain/enum";
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS, ConsoleLoggerService } from "src/infrastructure";
-import { createLogger } from "src/presentation/utility/create";
+import type { IConsoleLoggerOptions } from "@infrastructure/interface";
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
+import { ConsoleLoggerService } from "@infrastructure/service";
+import { createLogger } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the actual ConsoleLoggerService class
-vi.mock("src/infrastructure/service/console-logger.service", () => ({
+vi.mock("@infrastructure/service/console-logger.service", () => ({
 	ConsoleLoggerService: vi.fn().mockImplementation((options) => ({
-		__type: "MockLogger", // Add identifier for assertion
-		options: options ?? CONSOLE_LOGGER_DEFAULT_OPTIONS,
+		__type: "MockLogger",
+		debug: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		options: options,
+		trace: vi.fn(),
+		warn: vi.fn(),
 	})),
 }));
 
