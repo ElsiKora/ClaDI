@@ -1,15 +1,15 @@
 import type { ILogger } from "@domain/interface";
-import type { IBaseContainerOptions } from "src/infrastructure";
+import type { IBaseContainerOptions } from "@infrastructure/interface";
 
-import { BaseContainer } from "src/infrastructure";
-import { createContainer } from "src/presentation/utility/create";
+import { BaseContainer } from "@infrastructure/class/base";
+import { createContainer } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Logger dependency
 const mockLogger: ILogger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), trace: vi.fn(), warn: vi.fn() };
 
 // Mock the actual BaseContainer class
-vi.mock("src/infrastructure/class/base/container.class", () => ({
+vi.mock("@infrastructure/class/base/container.class", () => ({
 	BaseContainer: vi.fn().mockImplementation((options) => ({
 		__type: "MockContainer",
 		options: options,

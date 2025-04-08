@@ -1,7 +1,7 @@
 import type { ILogger } from "@domain/interface";
 
-import { BaseContainer, BaseError } from "src/infrastructure/class/base"; // Assuming index exports BaseContainer
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BaseContainer, BaseError } from "@infrastructure/class/base";
 
 // Mock Logger
 const mockLogger: ILogger = {
