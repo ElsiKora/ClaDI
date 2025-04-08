@@ -1,3 +1,5 @@
+## [2.0.1](https://github.com/ElsiKora/ClaDI/compare/v2.0.0...v2.0.1) (2025-04-08)
+
 # [2.0.0](https://github.com/ElsiKora/ClaDI/compare/v1.0.4...v2.0.0) (2025-04-08)
 
 
