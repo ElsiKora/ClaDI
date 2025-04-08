@@ -1,6 +1,6 @@
 {
 	"name": "@elsikora/cladi",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "ClaDI is a library for creating and managing classes in TypeScript.",
 	"keywords": [
 		"typescript",
