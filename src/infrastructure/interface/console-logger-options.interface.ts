@@ -6,6 +6,7 @@ import type { ELoggerLogLevel } from "@domain/enum";
 export interface IConsoleLoggerOptions {
 	/**
 	 * The log level to use.
+	 * @default ELoggerLogLevel.INFO
 	 */
 	level: ELoggerLogLevel;
 
