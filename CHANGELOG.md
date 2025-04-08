@@ -1,3 +1,25 @@
+# [2.0.0](https://github.com/ElsiKora/ClaDI/compare/v1.0.4...v2.0.0) (2025-04-08)
+
+
+### Code Refactoring
+
+* **registry:** remove eservicetoken enum and update registry interface ([f112774](https://github.com/ElsiKora/ClaDI/commit/f112774910ccd6e47830d3ade26b12ef0a0c4488))
+
+
+### Features
+
+* **utility:** implement safedepclone utility for handling objects with functions ([bfa9bbe](https://github.com/ElsiKora/ClaDI/commit/bfa9bbe539690e8d50436f6299e0673e2af998e8))
+
+
+### BREAKING CHANGES
+
+* **registry:** - Remove EServiceToken enum previously used for common service registration
+- Change Registry interface to use getName() method instead of name property
+- Update documentation examples to use custom tokens
+
+Replace predefined tokens with user-defined tokens. Update Registry interface to require getName()
+method instead of name property. Clean up imports throughout the codebase for better organization.
+
 ## [1.0.4](https://github.com/ElsiKora/ClaDI/compare/v1.0.3...v1.0.4) (2025-04-08)
 
 
