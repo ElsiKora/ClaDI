@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/ElsiKora/ClaDI/compare/v1.0.3...v1.0.4) (2025-04-08)
+
+
+### Bug Fixes
+
+* **docs:** clean target directory before copying docs and fix tsdoc reference ([d0b32e8](https://github.com/ElsiKora/ClaDI/commit/d0b32e80b273367087bfe2fb675d3efdf93a6c8c))
+
 ## [1.0.3](https://github.com/ElsiKora/ClaDI/compare/v1.0.2...v1.0.3) (2025-04-08)
 
 ## [1.0.2](https://github.com/ElsiKora/ClaDI/compare/v1.0.1...v1.0.2) (2025-04-08)
