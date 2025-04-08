@@ -1,7 +1,7 @@
 import type { IFactory } from "@domain/interface";
-import type { IBaseFactoryOptions } from "@infrastructure/index";
+import type { IBaseFactoryOptions } from "@infrastructure/interface";
 
-import { BaseFactory } from "@infrastructure/index";
+import { BaseFactory } from "@infrastructure/class/base";
 
 /**
  * Creates a new factory instance.

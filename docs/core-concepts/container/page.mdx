@@ -8,12 +8,13 @@ Think of the container as a central hub where you register all the building bloc
 
 ## Key Features & Examples
 
-- **Registration (`register`/`registerMany`)**: Store dependencies using a unique `symbol` as a key (token). You can use predefined `EServiceToken` for core services or create your own `Symbol.for('YourToken')` for application-specific dependencies.
+- **Registration (`register`/`registerMany`)**: Store dependencies using a unique `symbol` as a key (token). You should create your own `Symbol.for('YourToken')` for application-specific dependencies.
 
   ```typescript filename="src/container-setup.ts" copy
-  import { createContainer, EServiceToken, type ILogger } from '@elsikora/cladi';
+  import { createContainer, type ILogger } from '@elsikora/cladi';
   import { SomeService, AnotherService } from './services';
   import { ApiConfig } from './config';
+  import { Tokens } from './types';
 
   // Assume logger is created elsewhere
   declare const logger: ILogger;
@@ -32,7 +33,7 @@ Think of the container as a central hub where you register all the building bloc
   };
 
   // Register dependencies
-  container.register(EServiceToken.LOGGER, logger);
+  container.register(Tokens.Logger, logger);
   container.register(Tokens.ApiConfig, apiConfig);
   container.register(Tokens.SomeService, someService);
   container.register(Tokens.AnotherService, anotherService);
@@ -46,13 +47,13 @@ Think of the container as a central hub where you register all the building bloc
 
   ```typescript filename="src/some-module.ts" copy
   import { container, Tokens } from './container-setup';
-  import { type ILogger, EServiceToken } from '@elsikora/cladi';
+  import { type ILogger } from '@elsikora/cladi';
   import type { SomeService } from './services';
   import type { ApiConfig } from './config';
 
   function doSomething() {
     // Retrieve needed services from the container
-    const logger = container.get<ILogger>(EServiceToken.LOGGER);
+    const logger = container.get<ILogger>(Tokens.Logger);
     const service = container.get<SomeService>(Tokens.SomeService);
     const config = container.get<ApiConfig>(Tokens.ApiConfig);
 
@@ -89,7 +90,7 @@ Think of the container as a central hub where you register all the building bloc
   ```typescript filename="src/clear-example.ts" copy
   declare const logger: ILogger;
   container.clear();
-  logger.debug(`Has Logger after clear: ${container.has(EServiceToken.LOGGER)}`); // Logs: false
+  logger.debug(`Has Logger after clear: ${container.has(Tokens.Logger)}`); // Logs: false
   ```
 
 ## Benefits

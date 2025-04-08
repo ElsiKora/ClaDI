@@ -1,6 +1,7 @@
 import type { IContainer } from "@domain/interface";
+import type { IBaseContainerOptions } from "@infrastructure/interface";
 
-import { BaseContainer, type IBaseContainerOptions } from "@infrastructure/index";
+import { BaseContainer } from "@infrastructure/class/base";
 
 /**
  * Creates a new container instance.

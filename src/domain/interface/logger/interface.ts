@@ -1,4 +1,4 @@
-import type { ILoggerMethodOptions } from "./method-options.interface";
+import type { ILoggerMethodOptions } from "@domain/interface";
 
 /**
  * Logger interface.

@@ -1,4 +1,4 @@
-import type { ILogger } from "@domain/interface/logger/interface";
+import type { ILogger } from "@domain/interface";
 
 /**
  * Base registry creation options.

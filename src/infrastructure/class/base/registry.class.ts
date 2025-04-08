@@ -1,17 +1,15 @@
-import type { ILogger } from "@domain/interface/logger/interface";
-import type { IRegistry } from "@domain/interface/registry.interface";
-import type { IBaseRegistryOptions } from "@infrastructure/interface/base";
+import type { ILogger, IRegistry } from "@domain/interface";
+import type { IBaseRegistryOptions } from "@infrastructure/interface";
 
+import { BaseError } from "@infrastructure/class/base/error.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
-
-import { BaseError } from "./error.class";
 
 /**
  * Generic registry implementation that stores items by name.
  * @template T The type of items stored in the registry.
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
  */
-export class BaseRegistry<T extends { name: string }> implements IRegistry<T> {
+export class BaseRegistry<T extends { getName(): string }> implements IRegistry<T> {
 	private readonly CACHE: Map<string, Array<T>>;
 
 	private readonly ITEMS: Map<string, T>;
@@ -160,20 +158,20 @@ export class BaseRegistry<T extends { name: string }> implements IRegistry<T> {
 			});
 		}
 
-		this.LOGGER.debug(`Registering item with name: ${item.name}`, { source: "Registry" });
+		this.LOGGER.debug(`Registering item with name: ${item.getName()}`, { source: "Registry" });
 
-		if (this.has(item.name)) {
+		if (this.has(item.getName())) {
 			throw new BaseError("Item already exists in registry", {
 				code: "REGISTRY_ITEM_ALREADY_EXISTS",
 				source: "Registry",
 			});
 		}
 
-		this.ITEMS.set(item.name, item);
+		this.ITEMS.set(item.getName(), item);
 
 		this.clearCache();
 
-		this.LOGGER.debug(`Item registered successfully: ${item.name}`, { source: "Registry" });
+		this.LOGGER.debug(`Item registered successfully: ${item.getName()}`, { source: "Registry" });
 	}
 
 	/**

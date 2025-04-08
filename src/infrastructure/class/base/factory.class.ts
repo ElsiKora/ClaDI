@@ -1,11 +1,8 @@
-import type { IFactory } from "@domain/interface/factory.interface";
-import type { ILogger } from "@domain/interface/logger/interface";
-import type { IRegistry } from "@domain/interface/registry.interface";
-import type { IBaseFactoryOptions } from "@infrastructure/interface/base";
+import type { IFactory, ILogger, IRegistry } from "@domain/interface";
+import type { IBaseFactoryOptions } from "@infrastructure/interface";
 
+import { BaseError } from "@infrastructure/class/base/error.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
-
-import { BaseError } from "./error.class";
 
 /**
  * Generic factory implementation that creates items by name using a registry as data source.
