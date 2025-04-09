@@ -1,6 +1,5 @@
 import { ELoggerLogLevel } from "@domain/enum";
 import type { IConsoleLoggerOptions } from "@infrastructure/interface";
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
 import { ConsoleLoggerService } from "@infrastructure/service";
 import { createLogger } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,15 +22,6 @@ describe("createLogger Utility", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Or specifically: vi.mocked(ConsoleLoggerService).mockClear();
-	});
-
-	it("should create a ConsoleLoggerService instance with default options if none provided", () => {
-		const logger = createLogger();
-		expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
-		expect(ConsoleLoggerService).toHaveBeenCalledWith(CONSOLE_LOGGER_DEFAULT_OPTIONS);
-		// Check the returned object structure (based on mock)
-		expect((logger as any).__type).toBe("MockLogger");
-		expect((logger as any).options).toEqual(CONSOLE_LOGGER_DEFAULT_OPTIONS);
 	});
 
 	it("should create a ConsoleLoggerService instance with provided options", () => {

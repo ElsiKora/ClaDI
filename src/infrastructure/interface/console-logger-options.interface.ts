@@ -9,7 +9,7 @@ export interface IConsoleLoggerOptions {
 	 * The log level to use.
 	 * @default ELoggerLogLevel.INFO
 	 */
-	level: ELoggerLogLevel;
+	level?: ELoggerLogLevel;
 
 	/**
 	 * The source to use for the logger.

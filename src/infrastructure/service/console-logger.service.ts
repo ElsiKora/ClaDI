@@ -1,7 +1,8 @@
-import type { ILogger, ILoggerMethodOptions } from "@domain/interface";
+import type { ILogger, ILoggerMethodOptions, ILoggerOptions } from "@domain/interface";
 import type { IConsoleLoggerOptions } from "@infrastructure/interface";
 
 import { ELoggerLogLevel } from "@domain/enum";
+import { BaseError } from "@infrastructure/class/base/error.class";
 import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
 
 /**
@@ -22,10 +23,16 @@ export class ConsoleLoggerService implements ILogger {
 	/**
 	 * Create a new console logger.
 	 * @param {IConsoleLoggerOptions} [options] - The options to use for the logger.
-	 * @default
 	 */
 	constructor(options: IConsoleLoggerOptions = CONSOLE_LOGGER_DEFAULT_OPTIONS) {
-		this.LEVEL = options.level;
+		if (!this.validateOptions(options)) {
+			throw new BaseError("Invalid options", {
+				code: "INVALID_OPTIONS",
+				source: "ConsoleLoggerService",
+			});
+		}
+
+		this.LEVEL = options.level ?? ELoggerLogLevel.INFO;
 		this.SOURCE = options.source;
 	}
 
@@ -52,6 +59,30 @@ export class ConsoleLoggerService implements ILogger {
 	}
 
 	/**
+	 * Get the default options for the logger.
+	 * @returns {ILoggerOptions} The default options for the logger.
+	 */
+	public getDefaultOptions(): ILoggerOptions {
+		return CONSOLE_LOGGER_DEFAULT_OPTIONS;
+	}
+
+	/**
+	 * Get the description of the logger.
+	 * @returns {string} The description of the logger.
+	 */
+	public getDescription(): string {
+		return "Console logger";
+	}
+
+	/**
+	 * Get the name of the logger.
+	 * @returns {string} The name of the logger.
+	 */
+	public getName(): string {
+		return "console";
+	}
+
+	/**
 	 * Log an info message.
 	 * @param {string} message Message to log.
 	 * @param {ILoggerMethodOptions} [options] Optional logging options.
@@ -71,6 +102,15 @@ export class ConsoleLoggerService implements ILogger {
 		if (this.shouldLog(ELoggerLogLevel.TRACE)) {
 			console.trace(this.formatMessage(ELoggerLogLevel.TRACE, message, options));
 		}
+	}
+
+	/**
+	 * Validate the logger options.
+	 * @param {ILoggerOptions} _options The options to validate.
+	 * @returns {boolean} True if the options are valid.
+	 */
+	public validateOptions(_options: ILoggerOptions): boolean {
+		return true;
 	}
 
 	/**

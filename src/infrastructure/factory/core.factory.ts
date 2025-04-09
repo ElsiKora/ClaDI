@@ -44,11 +44,11 @@ export class CoreFactory {
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/container}
 	 */
 	public createContainer(options: IBaseContainerOptions): IContainer {
-		this.LOGGER?.debug("Creating new container instance", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Creating new container instance", { source: "CoreFactory" });
 
 		const container: IContainer = new BaseContainer(options);
 
-		this.LOGGER?.debug("Container instance created", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Container instance created", { source: "CoreFactory" });
 
 		return container;
 	}
@@ -61,11 +61,11 @@ export class CoreFactory {
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
 	 */
 	public createFactory<T>(options: IBaseFactoryOptions<T>): IFactory<T> {
-		this.LOGGER?.debug("Creating new factory instance", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Creating new factory instance", { source: "CoreFactory" });
 
 		const factory: IFactory<T> = new BaseFactory<T>(options);
 
-		this.LOGGER?.debug("Factory instance created", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Factory instance created", { source: "CoreFactory" });
 
 		return factory;
 	}
@@ -79,12 +79,12 @@ export class CoreFactory {
 	public createLogger(options: IConsoleLoggerOptions): ILogger {
 		this.LOGGER?.debug("Creating new logger instance", {
 			context: { level: options.level, loggerSource: options.source },
-			source: "InfrastructureFactory",
+			source: "CoreFactory",
 		});
 
 		const logger: ILogger = new ConsoleLoggerService(options);
 
-		this.LOGGER?.debug("Logger instance created", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Logger instance created", { source: "CoreFactory" });
 
 		return logger;
 	}
@@ -97,11 +97,11 @@ export class CoreFactory {
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
 	 */
 	public createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
-		this.LOGGER?.debug("Creating new registry instance", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Creating new registry instance", { source: "CoreFactory" });
 
 		const registry: IRegistry<T> = new BaseRegistry<T>(options);
 
-		this.LOGGER?.debug("Registry instance created", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("Registry instance created", { source: "CoreFactory" });
 
 		return registry;
 	}

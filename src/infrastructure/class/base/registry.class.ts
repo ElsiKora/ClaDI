@@ -20,10 +20,10 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 	 * Creates a new registry instance.
 	 * @param {IBaseRegistryOptions} options Registry creation options including logger.
 	 */
-	constructor(options: IBaseRegistryOptions) {
+	constructor(options?: IBaseRegistryOptions) {
 		this.ITEMS = new Map<string, T>();
 		this.CACHE = new Map<string, Array<T>>();
-		this.LOGGER = options.logger ?? new ConsoleLoggerService();
+		this.LOGGER = options?.logger ?? new ConsoleLoggerService();
 	}
 
 	/**

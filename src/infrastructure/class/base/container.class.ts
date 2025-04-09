@@ -17,9 +17,9 @@ export class BaseContainer implements IContainer {
 	 * Create a new container.
 	 * @param {IBaseContainerOptions} options - The options to use for the container.
 	 */
-	constructor(options: IBaseContainerOptions) {
+	constructor(options?: IBaseContainerOptions) {
 		this.DEPENDENCIES = new Map<symbol, unknown>();
-		this.LOGGER = options.logger ?? new ConsoleLoggerService();
+		this.LOGGER = options?.logger ?? new ConsoleLoggerService();
 	}
 
 	/**

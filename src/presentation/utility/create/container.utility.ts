@@ -9,6 +9,6 @@ import { BaseContainer } from "@infrastructure/class/base";
  * @returns {IContainer} A new container instance.
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/container} for more information on containers.
  */
-export function createContainer(options: IBaseContainerOptions): IContainer {
+export function createContainer(options?: IBaseContainerOptions): IContainer {
 	return new BaseContainer(options);
 }

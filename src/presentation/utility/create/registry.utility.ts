@@ -10,6 +10,6 @@ import { BaseRegistry } from "@infrastructure/class/base";
  * @template T The type of items stored in the registry.
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry} for more information on registries.
  */
-export function createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
+export function createRegistry<T extends { getName(): string }>(options?: IBaseRegistryOptions): IRegistry<T> {
 	return new BaseRegistry<T>(options);
 }
