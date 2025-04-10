@@ -38,11 +38,12 @@ export class BaseContainer implements IContainer {
 	 * @template T The type of the dependency.
 	 */
 	// eslint-disable-next-line @elsikora/typescript/no-unnecessary-type-parameters
-	public get<T>(token: symbol): T | undefined {
+	public get<T>(token: symbol): T {
 		if (!token) {
-			this.LOGGER.warn("Attempted to get dependency with empty token", { source: "Container" });
-
-			return undefined;
+			throw new BaseError("Token cannot be null or undefined", {
+				code: "CONTAINER_TOKEN_NOT_NULL_OR_UNDEFINED",
+				source: "Container",
+			});
 		}
 
 		this.LOGGER.debug(`Getting dependency with token: ${String(token.description)}`, { source: "Container" });
@@ -51,23 +52,29 @@ export class BaseContainer implements IContainer {
 
 		if (dependency) {
 			this.LOGGER.debug(`Dependency found: ${String(token.description)}`, { source: "Container" });
-		} else {
-			this.LOGGER.debug(`Dependency not found: ${String(token.description)}`, { source: "Container" });
+
+			return dependency;
 		}
 
-		return dependency;
+		throw new BaseError("Dependency not found", {
+			code: "CONTAINER_DEPENDENCY_NOT_FOUND",
+			context: {
+				token,
+			},
+			source: "Container",
+		});
 	}
 
 	/**
 	 * Get all dependencies from the container.
 	 * @returns {Array<unknown>} An array of all dependencies.
 	 */
-	public getAll(): Array<unknown> {
+	public getAll<T>(): Array<T> {
 		this.LOGGER.debug("Getting all dependencies", { source: "Container" });
 		const dependencies: Array<unknown> = [...this.DEPENDENCIES.values()];
 		this.LOGGER.debug(`Retrieved ${String(dependencies.length)} dependencies`, { source: "Container" });
 
-		return dependencies;
+		return dependencies as Array<T>;
 	}
 
 	/**
@@ -79,6 +86,9 @@ export class BaseContainer implements IContainer {
 		if (!tokens) {
 			throw new BaseError("Tokens cannot be null or undefined", {
 				code: "CONTAINER_TOKENS_NOT_NULL_OR_UNDEFINED",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}
@@ -86,6 +96,9 @@ export class BaseContainer implements IContainer {
 		if (!Array.isArray(tokens)) {
 			throw new BaseError("Tokens must be an array", {
 				code: "CONTAINER_TOKENS_NOT_ARRAY",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}
@@ -137,6 +150,9 @@ export class BaseContainer implements IContainer {
 		if (this.has(token)) {
 			throw new BaseError("Dependency already exists in container", {
 				code: "CONTAINER_DEPENDENCY_ALREADY_EXISTS",
+				context: {
+					token,
+				},
 				source: "Container",
 			});
 		}
@@ -157,6 +173,9 @@ export class BaseContainer implements IContainer {
 		if (!tokens) {
 			throw new BaseError("Tokens cannot be null or undefined", {
 				code: "CONTAINER_TOKENS_NOT_NULL_OR_UNDEFINED",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}
@@ -164,6 +183,9 @@ export class BaseContainer implements IContainer {
 		if (!Array.isArray(tokens)) {
 			throw new BaseError("Tokens must be an array", {
 				code: "CONTAINER_TOKENS_NOT_ARRAY",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}
@@ -186,6 +208,9 @@ export class BaseContainer implements IContainer {
 		if (!token) {
 			throw new BaseError("Token cannot be null or undefined", {
 				code: "CONTAINER_TOKEN_NOT_NULL_OR_UNDEFINED",
+				context: {
+					token,
+				},
 				source: "Container",
 			});
 		}
@@ -209,6 +234,9 @@ export class BaseContainer implements IContainer {
 		if (!tokens) {
 			throw new BaseError("Tokens cannot be null or undefined", {
 				code: "CONTAINER_TOKENS_NOT_NULL_OR_UNDEFINED",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}
@@ -216,6 +244,9 @@ export class BaseContainer implements IContainer {
 		if (!Array.isArray(tokens)) {
 			throw new BaseError("Tokens must be an array", {
 				code: "CONTAINER_TOKENS_NOT_ARRAY",
+				context: {
+					tokens,
+				},
 				source: "Container",
 			});
 		}

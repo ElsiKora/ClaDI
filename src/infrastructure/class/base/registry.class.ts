@@ -1,4 +1,5 @@
 import type { ILogger, IRegistry } from "@domain/interface";
+import type { TConstructor } from "@domain/type";
 import type { IBaseRegistryOptions } from "@infrastructure/interface";
 
 import { BaseError } from "@infrastructure/class/base/error.class";
@@ -10,9 +11,9 @@ import { ConsoleLoggerService } from "@infrastructure/service";
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
  */
 export class BaseRegistry<T extends { getName(): string }> implements IRegistry<T> {
-	private readonly CACHE: Map<string, Array<T>>;
+	private readonly CACHE: Map<string, Array<TConstructor<T>>>;
 
-	private readonly ITEMS: Map<string, T>;
+	private readonly ITEMS: Map<string, TConstructor<T>>;
 
 	private readonly LOGGER: ILogger;
 
@@ -21,8 +22,8 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 	 * @param {IBaseRegistryOptions} options Registry creation options including logger.
 	 */
 	constructor(options?: IBaseRegistryOptions) {
-		this.ITEMS = new Map<string, T>();
-		this.CACHE = new Map<string, Array<T>>();
+		this.ITEMS = new Map<string, TConstructor<T>>();
+		this.CACHE = new Map<string, Array<TConstructor<T>>>();
 		this.LOGGER = options?.logger ?? new ConsoleLoggerService();
 	}
 
@@ -41,9 +42,9 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 	/**
 	 * Get a single item from the registry by name.
 	 * @param {string} name The name of the item to get.
-	 * @returns {T | undefined} The item or undefined if it doesn't exist.
+	 * @returns {TConstructor<T> | undefined} The item or undefined if it doesn't exist.
 	 */
-	public get(name: string): T | undefined {
+	public get(name: string): TConstructor<T> | undefined {
 		this.LOGGER.debug(`Getting item with name: ${name}`, { source: "Registry" });
 
 		if (!name) {
@@ -52,7 +53,7 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 			return undefined;
 		}
 
-		const item: T | undefined = this.ITEMS.get(name);
+		const item: TConstructor<T> | undefined = this.ITEMS.get(name);
 
 		if (item) {
 			this.LOGGER.debug(`Item found: ${name}`, { source: "Registry" });
@@ -67,11 +68,11 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 	 * Get all items from the registry.
 	 * @returns {Array<T>} An array of all items.
 	 */
-	public getAll(): Array<T> {
+	public getAll(): Array<TConstructor<T>> {
 		this.LOGGER.debug("Getting all items", { source: "Registry" });
 
 		const cacheKey: string = "getAll";
-		const cachedResult: Array<T> | undefined = this.CACHE.get(cacheKey);
+		const cachedResult: Array<TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
 
 		if (cachedResult) {
 			this.LOGGER.debug("Cache hit for getAll query", { source: "Registry" });
@@ -79,7 +80,7 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 			return cachedResult;
 		}
 
-		const result: Array<T> = [...this.ITEMS.values()];
+		const result: Array<TConstructor<T>> = [...this.ITEMS.values()];
 
 		this.CACHE.set(cacheKey, result);
 		this.LOGGER.debug(`Cached result for getAll query with ${String(result.length)} items`, { source: "Registry" });
@@ -92,7 +93,7 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 	 * @param {Array<string>} names The names of the items to get.
 	 * @returns {Array<T>} An array of items.
 	 */
-	public getMany(names: Array<string>): Array<T> {
+	public getMany(names: Array<string>): Array<TConstructor<T>> {
 		if (!names) {
 			throw new BaseError("Names cannot be null or undefined", {
 				code: "REGISTRY_NAMES_NOT_NULL_OR_UNDEFINED",
@@ -110,7 +111,7 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 		this.LOGGER.debug(`Getting ${String(names.length)} items by name`, { source: "Registry" });
 
 		const cacheKey: string = `getMany:${names.join(",")}`;
-		const cachedResult: Array<T> | undefined = this.CACHE.get(cacheKey);
+		const cachedResult: Array<TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
 
 		if (cachedResult) {
 			this.LOGGER.debug(`Cache hit for query: ${cacheKey}`, { source: "Registry" });
@@ -118,7 +119,7 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 			return cachedResult;
 		}
 
-		const result: Array<T> = names.map((name: string) => this.get(name)).filter((item: T | undefined): item is T => item !== undefined);
+		const result: Array<TConstructor<T>> = names.map((name: string) => this.get(name)).filter((item: TConstructor<T> | undefined): item is TConstructor<T> => item !== undefined);
 
 		this.CACHE.set(cacheKey, result);
 		this.LOGGER.debug(`Cached result for query: ${cacheKey}`, { source: "Registry" });
@@ -147,10 +148,11 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 
 	/**
 	 * Register a single item in the registry.
-	 * @param {T} item The item to register.
+	 * @param {string} name The name of the item to register.
+	 * @param {TConstructor<T>} item The item to register.
 	 * @throws ValidationError if the item is invalid.
 	 */
-	public register(item: T): void {
+	public register(name: string, item: TConstructor<T>): void {
 		if (!item) {
 			throw new BaseError("Item cannot be null or undefined", {
 				code: "REGISTRY_ITEM_NOT_NULL_OR_UNDEFINED",
@@ -158,28 +160,28 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 			});
 		}
 
-		this.LOGGER.debug(`Registering item with name: ${item.getName()}`, { source: "Registry" });
+		this.LOGGER.debug(`Registering item with name: ${name}`, { source: "Registry" });
 
-		if (this.has(item.getName())) {
+		if (this.has(name)) {
 			throw new BaseError("Item already exists in registry", {
 				code: "REGISTRY_ITEM_ALREADY_EXISTS",
 				source: "Registry",
 			});
 		}
 
-		this.ITEMS.set(item.getName(), item);
+		this.ITEMS.set(name, item);
 
 		this.clearCache();
 
-		this.LOGGER.debug(`Item registered successfully: ${item.getName()}`, { source: "Registry" });
+		this.LOGGER.debug(`Item registered successfully: ${name}`, { source: "Registry" });
 	}
 
 	/**
 	 * Register multiple items in the registry.
-	 * @param {Array<T>} items The items to register.
+	 * @param {Record<string, TConstructor<T>>} items The items to register.
 	 * @throws ValidationError if any item is invalid.
 	 */
-	public registerMany(items: Array<T>): void {
+	public registerMany(items: Record<string, TConstructor<T>>): void {
 		if (!items) {
 			throw new BaseError("Items cannot be null or undefined", {
 				code: "REGISTRY_ITEMS_NOT_NULL_OR_UNDEFINED",
@@ -187,20 +189,20 @@ export class BaseRegistry<T extends { getName(): string }> implements IRegistry<
 			});
 		}
 
-		if (!Array.isArray(items)) {
-			throw new BaseError("Items must be an array", {
-				code: "REGISTRY_ITEMS_NOT_ARRAY",
+		if (typeof items !== "object" || items == null) {
+			throw new BaseError("Items must be an object", {
+				code: "REGISTRY_ITEMS_NOT_OBJECT",
 				source: "Registry",
 			});
 		}
 
-		this.LOGGER.debug(`Registering ${String(items.length)} items`, { source: "Registry" });
+		this.LOGGER.debug(`Registering ${String(Object.keys(items).length)} items`, { source: "Registry" });
 
-		for (const item of items) {
-			this.register(item);
+		for (const [name, item] of Object.entries(items)) {
+			this.register(name, item);
 		}
 
-		this.LOGGER.debug(`${String(items.length)} items registered successfully`, { source: "Registry" });
+		this.LOGGER.debug(`${String(Object.keys(items).length)} items registered successfully`, { source: "Registry" });
 	}
 
 	/**

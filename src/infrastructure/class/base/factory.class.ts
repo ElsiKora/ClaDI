@@ -1,96 +1,59 @@
-import type { IFactory } from "@domain/interface";
-import type { ILogger } from "@domain/interface";
-import type { IRegistry } from "@domain/interface";
+import type { IFactory, ILogger, IRegistry } from "@domain/interface";
+import type { TConstructor } from "@domain/type";
 import type { IBaseFactoryOptions } from "@infrastructure/interface";
 
-import { safeDeepClone } from "@application/utility";
 import { BaseError } from "@infrastructure/class/base/error.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
 
 /**
- * Generic factory implementation that creates items by name using a registry as data source.
+ * Generic factory implementation that creates instances by class constructors stored in the registry.
  * @template T The type of items created by the factory.
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
  */
 export class BaseFactory<T> implements IFactory<T> {
-	/**
-	 * Internal cache of created items.
-	 */
-	private readonly CACHE: Map<string, T>;
-
 	/**
 	 * Logger instance.
 	 */
 	private readonly LOGGER: ILogger;
 
 	/**
-	 * Registry instance.
+	 * Registry instance that stores constructors.
 	 */
 	private readonly REGISTRY: IRegistry<T>;
-
-	/**
-	 * Optional custom transformer function.
-	 */
-	private readonly TRANSFORMER?: (template: T) => T;
 
 	/**
 	 * Create a new factory instance.
 	 * @param {IBaseFactoryOptions<T>} options Factory options.
 	 */
 	constructor(options: IBaseFactoryOptions<T>) {
-		this.CACHE = new Map<string, T>();
 		this.LOGGER = options.logger ?? new ConsoleLoggerService();
 		this.REGISTRY = options.registry;
-		this.TRANSFORMER = options.transformer;
 	}
 
 	/**
-	 * Clear all cached items or a specific cached item.
-	 * @param {string} [name] Optional name of specific cached item to clear.
-	 */
-	public clearCache(name?: string): void {
-		if (name) {
-			this.CACHE.delete(name);
-			this.LOGGER.debug(`Cache cleared for item: ${name}`, { source: "Factory" });
-		} else {
-			this.CACHE.clear();
-			this.LOGGER.debug("Factory cache cleared", { source: "Factory" });
-		}
-	}
-
-	/**
-	 * Create an item by name.
+	 * Create an instance by name with optional constructor arguments.
 	 * @param {string} name The name of the item to create.
-	 * @returns {T} The created item.
-	 * @throws RegistryItemNotFoundError if no item with the given name exists in the registry.
+	 * @param {Array<unknown>} constructorArguments The constructor arguments.
+	 * @returns {T} The created instance.
+	 * @throws BaseError if no constructor with the given name exists in the registry.
 	 */
-	public create(name: string): T {
-		this.LOGGER.debug(`Creating item: ${name}`, { source: "Factory" });
+	public create(name: string, constructorArguments: Array<unknown> = []): T {
+		this.LOGGER.info(`Creating instance: ${name}`, { source: "Factory" });
+		// Get constructor from registry
+		const classConstructor: TConstructor<T> | undefined = this.REGISTRY.get(name);
 
-		const cachedItem: T | undefined = this.CACHE.get(name);
-
-		if (cachedItem) {
-			this.LOGGER.debug(`Retrieved item from cache: ${name}`, { source: "Factory" });
-
-			return safeDeepClone(cachedItem);
-		}
-
-		const template: T | undefined = this.REGISTRY.get(name);
-
-		if (!template) {
-			throw new BaseError("Template not found", {
-				code: "TEMPLATE_NOT_FOUND",
+		if (!classConstructor) {
+			throw new BaseError(`Constructor not found: ${name}`, {
+				code: "CONSTRUCTOR_NOT_FOUND",
 				source: "Factory",
 			});
 		}
 
-		const result: T = this.TRANSFORMER ? this.TRANSFORMER(template) : safeDeepClone(template);
+		const instance: T = new classConstructor(...constructorArguments);
 
-		this.CACHE.set(name, result);
+		this.LOGGER.info(`Instance created: ${name}`, { source: "Factory" });
 
-		this.LOGGER.debug(`Created item: ${name}`, { source: "Factory" });
-
-		return safeDeepClone(result);
+		return instance;
 	}
 
 	/**

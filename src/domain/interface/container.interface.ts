@@ -12,15 +12,15 @@ export interface IContainer {
 	/**
 	 * Get a dependency from the container.
 	 * @param token Token that identifies the dependency.
-	 * @returns The dependency, or undefined if it doesn't exist.
+	 * @returns The dependency.
 	 */
-	get<T>(token: symbol): T | undefined;
+	get<T>(token: symbol): T;
 
 	/**
 	 * Get all dependencies from the container.
 	 * @returns An array of all dependencies.
 	 */
-	getAll(): Array<unknown>;
+	getAll<T>(): Array<T>;
 
 	/**
 	 * Get multiple dependencies from the container.

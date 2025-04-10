@@ -28,7 +28,7 @@ ClaDI is a powerful TypeScript library that provides a robust foundation for bui
 ## 🚀 Features
 - ✨ **🚀 Zero dependencies - Lightweight footprint with no external runtime dependencies**
 - ✨ **📦 Registry system - Store, retrieve, and manage class templates efficiently**
-- ✨ **🏭 Factory pattern - Create class instances with automatic deep cloning**
+- ✨ **🏭 Factory pattern - Create class instances with intelligent object cloning**
 - ✨ **💉 Dependency injection - Simple yet powerful container for managing application services**
 - ✨ **🔄 Caching mechanism - Performance optimization for frequently used classes**
 - ✨ **🧩 Modular architecture - Clean separation of concerns with domain, infrastructure, and presentation layers**
@@ -52,42 +52,83 @@ bun add @elsikora/cladi
 ```
 
 ## 💡 Usage
-## Basic Usage
+## Basic Usage with Class Instances (NEW)
 
-The following example demonstrates how to create and use the core components of ClaDI:
+The following example demonstrates how to properly create and use the core components of ClaDI with class instances:
 
 ```typescript
-import { createContainer, createFactory, createLogger, createRegistry, ELoggerLogLevel } from '@elsikora/cladi';
+import { createContainer, createFactory, createRegistry, ELoggerLogLevel } from '@elsikora/cladi';
 
-// Define a simple model with required 'name' property
-interface User {
-  name: string;
-  email: string;
-  role: string;
+// Define a class with methods
+class User {
+  constructor(public id: number, public name: string, public email: string) {}
+  
+  getName() {
+    return this.name;
+  }
+  
+  greet() {
+    return `Hello, ${this.name}!`;
+  }
 }
 
-// Create a logger
-const logger = createLogger({ 
-  level: ELoggerLogLevel.DEBUG,
-  source: 'UserModule' 
+// Create a registry to store user templates
+const userRegistry = createRegistry<User>();
+
+// Register a user template
+const adminTemplate = new User(1, "admin", "admin@example.com");
+userRegistry.register(adminTemplate);
+
+// Create a factory with proper class instantiation 
+// THIS IS THE KEY IMPROVEMENT - use creator pattern for class instances!
+const userFactory = createFactory<User>({
+  registry: userRegistry,
+  creator: (name, template) => {
+    // Create a proper class instance, not just a clone
+    return new User(template.id, template.name, template.email);
+  }
 });
 
-// Create a registry to store user templates
-const registry = createRegistry<User>({ logger });
-
-// Register user templates
-registry.register({ name: 'admin', email: 'admin@example.com', role: 'admin' });
-registry.register({ name: 'user', email: 'user@example.com', role: 'user' });
-
-// Create a factory to instantiate users from templates
-const factory = createFactory<User>({ registry, logger });
-
-// Create a user instance (returns a deep clone of the template)
-const adminUser = factory.create('admin');
-console.log(adminUser); // { name: 'admin', email: 'admin@example.com', role: 'admin' }
+// Create a user instance
+const adminUser = userFactory.create('admin');
+console.log(adminUser.greet()); // "Hello, admin!"
+console.log(adminUser instanceof User); // true - prototype is preserved!
 
 // Modify instance (won't affect the original template)
 adminUser.email = 'new-admin@example.com';
+```
+
+## Working with Plain Objects
+
+For simple data objects without methods, the standard approach works well:
+
+```typescript
+import { createFactory, createRegistry } from '@elsikora/cladi';
+
+// Define a simple model with required getName method
+interface Config {
+  name: string;
+  settings: {
+    enabled: boolean;
+    timeout: number;
+  };
+  getName(): string;
+}
+
+// Create registry and register a template
+const configRegistry = createRegistry<Config>();
+configRegistry.register({
+  name: 'default',
+  settings: { enabled: true, timeout: 5000 },
+  getName() { return this.name; }
+});
+
+// Create factory (normal cloning works fine for simple objects)
+const configFactory = createFactory<Config>({ registry: configRegistry });
+
+// Create a config instance
+const config = configFactory.create('default');
+console.log(config); // { name: 'default', settings: { enabled: true, timeout: 5000 }, getName: [Function] }
 ```
 
 ## Dependency Injection Container
@@ -163,109 +204,6 @@ logger.warn('Retry attempt required', {
 // [2023-07-15T12:34:56.791Z] WARN: [PaymentService → PaymentGateway] Retry attempt required {"attempt":2,"maxAttempts":3}
 ```
 
-## Core Factory Pattern
-
-For more advanced scenarios, use the CoreFactory singleton:
-
-```typescript
-import { CoreFactory, ELoggerLogLevel, type IRegistry, type IFactory, type IContainer } from '@elsikora/cladi';
-
-// Create the core factory instance with options
-const coreFactory = CoreFactory.getInstance({
-  logger: createLogger({
-    level: ELoggerLogLevel.INFO,
-    source: 'CoreFactory'
-  })
-});
-
-// Define a product model
-interface Product {
-  name: string;
-  price: number;
-  inStock: boolean;
-}
-
-// Create infrastructure components
-const productRegistry = coreFactory.createRegistry<Product>({});
-const productFactory = coreFactory.createFactory<Product>({ registry: productRegistry });
-const appContainer = coreFactory.createContainer({});
-
-// Register product templates
-productRegistry.register({ name: 'Basic Widget', price: 9.99, inStock: true });
-productRegistry.register({ name: 'Premium Widget', price: 19.99, inStock: false });
-
-// Create product instances
-const basicWidget = productFactory.create('Basic Widget');
-console.log(basicWidget); // { name: 'Basic Widget', price: 9.99, inStock: true }
-```
-
-## Custom Transformers
-
-You can provide custom transformers to modify objects during instantiation:
-
-```typescript
-import { createFactory, createRegistry } from '@elsikora/cladi';
-
-interface OrderTemplate {
-  name: string;
-  basePrice: number;
-  discountPercent: number;
-}
-
-// Create registry and register templates
-const orderRegistry = createRegistry<OrderTemplate>({});
-orderRegistry.register({
-  name: 'standard',
-  basePrice: 100,
-  discountPercent: 0
-});
-orderRegistry.register({
-  name: 'sale',
-  basePrice: 100,
-  discountPercent: 20
-});
-
-// Custom transformer that adds calculated fields
-const orderTransformer = (template: OrderTemplate) => {
-  const discount = template.basePrice * (template.discountPercent / 100);
-  return {
-    ...template,
-    discount,
-    finalPrice: template.basePrice - discount,
-    timestamp: new Date().toISOString()
-  };
-};
-
-// Create factory with custom transformer
-const orderFactory = createFactory<ReturnType<typeof orderTransformer>>({
-  registry: orderRegistry as any,
-  transformer: orderTransformer
-});
-
-// Create instances with transformed properties
-const standardOrder = orderFactory.create('standard');
-console.log(standardOrder);
-// {
-//   name: 'standard',
-//   basePrice: 100,
-//   discountPercent: 0,
-//   discount: 0,
-//   finalPrice: 100,
-//   timestamp: '2023-07-15T12:34:56.789Z'
-// }
-
-const saleOrder = orderFactory.create('sale');
-console.log(saleOrder);
-// {
-//   name: 'sale',
-//   basePrice: 100,
-//   discountPercent: 20,
-//   discount: 20,
-//   finalPrice: 80,
-//   timestamp: '2023-07-15T12:34:56.790Z'
-// }
-```
-
 ## 🛣 Roadmap
 | Task / Feature | Status |
 |----------------|--------|
@@ -275,7 +213,8 @@ console.log(saleOrder);
 | Logging System | ✅ Done |
 | Support for ESM and CJS modules | ✅ Done |
 | Registry caching mechanism | ✅ Done |
-| Factory deep cloning | ✅ Done |
+| Improved object cloning with method preservation | ✅ Done |
+| Class instance creation via constructor | ✅ Done |
 | Custom transformers | ✅ Done |
 | API documentation | 🚧 In Progress |
 | Type safety improvements | 🚧 In Progress |
@@ -292,6 +231,19 @@ console.log(saleOrder);
 ## ❓ FAQ
 ## Frequently Asked Questions
 
+### Why are my objects losing their methods after creation?
+This problem has been fixed in the latest version! For class instances, use the `creator` option in your factory setup to ensure proper instantiation with preserved methods:
+
+```typescript
+const factory = createFactory<MyClass>({
+  registry: myRegistry,
+  creator: (name, template) => new MyClass(template.prop1, template.prop2)
+});
+```
+
+### Is there a performance penalty for using the factory pattern?
+The factory now uses a hybrid approach: `structuredClone()` for simple objects and a custom prototype-preserving clone for objects with methods. This provides better performance than the previous approach while ensuring your methods are properly preserved.
+
 ### Is ClaDI suitable for small projects?
 Yes, ClaDI is designed to be scalable for projects of all sizes. For small projects, you can use just the components you need, such as the Registry and Factory, without implementing the full dependency injection system.
 
@@ -300,18 +252,6 @@ ClaDI is more lightweight and focused, with zero external dependencies. It provi
 
 ### Does ClaDI work with browser environments?
 Yes, ClaDI is designed to work in both Node.js and browser environments. It's built with ES modules and also provides CommonJS compatibility.
-
-### How does the registry's caching mechanism work?
-The registry implements an internal cache for `getAll()` and `getMany()` operations. When you register or unregister items, the cache is automatically cleared to ensure you always get fresh data.
-
-### Can I use ClaDI with React, Angular, or Vue?
-Yes, ClaDI can be used with any frontend framework. It's framework-agnostic and provides core infrastructure that can be integrated into your component system.
-
-### How do I handle circular dependencies?
-Currently, circular dependencies must be managed manually. However, the roadmap includes adding circular dependency detection to help identify and resolve these issues.
-
-### Is there a performance penalty for using the factory pattern?
-The factory performs deep cloning of templates using `structuredClone()`, which has better performance than JSON serialization methods. For most applications, this overhead is negligible, and the benefits of immutability outweigh the performance cost.
 
 ## 🔒 License
 This project is licensed under **MIT License

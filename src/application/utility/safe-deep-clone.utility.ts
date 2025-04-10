@@ -1,28 +1,54 @@
+import { hasFunctions } from "./has-functions.utility";
+
 /**
  * Utility method to safely deep clone objects that may contain functions.
- * Unlike structuredClone, this can handle functions by preserving their reference
- * but cloning everything else.
+ * Uses a hybrid approach with structuredClone for data objects and custom cloning for objects with functions.
  * @param {T} source Object to clone
  * @returns {T} A deep clone of the object
  * @template T Type of object to clone
  */
 export function safeDeepClone<T>(source: T): T {
-	// Return primitive values and functions directly
 	if (source == null || typeof source !== "object") {
 		return source;
 	}
 
-	// Handle Date
 	if (source instanceof Date) {
 		return new Date(source) as unknown as T;
 	}
 
-	// Handle Array
 	if (Array.isArray(source)) {
 		return source.map((item: unknown) => safeDeepClone(item)) as unknown as T;
 	}
 
-	// Handle Object
+	if (!hasFunctions(source) && source.constructor === Object) {
+		try {
+			// eslint-disable-next-line @elsikora/node/no-unsupported-features/node-builtins
+			return structuredClone(source) as T;
+		} catch {
+			// Fall back to manual cloning if structuredClone fails
+		}
+	}
+
+	if (source.constructor !== Object) {
+		const prototype: null | object = Object.getPrototypeOf(source) as null | object;
+		const result: unknown = Object.create(prototype);
+
+		for (const key of Object.getOwnPropertyNames(source)) {
+			const descriptor: PropertyDescriptor | undefined = Object.getOwnPropertyDescriptor(source, key);
+
+			if (descriptor) {
+				if (descriptor.value !== undefined) {
+					// eslint-disable-next-line @elsikora/typescript/no-unsafe-assignment
+					descriptor.value = safeDeepClone(descriptor.value);
+				}
+
+				Object.defineProperty(result, key, descriptor);
+			}
+		}
+
+		return result as T;
+	}
+
 	const result: Record<string, unknown> = {};
 
 	for (const key in source) {
