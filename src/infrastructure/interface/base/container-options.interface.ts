@@ -10,4 +10,10 @@ export interface IBaseContainerOptions {
 	 * @default new ConsoleLoggerService()
 	 */
 	logger?: ILogger;
+
+	/**
+	 * The unique name for the container, represented by a Symbol.
+	 * This name is used to register and retrieve the container globally.
+	 */
+	name: symbol;
 }

@@ -96,7 +96,7 @@ export class CoreFactory {
 	 * @returns {IRegistry<T>} A new registry instance.
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
 	 */
-	public createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
+	public createRegistry<T>(options: IBaseRegistryOptions): IRegistry<T> {
 		this.LOGGER?.debug("Creating new registry instance", { source: "CoreFactory" });
 
 		const registry: IRegistry<T> = new BaseRegistry<T>(options);

@@ -3,7 +3,7 @@ import type { IConsoleLoggerOptions } from "@infrastructure/interface";
 
 import { ELoggerLogLevel } from "@domain/enum";
 import { BaseError } from "@infrastructure/class/base/error.class";
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT } from "@infrastructure/constant";
 
 /**
  * Console logger implementation.
@@ -24,7 +24,7 @@ export class ConsoleLoggerService implements ILogger {
 	 * Create a new console logger.
 	 * @param {IConsoleLoggerOptions} [options] - The options to use for the logger.
 	 */
-	constructor(options: IConsoleLoggerOptions = CONSOLE_LOGGER_DEFAULT_OPTIONS) {
+	constructor(options: IConsoleLoggerOptions = CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT) {
 		if (!this.validateOptions(options)) {
 			throw new BaseError("Invalid options", {
 				code: "INVALID_OPTIONS",
@@ -63,7 +63,7 @@ export class ConsoleLoggerService implements ILogger {
 	 * @returns {ILoggerOptions} The default options for the logger.
 	 */
 	public getDefaultOptions(): ILoggerOptions {
-		return CONSOLE_LOGGER_DEFAULT_OPTIONS;
+		return CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT;
 	}
 
 	/**

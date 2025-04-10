@@ -32,26 +32,32 @@ export class BaseFactory<T> implements IFactory<T> {
 
 	/**
 	 * Create an instance by name with optional constructor arguments.
-	 * @param {string} name The name of the item to create.
+	 * @param {symbol} name The name of the item to create.
 	 * @param {Array<unknown>} constructorArguments The constructor arguments.
 	 * @returns {T} The created instance.
 	 * @throws BaseError if no constructor with the given name exists in the registry.
 	 */
-	public create(name: string, constructorArguments: Array<unknown> = []): T {
-		this.LOGGER.info(`Creating instance: ${name}`, { source: "Factory" });
-		// Get constructor from registry
-		const classConstructor: TConstructor<T> | undefined = this.REGISTRY.get(name);
+	public create(name: symbol, constructorArguments: Array<unknown> = []): T {
+		this.LOGGER.info(`Creating instance: ${String(name)}`, { source: "Factory" });
+		const classConstructorOrInstance: T | TConstructor<T> | undefined = this.REGISTRY.get(name);
 
-		if (!classConstructor) {
-			throw new BaseError(`Constructor not found: ${name}`, {
-				code: "CONSTRUCTOR_NOT_FOUND",
+		if (!classConstructorOrInstance) {
+			throw new BaseError(`Constructor or instance not found: ${String(name)}`, {
+				code: "CONSTRUCTOR_OR_INSTANCE_NOT_FOUND",
 				source: "Factory",
 			});
 		}
 
-		const instance: T = new classConstructor(...constructorArguments);
+		let instance: T;
 
-		this.LOGGER.info(`Instance created: ${name}`, { source: "Factory" });
+		if (typeof classConstructorOrInstance === "function") {
+			const classConstructor: TConstructor<T> = classConstructorOrInstance as TConstructor<T>;
+			instance = new classConstructor(...constructorArguments);
+		} else {
+			instance = classConstructorOrInstance;
+		}
+
+		this.LOGGER.info(`Instance created: ${String(name)}`, { source: "Factory" });
 
 		return instance;
 	}

@@ -3,7 +3,7 @@ import typescript from "@rollup/plugin-typescript";
 import dtsPathAlias from "rollup-plugin-dts-path-alias";
 import generatePackageJson from "rollup-plugin-generate-package-json";
 
-const external = [];
+const external = ["reflect-metadata"];
 
 export default [
 	{

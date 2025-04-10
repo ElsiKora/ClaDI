@@ -1,3 +1,5 @@
+import type { TConstructor, TContainerDynamicFactory } from "../../type";
+
 /* eslint-disable @elsikora/typescript/no-unnecessary-type-parameters */
 /**
  * Simple dependency injection container interface.
@@ -38,17 +40,28 @@ export interface IContainer {
 
 	/**
 	 * Register a dependency in the container.
+	 * Can register a pre-built instance, a constructor (for singleton resolution),
+	 * or a dynamic factory function.
 	 * @param {symbol} token Token that identifies the dependency.
-	 * @param {T} implementation Implementation of the dependency.
+	 * @param {T | TConstructor<T> | TContainerDynamicFactory<T>} implementation Instance, constructor, or factory.
 	 */
-	register<T>(token: symbol, implementation: T): void;
+	register<T>(token: symbol, implementation: T | TConstructor<T> | TContainerDynamicFactory<T>): void;
 
 	/**
-	 * Register a dependency in the container.
+	 * Register multiple dependencies in the container.
 	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
-	 * @param {Record<symbol, T>} implementations Implementations of the dependencies.
+	 * @param {Record<symbol, T | TConstructor<T> | TContainerDynamicFactory<T>>} implementations Map of tokens to instances, constructors, or factories.
 	 */
-	registerMany<T>(tokens: Array<symbol>, implementations: Record<symbol, T>): void;
+	registerMany<T>(tokens: Array<symbol>, implementations: Record<symbol, T | TConstructor<T> | TContainerDynamicFactory<T>>): void;
+
+	/**
+	 * Resolve a class constructor, creating an instance with injected dependencies.
+	 * This is typically used internally by `get` but can be called directly.
+	 * @param constructor The class constructor to resolve.
+	 * @returns The resolved instance.
+	 * @template T The type of the class.
+	 */
+	resolve<T>(constructor: TConstructor<T>): T;
 
 	/**
 	 * Unregister a dependency from the container.

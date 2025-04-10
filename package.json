@@ -50,6 +50,9 @@
 			"path": "@elsikora/commitizen-plugin-commitlint-ai"
 		}
 	},
+	"dependencies": {
+		"reflect-metadata": "^0.2.2"
+	},
 	"devDependencies": {
 		"@commitlint/cli": "^19.8.0",
 		"@commitlint/config-conventional": "^19.8.0",

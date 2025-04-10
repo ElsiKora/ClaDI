@@ -11,7 +11,7 @@ export interface IFactory<T> {
 	 * @param name The name of the item to create.
 	 * @returns The created item.
 	 */
-	create(name: string, ...constructorArguments: Array<unknown>): T;
+	create(name: symbol, ...constructorArguments: Array<unknown>): T;
 
 	/**
 	 * Get the registry associated with this factory.
