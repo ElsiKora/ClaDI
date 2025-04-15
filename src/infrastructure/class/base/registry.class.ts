@@ -11,9 +11,10 @@ import { ConsoleLoggerService } from "@infrastructure/service";
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
  */
 export class BaseRegistry<T> implements IRegistry<T> {
-	private readonly CACHE: Map<string, Array<T | TConstructor<T>>>;
+	// eslint-disable-next-line @elsikora/sonar/use-type-alias
+	private readonly CACHE: Map<string, Array<Set<TConstructor<T>> | T | TConstructor<T>>>;
 
-	private readonly ITEMS: Map<string, T | TConstructor<T>>;
+	private readonly ITEMS: Map<string, Set<TConstructor<T>> | T | TConstructor<T>>;
 
 	private readonly LOGGER: ILogger;
 
@@ -45,7 +46,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * @returns {TConstructor<T> | undefined} The item or undefined if it doesn't exist.
 	 */
 	// eslint-disable-next-line @elsikora/sonar/use-type-alias
-	public get(name: symbol): T | TConstructor<T> | undefined {
+	public get(name: symbol): Set<TConstructor<T>> | T | TConstructor<T> | undefined {
 		this.LOGGER.debug(`Getting item with name: ${String(name)}`, { source: "Registry" });
 
 		if (!name) {
@@ -54,7 +55,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 			return undefined;
 		}
 
-		const item: T | TConstructor<T> | undefined = this.ITEMS.get(String(name));
+		const item: Set<TConstructor<T>> | T | TConstructor<T> | undefined = this.ITEMS.get(String(name));
 
 		if (item) {
 			this.LOGGER.debug(`Item found: ${String(name)}`, { source: "Registry" });
@@ -69,11 +70,11 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * Get all items from the registry.
 	 * @returns {Array<T>} An array of all items.
 	 */
-	public getAll(): Array<T | TConstructor<T>> {
+	public getAll(): Array<Set<TConstructor<T>> | T | TConstructor<T>> {
 		this.LOGGER.debug("Getting all items", { source: "Registry" });
 
 		const cacheKey: string = "getAll";
-		const cachedResult: Array<T | TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
+		const cachedResult: Array<Set<TConstructor<T>> | T | TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
 
 		if (cachedResult) {
 			this.LOGGER.debug("Cache hit for getAll query", { source: "Registry" });
@@ -81,7 +82,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 			return cachedResult;
 		}
 
-		const result: Array<T | TConstructor<T>> = [...this.ITEMS.values()];
+		const result: Array<Set<TConstructor<T>> | T | TConstructor<T>> = [...this.ITEMS.values()];
 
 		this.CACHE.set(cacheKey, result);
 		this.LOGGER.debug(`Cached result for getAll query with ${String(result.length)} items`, { source: "Registry" });
@@ -94,7 +95,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * @param {Array<symbol>} names The names of the items to get.
 	 * @returns {Array<T>} An array of items.
 	 */
-	public getMany(names: Array<symbol>): Array<T | TConstructor<T>> {
+	public getMany(names: Array<symbol>): Array<Set<TConstructor<T>> | T | TConstructor<T>> {
 		if (!names) {
 			throw new BaseError("Names cannot be null or undefined", {
 				code: "REGISTRY_NAMES_NOT_NULL_OR_UNDEFINED",
@@ -112,7 +113,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 		this.LOGGER.debug(`Getting ${String(names.length)} items by name`, { source: "Registry" });
 
 		const cacheKey: string = `getMany:${names.join(",")}`;
-		const cachedResult: Array<T | TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
+		const cachedResult: Array<Set<TConstructor<T>> | T | TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
 
 		if (cachedResult) {
 			this.LOGGER.debug(`Cache hit for query: ${cacheKey}`, { source: "Registry" });
@@ -120,7 +121,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 			return cachedResult;
 		}
 
-		const result: Array<T | TConstructor<T>> = names.map((name: symbol) => this.get(name)).filter((item: T | TConstructor<T> | undefined): item is T | TConstructor<T> => item !== undefined);
+		const result: Array<Set<TConstructor<T>> | T | TConstructor<T>> = names.map((name: symbol) => this.get(name)).filter((item: Set<TConstructor<T>> | T | TConstructor<T> | undefined): item is Set<TConstructor<T>> | T | TConstructor<T> => item !== undefined);
 
 		this.CACHE.set(cacheKey, result);
 		this.LOGGER.debug(`Cached result for query: ${cacheKey}`, { source: "Registry" });
@@ -153,7 +154,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * @param {TConstructor<T>} item The item to register.
 	 * @throws ValidationError if the item is invalid.
 	 */
-	public register(name: symbol, item: T | TConstructor<T>): void {
+	public register(name: symbol, item: Set<TConstructor<T>> | T | TConstructor<T>): void {
 		if (!item) {
 			throw new BaseError("Item cannot be null or undefined", {
 				code: "REGISTRY_ITEM_NOT_NULL_OR_UNDEFINED",
@@ -166,6 +167,10 @@ export class BaseRegistry<T> implements IRegistry<T> {
 		if (this.has(name)) {
 			throw new BaseError("Item already exists in registry", {
 				code: "REGISTRY_ITEM_ALREADY_EXISTS",
+				context: {
+					item,
+					name,
+				},
 				source: "Registry",
 			});
 		}

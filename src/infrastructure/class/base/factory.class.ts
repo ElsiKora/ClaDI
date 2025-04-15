@@ -39,7 +39,7 @@ export class BaseFactory<T> implements IFactory<T> {
 	 */
 	public create(name: symbol, constructorArguments: Array<unknown> = []): T {
 		this.LOGGER.info(`Creating instance: ${String(name)}`, { source: "Factory" });
-		const classConstructorOrInstance: T | TConstructor<T> | undefined = this.REGISTRY.get(name);
+		const classConstructorOrInstance: Set<TConstructor<T>> | T | TConstructor<T> | undefined = this.REGISTRY.get(name);
 
 		if (!classConstructorOrInstance) {
 			throw new BaseError(`Constructor or instance not found: ${String(name)}`, {
@@ -54,7 +54,7 @@ export class BaseFactory<T> implements IFactory<T> {
 			const classConstructor: TConstructor<T> = classConstructorOrInstance as TConstructor<T>;
 			instance = new classConstructor(...constructorArguments);
 		} else {
-			instance = classConstructorOrInstance;
+			instance = classConstructorOrInstance as T;
 		}
 
 		this.LOGGER.info(`Instance created: ${String(name)}`, { source: "Factory" });

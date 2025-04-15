@@ -97,7 +97,7 @@ export class BaseContainer implements IContainer {
 				} catch (error) {
 					this.LOGGER.error(`Failed to execute factory for token ${String(token.description)}: ${error instanceof Error ? error.message : String(error)}`, { source: "Container" });
 
-					throw new BaseError(`Failed to create dependency from factory for token "${String(token.description)}"`, {
+					throw new BaseError(`Failed to create dependency from factory for token ${String(token.description)}`, {
 						cause: error instanceof Error ? error : undefined,
 						code: "CONTAINER_FACTORY_EXECUTION_FAILED",
 						context: { token: String(token.description) },
