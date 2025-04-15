@@ -16,21 +16,21 @@ export interface IRegistry<T> {
 	 * @param name The name of the item to get.
 	 * @returns The item or undefined if it doesn't exist.
 	 */
-	get(name: symbol): Set<TConstructor<T>> | T | TConstructor<T> | undefined;
+	get(name: symbol): T | TConstructor<T> | undefined;
 
 	/**
 	 * Get all items from the registry.
 	 * @returns An array of all items.
 	 */
-	// eslint-disable-next-line @elsikora/sonar/use-type-alias
-	getAll(): Array<Set<TConstructor<T>> | T | TConstructor<T>>;
+
+	getAll(): Array<T | TConstructor<T>>;
 
 	/**
 	 * Get multiple items from the registry by their names.
 	 * @param names The names of the items to get.
 	 * @returns An array of items.
 	 */
-	getMany(names: Array<symbol>): Array<Set<TConstructor<T>> | T | TConstructor<T>>;
+	getMany(names: Array<symbol>): Array<T | TConstructor<T>>;
 
 	/**
 	 * Check if an item exists in the registry by name.
@@ -44,13 +44,13 @@ export interface IRegistry<T> {
 	 * @param name The name of the item to register.
 	 * @param item The item to register.
 	 */
-	register(name: symbol, item: Set<TConstructor<T>> | T | TConstructor<T>): void;
+	register(name: symbol, item: T | TConstructor<T>): void;
 
 	/**
 	 * Register multiple items in the registry.
 	 * @param items The items to register.
 	 */
-	registerMany(items: Record<symbol, Set<TConstructor<T>> | T | TConstructor<T>>): void;
+	registerMany(items: Record<symbol, T | TConstructor<T>>): void;
 
 	/**
 	 * Unregister a single item from the registry by name.
