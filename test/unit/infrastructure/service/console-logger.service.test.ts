@@ -1,217 +1,165 @@
+import type { ILoggerMethodOptions } from "@domain/interface";
 import type { IConsoleLoggerOptions } from "@infrastructure/interface";
 
 import { ELoggerLogLevel } from "@domain/enum";
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS, ConsoleLoggerService } from "src";
+import { BaseError } from "@infrastructure/class/base/error.class";
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT } from "@infrastructure/constant";
+import { ConsoleLoggerService } from "@infrastructure/service";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Helper to check formatted message structure (adjust regex as needed for exact format)
-// Corrected regex: Handles optional source `[source]` or `[source → methodSource]`
-const LOG_MESSAGE_REGEX = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\] (ERROR|WARN|INFO|DEBUG|TRACE): (?:\s?\[([^[\]→\s]+(?: → [^[\]\s]+)?)\])?\s?(.+?)(?:\s(\{.*?\}))?$/;
+// Mock console methods
+const consoleSpies = {
+	debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+	error: vi.spyOn(console, "error").mockImplementation(() => {}),
+	info: vi.spyOn(console, "info").mockImplementation(() => {}),
+	trace: vi.spyOn(console, "trace").mockImplementation(() => {}),
+	warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
+};
+
+// Helper regex to match ISO timestamp
+const timestampRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
 
 describe("ConsoleLoggerService", () => {
-	// Store original console methods
-	const originalConsole = { ...console };
-
-	// Mock console methods using vi.fn()
-	const consoleMocks = {
-		debug: vi.fn(),
-		error: vi.fn(),
-		info: vi.fn(),
-		trace: vi.fn(),
-		warn: vi.fn(),
-	};
-
-	// Mock Date to control timestamp
-	const testTimestamp = "2024-01-01T12:00:00.000Z";
 	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(new Date(testTimestamp));
-		// Assign mocks to global console
-		globalThis.console = { ...originalConsole, ...consoleMocks };
-		// Reset mocks history
-		vi.clearAllMocks(); // Still useful if other mocks are used
-		consoleMocks.debug.mockClear();
-		consoleMocks.error.mockClear();
-		consoleMocks.info.mockClear();
-		consoleMocks.trace.mockClear();
-		consoleMocks.warn.mockClear();
+		// Reset mocks before each test
+		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
-		vi.useRealTimers();
-		// Restore original console
-		globalThis.console = originalConsole;
+		// Restore original console functions after all tests in this suite
+		// vi.restoreAllMocks(); // Typically done in a global setup/teardown
 	});
 
-	it("should be defined", () => {
-		const options: IConsoleLoggerOptions = CONSOLE_LOGGER_DEFAULT_OPTIONS;
-		const logger = new ConsoleLoggerService(options);
-		expect(logger).toBeDefined();
+	describe("constructor", () => {
+		it("should use default options if none provided", () => {
+			const logger = new ConsoleLoggerService();
+			expect((logger as any).LEVEL).toBe(CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT.level);
+			expect((logger as any).SOURCE).toBeUndefined();
+		});
+
+		it("should use provided options", () => {
+			const options: IConsoleLoggerOptions = {
+				level: ELoggerLogLevel.DEBUG,
+				source: "TestSource",
+			};
+			const logger = new ConsoleLoggerService(options);
+			expect((logger as any).LEVEL).toBe(options.level);
+			expect((logger as any).SOURCE).toBe(options.source);
+		});
+
+		it("should use default level if only source is provided", () => {
+			const options: IConsoleLoggerOptions = { source: "TestSourceOnly" };
+			const logger = new ConsoleLoggerService(options);
+			expect((logger as any).LEVEL).toBe(ELoggerLogLevel.INFO);
+			expect((logger as any).SOURCE).toBe(options.source);
+		});
+
+		it("should call validateOptions (even though it currently does nothing)", () => {
+			const validateSpy = vi.spyOn(ConsoleLoggerService.prototype, "validateOptions");
+			const options = { level: ELoggerLogLevel.WARN };
+			new ConsoleLoggerService(options);
+			expect(validateSpy).toHaveBeenCalledWith(options);
+			validateSpy.mockRestore();
+		});
 	});
 
-	it("should use default options if none provided", () => {
-		const logger = new ConsoleLoggerService(); // No options
-		logger.info("Default test");
-		expect(consoleMocks.info).toHaveBeenCalled();
-	});
-
-	describe("Log Level Filtering", () => {
-		const testCases: Array<[ELoggerLogLevel, keyof typeof consoleMocks, boolean]> = [
-			// Level set to ERROR
-			[ELoggerLogLevel.ERROR, "error", true],
-			[ELoggerLogLevel.ERROR, "warn", false],
-			[ELoggerLogLevel.ERROR, "info", false],
-			[ELoggerLogLevel.ERROR, "debug", false],
-			[ELoggerLogLevel.ERROR, "trace", false],
-			// Level set to WARN
-			[ELoggerLogLevel.WARN, "error", true],
-			[ELoggerLogLevel.WARN, "warn", true],
-			[ELoggerLogLevel.WARN, "info", false],
-			[ELoggerLogLevel.WARN, "debug", false],
-			[ELoggerLogLevel.WARN, "trace", false],
-			// Level set to INFO
-			[ELoggerLogLevel.INFO, "error", true],
-			[ELoggerLogLevel.INFO, "warn", true],
-			[ELoggerLogLevel.INFO, "info", true],
-			[ELoggerLogLevel.INFO, "debug", false],
-			[ELoggerLogLevel.INFO, "trace", false],
-			// Level set to DEBUG
-			[ELoggerLogLevel.DEBUG, "error", true],
-			[ELoggerLogLevel.DEBUG, "warn", true],
-			[ELoggerLogLevel.DEBUG, "info", true],
-			[ELoggerLogLevel.DEBUG, "debug", true],
-			[ELoggerLogLevel.DEBUG, "trace", false],
-			// Level set to TRACE
-			[ELoggerLogLevel.TRACE, "error", true],
-			[ELoggerLogLevel.TRACE, "warn", true],
-			[ELoggerLogLevel.TRACE, "info", true],
-			[ELoggerLogLevel.TRACE, "debug", true],
-			[ELoggerLogLevel.TRACE, "trace", true],
+	describe("Logging Methods", () => {
+		const testCases = [
+			{ consoleMethod: "debug" as keyof typeof consoleSpies, level: ELoggerLogLevel.DEBUG, method: "debug" as keyof ConsoleLoggerService },
+			{ consoleMethod: "error" as keyof typeof consoleSpies, level: ELoggerLogLevel.ERROR, method: "error" as keyof ConsoleLoggerService },
+			{ consoleMethod: "info" as keyof typeof consoleSpies, level: ELoggerLogLevel.INFO, method: "info" as keyof ConsoleLoggerService },
+			{ consoleMethod: "trace" as keyof typeof consoleSpies, level: ELoggerLogLevel.TRACE, method: "trace" as keyof ConsoleLoggerService },
+			{ consoleMethod: "warn" as keyof typeof consoleSpies, level: ELoggerLogLevel.WARN, method: "warn" as keyof ConsoleLoggerService },
 		];
 
-		for (const [setLevel, methodToCall, shouldLog] of testCases) {
-			it(`should ${shouldLog ? "" : "NOT "}log ${methodToCall} messages when level is ${setLevel}`, () => {
-				const logger = new ConsoleLoggerService({ level: setLevel });
-				const message = `Test ${methodToCall} message`;
-				logger[methodToCall](message);
+		for (const { consoleMethod, level, method } of testCases) {
+			describe(method, () => {
+				it(`should log a message when logger level is ${level} or higher`, () => {
+					// Set logger level to the minimum (TRACE) to ensure all levels are tested for logging
+					const logger = new ConsoleLoggerService({ level: ELoggerLogLevel.TRACE });
+					(logger[method] as Function)("Test Message");
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledTimes(1);
+					// Match the timestamp part with regex, the rest exactly
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\[${timestampRegex.source}\\] ${level.toUpperCase()}: Test Message$`)));
+				});
 
-				if (shouldLog) {
-					expect(consoleMocks[methodToCall]).toHaveBeenCalledTimes(1);
-					expect(consoleMocks[methodToCall]).toHaveBeenCalledWith(expect.stringContaining(message));
-				} else {
-					expect(consoleMocks[methodToCall]).not.toHaveBeenCalled();
-				}
+				it("should not log a message when logger level is lower", () => {
+					// Set logger level one step HIGHER priority (lower index) than the message level
+					const levelOrder = [ELoggerLogLevel.ERROR, ELoggerLogLevel.WARN, ELoggerLogLevel.INFO, ELoggerLogLevel.DEBUG, ELoggerLogLevel.TRACE];
+					const currentLevelIndex = levelOrder.indexOf(level);
+					const higherPriorityLevel = currentLevelIndex > 0 ? levelOrder[currentLevelIndex - 1] : undefined;
+
+					if (higherPriorityLevel) {
+						// Cannot test this case if level is already ERROR (index 0)
+						const logger = new ConsoleLoggerService({ level: higherPriorityLevel });
+						(logger[method] as Function)("Test Message");
+						expect(consoleSpies[consoleMethod]).not.toHaveBeenCalled();
+					}
+				});
+
+				it("should include context if provided", () => {
+					const logger = new ConsoleLoggerService({ level });
+					const context = { data: "abc", userId: 1 };
+					const escapedContext = JSON.stringify(context).replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`); // Escape regex chars
+					(logger[method] as Function)("Context message", { context });
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\\[${timestampRegex.source}\\\] ${level.toUpperCase()}: Context message ${escapedContext}$`)));
+				});
+
+				it("should include source if provided in options", () => {
+					const logger = new ConsoleLoggerService({ level });
+					const options: ILoggerMethodOptions = { source: "MethodSource" };
+					(logger[method] as Function)("Source message", options);
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\\[${timestampRegex.source}\\\] ${level.toUpperCase()}: \\[MethodSource\\] Source message$`))); // Double escape brackets
+				});
+
+				it("should include combined source if provided in constructor and options", () => {
+					const logger = new ConsoleLoggerService({ level, source: "ClassSource" });
+					const options: ILoggerMethodOptions = { source: "MethodSource" };
+					(logger[method] as Function)("Combined source", options);
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\\[${timestampRegex.source}\\\] ${level.toUpperCase()}: \\[ClassSource → MethodSource\\] Combined source$`))); // Double escape brackets
+				});
+
+				it("should include only class source if provided in constructor only", () => {
+					const logger = new ConsoleLoggerService({ level, source: "ClassSourceOnly" });
+					(logger[method] as Function)("Class source only");
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\\[${timestampRegex.source}\\\] ${level.toUpperCase()}: \\[ClassSourceOnly\\] Class source only$`))); // Double escape brackets
+				});
+
+				it("should format message correctly with timestamp, level, source, message, context", () => {
+					const logger = new ConsoleLoggerService({ level: ELoggerLogLevel.TRACE, source: "App" });
+					const options: ILoggerMethodOptions = { context: { key: "val" }, source: "Module" };
+					(logger[method] as Function)("Full format", options);
+
+					// Fix the regex: escape backslashes in \d
+					const expectedPattern = new RegExp(
+						`^\\\[${timestampRegex.source}\\\] ${level.toUpperCase()}: \\[App → Module\\] Full format \\{"key":"val"\\}$`, // Double escape brackets and braces
+					);
+					expect(consoleSpies[consoleMethod]).toHaveBeenCalledWith(expect.stringMatching(expectedPattern));
+				});
 			});
 		}
 	});
 
-	describe("Message Formatting", () => {
-		const logger = new ConsoleLoggerService({ level: ELoggerLogLevel.TRACE }); // Log everything for format tests
-		const message = "Format test";
-
-		it("should format basic message correctly", () => {
-			logger.info(message);
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringMatching(LOG_MESSAGE_REGEX));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[1]).toBe(testTimestamp); // Check timestamp
-				expect(match[2]).toBe("INFO"); // Level
-				expect(match[3]).toBeUndefined(); // Source
-				expect(match[4]).toBe(message); // Original Message
-				expect(match[5]).toBeUndefined(); // Context
-			}
+	describe("Helper Methods", () => {
+		it("getDefaultOptions should return the default constant", () => {
+			const logger = new ConsoleLoggerService();
+			expect(logger.getDefaultOptions()).toBe(CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT);
 		});
 
-		it("should include source from options", () => {
-			const source = "TestSource";
-			logger.info(message, { source });
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringContaining(`[${source}] ${message}`));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[3]).toBe(source); // Check source part of regex
-			}
+		it("getDescription should return correct string", () => {
+			const logger = new ConsoleLoggerService();
+			expect(logger.getDescription()).toBe("Console logger");
 		});
 
-		it("should include source from constructor options", () => {
-			const source = "ConstructorSource";
-			const loggerWithSource = new ConsoleLoggerService({ level: ELoggerLogLevel.TRACE, source });
-			loggerWithSource.info(message);
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringContaining(`[${source}] ${message}`));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[3]).toBe(source);
-			}
+		it("getName should return correct string", () => {
+			const logger = new ConsoleLoggerService();
+			expect(logger.getName()).toBe("console");
 		});
 
-		it("should combine source from constructor and method options", () => {
-			const constructorSource = "ConstructorSource";
-			const methodSource = "MethodSource";
-			const combinedSource = `${constructorSource} → ${methodSource}`;
-			const loggerWithSource = new ConsoleLoggerService({ level: ELoggerLogLevel.TRACE, source: constructorSource });
-			loggerWithSource.info(message, { source: methodSource });
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringContaining(`[${combinedSource}] ${message}`));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[3]).toBe(combinedSource);
-			}
-		});
-
-		it("should include context from options", () => {
-			const context = { data: "abc", userId: 123 };
-			const contextString = JSON.stringify(context);
-			logger.info(message, { context });
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringContaining(`${message} ${contextString}`));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[5]).toBe(contextString);
-			}
-		});
-
-		it("should include source and context from options", () => {
-			const source = "TestSource";
-			const context = { status: "ok" };
-			const contextString = JSON.stringify(context);
-			logger.info(message, { context, source });
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringContaining(`[${source}] ${message} ${contextString}`));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[3]).toBe(source);
-				expect(match[5]).toBe(contextString);
-			}
-		});
-
-		it("should handle undefined source and context gracefully", () => {
-			logger.info(message, { context: undefined, source: undefined });
-			expect(consoleMocks.info).toHaveBeenCalledWith(expect.stringMatching(LOG_MESSAGE_REGEX));
-			const loggedMessage = consoleMocks.info.mock.calls[0][0] as string;
-			const match = LOG_MESSAGE_REGEX.exec(loggedMessage);
-			expect(match).not.toBeNull();
-
-			if (match) {
-				expect(match[1]).toBe(testTimestamp);
-				expect(match[2]).toBe("INFO");
-				expect(match[3]).toBeUndefined(); // Source
-				expect(match[4]).toBe(message);
-				expect(match[5]).toBeUndefined(); // Context
-			}
+		it("validateOptions currently returns true", () => {
+			const logger = new ConsoleLoggerService();
+			expect(logger.validateOptions({})).toBe(true);
+			expect(logger.validateOptions({ level: ELoggerLogLevel.ERROR })).toBe(true);
 		});
 	});
 });

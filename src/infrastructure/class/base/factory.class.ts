@@ -33,11 +33,11 @@ export class BaseFactory<T> implements IFactory<T> {
 	/**
 	 * Create an instance by name with optional constructor arguments.
 	 * @param {symbol} name The name of the item to create.
-	 * @param {Array<unknown>} constructorArguments The constructor arguments.
+	 * @param {...Array<unknown>} constructorArguments The constructor arguments.
 	 * @returns {T} The created instance.
 	 * @throws BaseError if no constructor with the given name exists in the registry.
 	 */
-	public create(name: symbol, constructorArguments: Array<unknown> = []): T {
+	public create(name: symbol, ...constructorArguments: Array<unknown>): T {
 		this.LOGGER.info(`Creating instance: ${String(name)}`, { source: "Factory" });
 		const classConstructorOrInstance: T | TConstructor<T> | undefined = this.REGISTRY.get(name);
 

@@ -111,7 +111,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 
 		this.LOGGER.debug(`Getting ${String(names.length)} items by name`, { source: "Registry" });
 
-		const cacheKey: string = `getMany:${names.join(",")}`;
+		const cacheKey: string = `getMany:${names.map(String).join(",")}`;
 		const cachedResult: Array<T | TConstructor<T>> | undefined = this.CACHE.get(cacheKey);
 
 		if (cachedResult) {
@@ -194,7 +194,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 			});
 		}
 
-		if (typeof items !== "object" || items == null) {
+		if (typeof items !== "object" || items == null || Array.isArray(items)) {
 			throw new BaseError("Items must be an object", {
 				code: "REGISTRY_ITEMS_NOT_OBJECT",
 				source: "Registry",

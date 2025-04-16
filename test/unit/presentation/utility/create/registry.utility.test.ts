@@ -1,47 +1,40 @@
-import type { ILogger } from "@domain/interface";
 import type { IBaseRegistryOptions } from "@infrastructure/interface";
 
 import { BaseRegistry } from "@infrastructure/class/base";
 import { createRegistry } from "@presentation/utility/create";
+import { MockLogger } from "@test-shared/mocks/logger.mock";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Logger dependency
-const mockLogger: ILogger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), trace: vi.fn(), warn: vi.fn() };
-
-// Mock the actual BaseRegistry class
-vi.mock("@infrastructure/class/base/registry.class", () => ({
-	BaseRegistry: vi.fn().mockImplementation((options) => ({
-		__type: "MockRegistry",
-		options: options,
-	})),
+// Mock the BaseRegistry implementation
+vi.mock("@infrastructure/class/base", () => ({
+	BaseRegistry: vi.fn(),
+	// Include other exports from the module if needed by other imports, or make mock more specific
 }));
 
-describe("createRegistry Utility", () => {
-	// Reset mocks before each test
+describe("createRegistry utility", () => {
+	const mockRegistryInstance = { name: "MockInstance" };
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Or specifically: vi.mocked(BaseRegistry).mockClear();
+		(BaseRegistry as ReturnType<typeof vi.fn>).mockImplementation(() => mockRegistryInstance);
 	});
 
-	it("should create a BaseRegistry instance with provided options", () => {
+	it("should call BaseRegistry constructor with provided options", () => {
 		const options: IBaseRegistryOptions = {
-			logger: mockLogger,
+			logger: new MockLogger(),
 		};
 		const registry = createRegistry(options);
+
 		expect(BaseRegistry).toHaveBeenCalledTimes(1);
 		expect(BaseRegistry).toHaveBeenCalledWith(options);
-		// Check the returned object structure (based on mock)
-		expect((registry as any).__type).toBe("MockRegistry");
-		expect((registry as any).options).toEqual(options);
+		expect(registry).toBe(mockRegistryInstance);
 	});
 
-	// Test case for potentially missing logger (if BaseRegistry handles defaults)
-	it("should create a BaseRegistry instance even if logger is not explicitly provided in options", () => {
-		const options: IBaseRegistryOptions = {}; // No logger
-		const registry = createRegistry(options);
+	it("should call BaseRegistry constructor without options if none provided", () => {
+		const registry = createRegistry();
+
 		expect(BaseRegistry).toHaveBeenCalledTimes(1);
-		expect(BaseRegistry).toHaveBeenCalledWith(options);
-		expect((registry as any).__type).toBe("MockRegistry");
-		expect((registry as any).options).toEqual(options);
+		expect(BaseRegistry).toHaveBeenCalledWith(undefined);
+		expect(registry).toBe(mockRegistryInstance);
 	});
 });

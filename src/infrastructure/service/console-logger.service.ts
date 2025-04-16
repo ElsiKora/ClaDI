@@ -28,6 +28,9 @@ export class ConsoleLoggerService implements ILogger {
 		if (!this.validateOptions(options)) {
 			throw new BaseError("Invalid options", {
 				code: "INVALID_OPTIONS",
+				context: {
+					options,
+				},
 				source: "ConsoleLoggerService",
 			});
 		}

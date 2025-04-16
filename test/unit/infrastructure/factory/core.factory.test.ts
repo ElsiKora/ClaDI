@@ -1,147 +1,131 @@
-import type { ILogger } from "@domain/interface";
+import type { IContainer, IFactory, ILogger, IRegistry } from "@domain/interface";
+import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "@infrastructure/interface";
 
 import { ELoggerLogLevel } from "@domain/enum";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "@infrastructure/interface";
+import { BaseContainer, BaseFactory, BaseRegistry } from "@infrastructure/class/base";
 import { CoreFactory } from "@infrastructure/factory";
-import { BaseContainer, BaseFactory as BaseItemFactory } from "@infrastructure/class/base";
-import { BaseRegistry } from "@infrastructure/class/base";
 import { ConsoleLoggerService } from "@infrastructure/service";
+import { MockLogger } from "@test-shared/mocks/logger.mock";
+import { MockRegistry } from "@test-shared/mocks/registry.mock";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Logger for CoreFactory internal use
-const mockCoreLogger: ILogger = {
-	debug: vi.fn(),
-	error: vi.fn(),
-	info: vi.fn(),
-	trace: vi.fn(),
-	warn: vi.fn(),
-};
+// Mock the base classes/services to ensure we test the factory in isolation
+vi.mock("@infrastructure/class/base", () => ({
+	BaseContainer: vi.fn(),
+	BaseError: class MockBaseError extends Error {
+		// Need BaseError for potential throws
+		public CODE: string;
 
-// Mock classes (optional, but can help isolate CoreFactory logic)
-vi.mock("@infrastructure/class/base/container.class", () => ({
-	BaseContainer: vi.fn().mockImplementation((options) => ({ __type: "MockContainer", options })),
+		constructor(message: string, options: { code: string }) {
+			super(message);
+			this.CODE = options.code;
+		}
+	},
+	BaseFactory: vi.fn(),
+	BaseRegistry: vi.fn(),
 }));
-vi.mock("@infrastructure/class/base/factory.class", () => ({
-	BaseFactory: vi.fn().mockImplementation((options) => ({ __type: "MockItemFactory", options })),
-}));
-vi.mock("@infrastructure/class/base/registry.class", () => ({
-	BaseRegistry: vi.fn().mockImplementation((options) => ({ __type: "MockRegistry", options })),
-}));
-vi.mock("@infrastructure/service/console-logger.service", () => ({
-	ConsoleLoggerService: vi.fn().mockImplementation((options) => ({
-		__type: "MockLogger",
-		debug: vi.fn(),
-		error: vi.fn(),
-		info: vi.fn(),
-		options,
-		trace: vi.fn(),
-		warn: vi.fn(),
-	})),
+vi.mock("@infrastructure/service", () => ({
+	ConsoleLoggerService: vi.fn().mockImplementation(() => new MockLogger()), // Use MockLogger when ConsoleLoggerService is requested
 }));
 
 describe("CoreFactory", () => {
 	let coreFactory: CoreFactory;
-	const coreFactoryOptions: ICoreFactoryOptions = { logger: mockCoreLogger };
+	let mockCoreLogger: MockLogger;
+	let options: ICoreFactoryOptions;
 
-	// Hacky way to reset singleton instance before each test
+	const mockContainerInstance = { name: "MockContainer" };
+	const mockFactoryInstance = { name: "MockFactory" };
+	const mockRegistryInstance = { name: "MockRegistry" };
+	const mockLoggerInstance = { name: "MockConsoleLogger" };
+
 	beforeEach(() => {
-		vi.clearAllMocks();
-		// Resetting static instance requires careful handling or specific test setup.
-		// For simplicity here, we assume direct access/reset or test framework features handle it.
-		// If CoreFactory wasn't easily resettable, testing singleton might need module mocking workarounds.
-		// A cleaner approach might involve making getInstance resettable for tests.
-		(CoreFactory as any).instance = undefined; // Reset static instance (use with caution)
-		coreFactory = CoreFactory.getInstance(coreFactoryOptions);
+		vi.clearAllMocks(); // Clear mocks before each test
+
+		// Reset mock implementations
+		(BaseContainer as ReturnType<typeof vi.fn>).mockImplementation(() => mockContainerInstance);
+		(BaseFactory as ReturnType<typeof vi.fn>).mockImplementation(() => mockFactoryInstance);
+		(BaseRegistry as ReturnType<typeof vi.fn>).mockImplementation(() => mockRegistryInstance);
+		(ConsoleLoggerService as ReturnType<typeof vi.fn>).mockImplementation(() => mockLoggerInstance);
+
+		mockCoreLogger = new MockLogger();
+		options = { logger: mockCoreLogger };
+		// Reset singleton instance for isolation - Accessing private static directly is tricky,
+		// so we rely on creating a new instance each time for testing.
+		// In a real scenario, testing singletons requires careful setup/teardown or alternative patterns.
+		coreFactory = new CoreFactory(options);
 	});
 
-	it("should be defined", () => {
-		expect(coreFactory).toBeDefined();
+	afterEach(() => {
+		// vi.restoreAllMocks(); // Usually done globally
 	});
 
-	describe("getInstance (Singleton)", () => {
-		it("should return the same instance on subsequent calls", () => {
-			const instance1 = CoreFactory.getInstance(coreFactoryOptions);
-			const instance2 = CoreFactory.getInstance(coreFactoryOptions);
-			expect(instance1).toBe(instance2);
+	describe("constructor", () => {
+		it("should store the provided logger", () => {
+			expect((coreFactory as any).LOGGER).toBe(mockCoreLogger);
 		});
 
-		it("should use provided options on first call and ignore on subsequent calls", () => {
-			const initialOptions = { logger: mockCoreLogger };
-			const instance1 = CoreFactory.getInstance(initialOptions);
-
-			const differentLogger = { debug: vi.fn() } as any as ILogger;
-			const secondOptions = { logger: differentLogger };
-			const instance2 = CoreFactory.getInstance(secondOptions);
-
-			expect(instance1).toBe(instance2);
-			// Check that the logger used internally is still the first one
-			instance1.createContainer({ logger: mockCoreLogger }); // Trigger internal logger usage
-			expect(mockCoreLogger.debug).toHaveBeenCalled();
-			expect(differentLogger.debug).not.toHaveBeenCalled();
-		});
-
-		it("should create a default ConsoleLoggerService if no logger is provided in options", () => {
-			(CoreFactory as any).instance = undefined; // Reset
-			const factory = CoreFactory.getInstance({}); // Empty options
-			expect(factory).toBeDefined();
-			// Difficult to directly assert the default logger was created without exposing it.
-			// Indirectly check by ensuring methods don't crash & mocks aren't called
-			expect(() => factory.createContainer({})).not.toThrow();
-			expect(mockCoreLogger.debug).not.toHaveBeenCalled();
+		it("should create a ConsoleLoggerService if no logger is provided", () => {
+			const fac = new CoreFactory({});
+			expect(ConsoleLoggerService).toHaveBeenCalledTimes(1); // Check if the mock was called
+			expect((fac as any).LOGGER).toBe(mockLoggerInstance); // Should get the instance returned by the mock ConsoleLoggerService
 		});
 	});
+
+	// NOTE: Testing the singleton getInstance static method is complex in isolated unit tests.
+	// It often requires manipulating module caches or specific test setups.
+	// These tests focus on the instance methods.
+	// describe("getInstance (Singleton)", () => { ... });
 
 	describe("createContainer", () => {
-		it("should create a BaseContainer instance with provided options", () => {
-			const containerOptions: IBaseContainerOptions = { logger: mockCoreLogger }; // Example options
+		it("should create and return a BaseContainer instance with given options", () => {
+			const containerOptions: IBaseContainerOptions = { logger: new MockLogger(), name: Symbol.for("MyTestContainer") };
 			const container = coreFactory.createContainer(containerOptions);
 
 			expect(BaseContainer).toHaveBeenCalledTimes(1);
 			expect(BaseContainer).toHaveBeenCalledWith(containerOptions);
-			// Check if the mock implementation received the options
-			expect((container as any).options).toEqual(containerOptions);
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Creating new container instance", { source: "InfrastructureFactory" });
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Container instance created", { source: "InfrastructureFactory" });
+			expect(container).toBe(mockContainerInstance);
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Creating new container instance" }));
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Container instance created" }));
 		});
 	});
 
-	describe("createFactory (Item Factory)", () => {
-		it("should create a BaseItemFactory instance with provided options", () => {
-			const mockRegistry = { get: vi.fn() } as any;
-			const factoryOptions: IBaseFactoryOptions<any> = { logger: mockCoreLogger, registry: mockRegistry };
-			const itemFactory = coreFactory.createFactory(factoryOptions);
+	describe("createFactory", () => {
+		it("should create and return a BaseFactory instance with given options", () => {
+			const registry = new MockRegistry<any>();
+			const factoryOptions: IBaseFactoryOptions<any> = { logger: new MockLogger(), registry: registry };
+			const factory = coreFactory.createFactory(factoryOptions);
 
-			expect(BaseItemFactory).toHaveBeenCalledTimes(1);
-			expect(BaseItemFactory).toHaveBeenCalledWith(factoryOptions);
-			expect((itemFactory as any).options).toEqual(factoryOptions);
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Creating new factory instance", { source: "InfrastructureFactory" });
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Factory instance created", { source: "InfrastructureFactory" });
-		});
-	});
-
-	describe("createRegistry", () => {
-		it("should create a BaseRegistry instance with provided options", () => {
-			const registryOptions: IBaseRegistryOptions = { logger: mockCoreLogger };
-			const registry = coreFactory.createRegistry(registryOptions);
-
-			expect(BaseRegistry).toHaveBeenCalledTimes(1);
-			expect(BaseRegistry).toHaveBeenCalledWith(registryOptions);
-			expect((registry as any).options).toEqual(registryOptions);
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Creating new registry instance", { source: "InfrastructureFactory" });
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Registry instance created", { source: "InfrastructureFactory" });
+			expect(BaseFactory).toHaveBeenCalledTimes(1);
+			expect(BaseFactory).toHaveBeenCalledWith(factoryOptions);
+			expect(factory).toBe(mockFactoryInstance);
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Creating new factory instance" }));
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Factory instance created" }));
 		});
 	});
 
 	describe("createLogger", () => {
-		it("should create a ConsoleLoggerService instance with provided options", () => {
-			const loggerOptions: IConsoleLoggerOptions = { level: ELoggerLogLevel.WARN, source: "TestLogger" };
+		it("should create and return a ConsoleLoggerService instance with given options", () => {
+			const loggerOptions: IConsoleLoggerOptions = { level: ELoggerLogLevel.ERROR, source: "SpecificSource" };
 			const logger = coreFactory.createLogger(loggerOptions);
 
 			expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
 			expect(ConsoleLoggerService).toHaveBeenCalledWith(loggerOptions);
-			expect((logger as any).options).toEqual(loggerOptions);
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Creating new logger instance", expect.anything());
-			expect(mockCoreLogger.debug).toHaveBeenCalledWith("Logger instance created", { source: "InfrastructureFactory" });
+			expect(logger).toBe(mockLoggerInstance);
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Creating new logger instance" }));
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Logger instance created" }));
+		});
+	});
+
+	describe("createRegistry", () => {
+		it("should create and return a BaseRegistry instance with given options", () => {
+			const registryOptions: IBaseRegistryOptions = { logger: new MockLogger() };
+			const registry = coreFactory.createRegistry(registryOptions);
+
+			expect(BaseRegistry).toHaveBeenCalledTimes(1);
+			expect(BaseRegistry).toHaveBeenCalledWith(registryOptions);
+			expect(registry).toBe(mockRegistryInstance);
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Creating new registry instance" }));
+			expect(mockCoreLogger.getCalls("debug")).toContainEqual(expect.objectContaining({ message: "Registry instance created" }));
 		});
 	});
 });

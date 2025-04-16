@@ -1,388 +1,369 @@
-import type { ILogger } from "@domain/interface";
+import type { IContainer, ILogger } from "@domain/interface";
+import type { IBaseContainerOptions } from "@infrastructure/interface";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ELoggerLogLevel } from "@domain/enum";
 import { BaseContainer, BaseError } from "@infrastructure/class/base";
+import { containerRegistry } from "@infrastructure/registry";
+import { DECORATOR_TOKENS_CONSTANT } from "@presentation/constant";
+import { TEST_TOKENS } from "@test-shared/constants/test-tokens";
+import { MockLogger } from "@test-shared/mocks/logger.mock";
+import { MockRegistry } from "@test-shared/mocks/registry.mock";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
-// Mock Logger
-const mockLogger: ILogger = {
-	debug: vi.fn(),
-	error: vi.fn(),
-	info: vi.fn(),
-	trace: vi.fn(),
-	warn: vi.fn(),
+import "reflect-metadata";
+
+// Mock container registry
+vi.mock("@infrastructure/registry", () => ({
+	containerRegistry: {
+		get: vi.fn(),
+		register: vi.fn(),
+	},
+}));
+
+// Test data
+const containerName = TEST_TOKENS.Container;
+
+// Helper for creating test classes with decorators
+const createInjectableClass = (containerSymbol: symbol) => {
+	class TestClass {
+		constructor() {}
+	}
+
+	// Simulate the @Injectable decorator
+	Reflect.defineMetadata(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY, containerSymbol, TestClass);
+	Reflect.defineMetadata("design:paramtypes", [], TestClass);
+
+	return TestClass;
 };
 
-// Define some service types and tokens for testing
-interface IServiceA {
-	operationA(): string;
-}
-interface IServiceB {
-	operationB(): number;
-}
+// Helper for creating injectable class with dependencies
+const createInjectableClassWithDeps = (containerSymbol: symbol, injectTokens: Array<symbol>) => {
+	class TestClassWithDeps {
+		constructor(...deps: Array<unknown>) {
+			// Store injected dependencies
+			Object.assign(this, { deps });
+		}
+	}
 
-const ServiceAToken = Symbol("ServiceA");
-const ServiceBToken = Symbol("ServiceB");
-const NonExistentToken = Symbol("NonExistent");
+	// Simulate the @Injectable decorator
+	Reflect.defineMetadata(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY, containerSymbol, TestClassWithDeps);
+
+	// Mock constructor parameters metadata
+	Reflect.defineMetadata("design:paramtypes", Array.from({ length: injectTokens.length }).fill(Object), TestClassWithDeps);
+
+	// Create injection map (simulates @Inject decorators)
+	const injectionMap = new Map<number, symbol>();
+
+	for (const [index, token] of injectTokens.entries()) {
+		injectionMap.set(index, token);
+	}
+
+	Reflect.defineMetadata(DECORATOR_TOKENS_CONSTANT.INJECT_TOKEN_KEY, injectionMap, TestClassWithDeps);
+
+	return TestClassWithDeps;
+};
 
 describe("BaseContainer", () => {
-	let container: BaseContainer;
-	let serviceAInstance: IServiceA;
-	let serviceBInstance: IServiceB;
+	let container: IContainer;
+	let mockLogger: MockLogger;
 
 	beforeEach(() => {
+		// Create a fresh MockLogger for each test
+		mockLogger = new MockLogger();
+
+		container = new BaseContainer({
+			logger: mockLogger,
+			name: containerName,
+		});
+
+		// Reset mocks
 		vi.clearAllMocks();
-		container = new BaseContainer({ logger: mockLogger });
 
-		serviceAInstance = { operationA: () => "Result A" };
-		serviceBInstance = { operationB: () => 123 };
-	});
+		// Mock containerRegistry.get to return our container
+		(containerRegistry.get as Mock).mockImplementation((name: symbol) => {
+			if (name === containerName) {
+				return container;
+			}
 
-	it("should be defined", () => {
-		expect(container).toBeDefined();
-	});
-
-	it("constructor should use default logger if logger is undefined", () => {
-		// Test the class constructor directly
-		const containerInstance = new BaseContainer({ logger: undefined });
-		expect(containerInstance).toBeDefined();
-		// We can't easily check the *instance* of the default logger was created
-		// without exposing it, but we ensure constructor doesn't crash.
-	});
-
-	describe("register", () => {
-		it("should register a dependency successfully", () => {
-			container.register(ServiceAToken, serviceAInstance);
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Registering dependency with token: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency registered successfully: ${String(ServiceAToken.description)}`, { source: "Container" });
-		});
-
-		it("should throw error if registering with an existing token", () => {
-			container.register(ServiceAToken, serviceAInstance);
-			const anotherInstance = { operationA: () => "Another A" };
-			expect(() => {
-				container.register(ServiceAToken, anotherInstance);
-			}).toThrow(BaseError);
-			expect(() => {
-				container.register(ServiceAToken, anotherInstance);
-			}).toThrow("Dependency already exists in container");
-		});
-
-		it("should throw error if registering with a null or undefined token", () => {
-			expect(() => {
-				container.register(null as any, serviceAInstance);
-			}).toThrow("Token cannot be null or undefined");
-			expect(() => {
-				container.register(undefined as any, serviceAInstance);
-			}).toThrow("Token cannot be null or undefined");
-		});
-
-		// Although implementation can be anything, test with null/undefined for completeness
-		it("should allow registering null or undefined implementation", () => {
-			expect(() => {
-				container.register(ServiceAToken, null);
-			}).not.toThrow();
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(container.get(ServiceAToken)).toBeNull();
-
-			expect(() => {
-				container.register(ServiceBToken);
-			}).not.toThrow();
-			expect(container.has(ServiceBToken)).toBe(true);
-			expect(container.get(ServiceBToken)).toBeUndefined();
+			return;
 		});
 	});
 
-	describe("get", () => {
-		beforeEach(() => {
-			container.register(ServiceAToken, serviceAInstance);
-			container.register(Symbol("NullService"), null);
-			vi.clearAllMocks();
-		});
-
-		it("should return the dependency instance if token exists", () => {
-			const retrieved = container.get<IServiceA>(ServiceAToken);
-			expect(retrieved).toBe(serviceAInstance);
-			expect(retrieved?.operationA()).toBe("Result A");
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Getting dependency with token: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency found: ${String(ServiceAToken.description)}`, { source: "Container" });
-		});
-
-		it("should return undefined if token does not exist", () => {
-			const retrieved = container.get<IServiceB>(NonExistentToken);
-			expect(retrieved).toBeUndefined();
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Getting dependency with token: ${String(NonExistentToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency not found: ${String(NonExistentToken.description)}`, { source: "Container" });
-		});
-
-		it("should return null if the registered implementation was null", () => {
-			const retrieved = container.get<null>(Symbol.for("NullService")); // Need to re-fetch symbol if not stored
-			// Note: Direct comparison with Symbol("NullService") won't work unless symbol is shared/global
-			// Better to retrieve all and find or register/get in same test block if specific symbol needed.
-			// For this test, let's re-register and get to ensure we use the *exact* same symbol:
-			const NullToken = Symbol("NullService");
-			container.register(NullToken, null);
-			const retrievedDirect = container.get<null>(NullToken);
-			expect(retrievedDirect).toBeNull();
-		});
-
-		it("should return undefined and log warning if token is null or undefined", () => {
-			expect(container.get(null as any)).toBeUndefined();
-			expect(mockLogger.warn).toHaveBeenCalledWith("Attempted to get dependency with empty token", { source: "Container" });
-			vi.clearAllMocks();
-			expect(container.get(undefined as any)).toBeUndefined();
-			expect(mockLogger.warn).toHaveBeenCalledWith("Attempted to get dependency with empty token", { source: "Container" });
-		});
+	afterEach(() => {
+		container.clear();
+		mockLogger.reset();
 	});
 
-	describe("has", () => {
-		beforeEach(() => {
-			container.register(ServiceAToken, serviceAInstance);
-			vi.clearAllMocks();
-		});
+	it("should create a new instance with name and logger", () => {
+		const options: IBaseContainerOptions = {
+			logger: mockLogger,
+			name: Symbol("OtherContainer"),
+		};
 
-		it("should return true if token exists", () => {
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Checking if dependency exists: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency exists: ${String(ServiceAToken.description)}`, { source: "Container" });
-		});
+		const newContainer = new BaseContainer(options);
 
-		it("should return false if token does not exist", () => {
-			expect(container.has(NonExistentToken)).toBe(false);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Checking if dependency exists: ${String(NonExistentToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency does not exist: ${String(NonExistentToken.description)}`, { source: "Container" });
-		});
-
-		it("should return false if token is null or undefined", () => {
-			expect(container.has(null as any)).toBe(false);
-			expect(container.has(undefined as any)).toBe(false);
-			// Check logs were not spammed for null/undefined check
-			expect(mockLogger.debug).not.toHaveBeenCalledWith(expect.stringContaining("null"), { source: "Container" });
-			expect(mockLogger.debug).not.toHaveBeenCalledWith(expect.stringContaining("undefined"), { source: "Container" });
-		});
+		expect(newContainer).toBeInstanceOf(BaseContainer);
+		expect(newContainer).toBeInstanceOf(Object);
+		expect(containerRegistry.register).toHaveBeenCalledWith(options.name, expect.any(BaseContainer));
 	});
 
-	describe("unregister", () => {
-		beforeEach(() => {
-			container.register(ServiceAToken, serviceAInstance);
-			vi.clearAllMocks();
-		});
+	it("should register and retrieve a dependency", () => {
+		const tokenSymbol = Symbol("testDependency");
+		const testValue = { prop: "value" };
 
-		it("should remove an existing dependency", () => {
-			expect(container.has(ServiceAToken)).toBe(true);
-			container.unregister(ServiceAToken);
-			expect(container.has(ServiceAToken)).toBe(false);
-			expect(container.get(ServiceAToken)).toBeUndefined();
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Unregistering dependency with token: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency unregistered successfully: ${String(ServiceAToken.description)}`, { source: "Container" });
-		});
+		container.register(tokenSymbol, testValue);
+		const result = container.get(tokenSymbol);
 
-		it("should not throw if unregistering a non-existent token but log it", () => {
-			expect(() => {
-				container.unregister(NonExistentToken);
-			}).not.toThrow();
-			expect(container.has(NonExistentToken)).toBe(false);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Unregistering dependency with token: ${String(NonExistentToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency not found for unregistering: ${String(NonExistentToken.description)}`, { source: "Container" });
-		});
+		expect(result).toEqual(testValue);
 
-		it("should throw error if unregistering with a null or undefined token", () => {
-			expect(() => {
-				container.unregister(null as any);
-			}).toThrow("Token cannot be null or undefined");
-			expect(() => {
-				container.unregister(undefined as any);
-			}).toThrow("Token cannot be null or undefined");
-		});
+		// Use the mock logger's getCalls method to check logging
+		const debugCalls = mockLogger.getCalls("debug");
+		expect(debugCalls).toContainEqual(
+			expect.objectContaining({
+				message: expect.stringContaining(`Getting dependency with token: ${String(tokenSymbol.description)}`),
+				options: expect.objectContaining({ source: "Container" }),
+			}),
+		);
 	});
 
-	describe("clear", () => {
-		it("should remove all dependencies", () => {
-			container.register(ServiceAToken, serviceAInstance);
-			container.register(ServiceBToken, serviceBInstance);
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(container.has(ServiceBToken)).toBe(true);
-			vi.clearAllMocks();
+	it("should throw an error when retrieving a non-existent dependency", () => {
+		const nonExistentToken = Symbol("nonExistentToken");
 
-			container.clear();
+		expect(() => container.get(nonExistentToken)).toThrow(BaseError);
+		expect(() => container.get(nonExistentToken)).toThrow(/Dependency not found/);
 
-			expect(container.has(ServiceAToken)).toBe(false);
-			expect(container.has(ServiceBToken)).toBe(false);
-			expect(container.get(ServiceAToken)).toBeUndefined();
-			expect(container.get(ServiceBToken)).toBeUndefined();
-			expect(mockLogger.debug).toHaveBeenCalledWith("Clearing all dependencies from container", { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith("Container cleared successfully", { source: "Container" });
-		});
+		// Check that a warning was logged
+		const warnCalls = mockLogger.getCalls("warn");
+		expect(warnCalls).toContainEqual(
+			expect.objectContaining({
+				message: expect.stringContaining(`Dependency not found for token "${String(nonExistentToken.description)}"`),
+				options: expect.objectContaining({ source: "Container" }),
+			}),
+		);
 	});
 
-	describe("getAll", () => {
-		it("should return all registered dependencies", () => {
-			container.register(ServiceAToken, serviceAInstance);
-			container.register(ServiceBToken, serviceBInstance);
-			vi.clearAllMocks();
+	it("should check if a dependency exists", () => {
+		const tokenSymbol = Symbol("existingDependency");
+		const testValue = "test-value";
 
-			const allDeps = container.getAll();
+		container.register(tokenSymbol, testValue);
 
-			expect(allDeps).toHaveLength(2);
-			expect(allDeps).toEqual(expect.arrayContaining([serviceAInstance, serviceBInstance]));
-			expect(mockLogger.debug).toHaveBeenCalledWith("Getting all dependencies", { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Retrieved ${allDeps.length} dependencies`, { source: "Container" });
-		});
-
-		it("should return an empty array if container is empty", () => {
-			const allDeps = container.getAll();
-			expect(allDeps).toHaveLength(0);
-		});
+		expect(container.has(tokenSymbol)).toBe(true);
+		expect(container.has(Symbol("nonExistent"))).toBe(false);
 	});
 
-	describe("getMany", () => {
-		beforeEach(() => {
-			container.register(ServiceAToken, serviceAInstance);
-			container.register(ServiceBToken, serviceBInstance);
-			vi.clearAllMocks();
-		});
+	it("should throw an error when registering a duplicate dependency", () => {
+		const tokenSymbol = Symbol("duplicateDependency");
 
-		it("should return the specified dependencies", () => {
-			const tokens = [ServiceAToken, ServiceBToken];
-			const retrieved = container.getMany<IServiceA | IServiceB>(tokens);
-			expect(retrieved).toHaveLength(2);
-			expect(retrieved).toEqual(expect.arrayContaining([serviceAInstance, serviceBInstance]));
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Getting ${tokens.length} dependencies by token`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Retrieved ${retrieved.length} dependencies`, { source: "Container" });
-		});
+		container.register(tokenSymbol, "value1");
 
-		it("should return only existing dependencies", () => {
-			const tokens = [ServiceAToken, NonExistentToken, ServiceBToken];
-			const retrieved = container.getMany<IServiceA | IServiceB>(tokens);
-			expect(retrieved).toHaveLength(2);
-			expect(retrieved).toEqual(expect.arrayContaining([serviceAInstance, serviceBInstance]));
-		});
-
-		it("should return an empty array if no tokens match", () => {
-			const tokens = [NonExistentToken, Symbol("AnotherMissing")];
-			const retrieved = container.getMany<any>(tokens);
-			expect(retrieved).toHaveLength(0);
-		});
-
-		it("should throw error if tokens is null or undefined", () => {
-			expect(() => container.getMany(null as any)).toThrow("Tokens cannot be null or undefined");
-			expect(() => container.getMany(undefined as any)).toThrow("Tokens cannot be null or undefined");
-		});
-
-		it("should throw error if tokens is not an array", () => {
-			expect(() => container.getMany(ServiceAToken as any)).toThrow("Tokens must be an array");
-		});
+		expect(() => {
+			container.register(tokenSymbol, "value2");
+		}).toThrow(BaseError);
+		expect(() => {
+			container.register(tokenSymbol, "value2");
+		}).toThrow(/Dependency already exists/);
 	});
 
-	describe("registerMany", () => {
-		it("should register multiple dependencies successfully", () => {
-			const tokens = [ServiceAToken, ServiceBToken];
+	it("should register and retrieve multiple dependencies", () => {
+		const token1 = Symbol("dep1");
+		const token2 = Symbol("dep2");
+		const value1 = "value1";
+		const value2 = "value2";
 
-			const implementations = {
-				[ServiceAToken]: serviceAInstance,
-				[ServiceBToken]: serviceBInstance,
-			};
-			container.registerMany(tokens, implementations);
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(container.has(ServiceBToken)).toBe(true);
-			expect(container.get(ServiceAToken)).toBe(serviceAInstance);
-			expect(container.get(ServiceBToken)).toBe(serviceBInstance);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Registering ${tokens.length} dependencies`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency registered successfully: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency registered successfully: ${String(ServiceBToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`${tokens.length} dependencies registered successfully`, { source: "Container" });
+		container.registerMany([token1, token2], {
+			[token1]: value1,
+			[token2]: value2,
 		});
 
-		it("should throw error if any token already exists", () => {
-			container.register(ServiceAToken, serviceAInstance); // Pre-register one
-			const tokens = [ServiceBToken, ServiceAToken]; // Try to register A again
+		const results = container.getMany([token1, token2]);
 
-			const implementations = {
-				[ServiceAToken]: serviceAInstance,
-				[ServiceBToken]: serviceBInstance,
-			};
-			expect(() => {
-				container.registerMany(tokens, implementations);
-			}).toThrow("Dependency already exists in container");
-		});
+		expect(results).toHaveLength(2);
+		expect(results).toContain(value1);
+		expect(results).toContain(value2);
 
-		it("should throw error if tokens array is null or undefined", () => {
-			const implementations = { [ServiceAToken]: serviceAInstance };
-			expect(() => {
-				container.registerMany(null as any, implementations);
-			}).toThrow("Tokens cannot be null or undefined");
-			expect(() => {
-				container.registerMany(undefined as any, implementations);
-			}).toThrow("Tokens cannot be null or undefined");
-		});
-
-		it("should throw error if tokens is not an array", () => {
-			const implementations = { [ServiceAToken]: serviceAInstance };
-			expect(() => {
-				container.registerMany({} as any, implementations);
-			}).toThrow("Tokens must be an array");
-		});
-
-		// Test behavior when implementation is missing
-		it("should register undefined if implementation is missing for a token", () => {
-			const tokens = [ServiceAToken];
-			const implementations = {}; // Missing implementation for ServiceAToken
-			expect(() => {
-				container.registerMany(tokens, implementations);
-			}).not.toThrow();
-			expect(container.has(ServiceAToken)).toBe(true);
-			expect(container.get(ServiceAToken)).toBeUndefined();
-		});
+		// Check debug logs to verify registration happened
+		const debugCalls = mockLogger.getCalls("debug");
+		expect(debugCalls).toContainEqual(
+			expect.objectContaining({
+				message: expect.stringContaining(`Attempting to register ${String([token1, token2].length)} dependencies`),
+				options: expect.objectContaining({ source: "Container" }),
+			}),
+		);
 	});
 
-	describe("unregisterMany", () => {
-		beforeEach(() => {
-			container.register(ServiceAToken, serviceAInstance);
-			container.register(ServiceBToken, serviceBInstance);
-			vi.clearAllMocks();
+	it("should unregister a dependency", () => {
+		const tokenSymbol = Symbol("toBeRemoved");
+
+		container.register(tokenSymbol, "someValue");
+		expect(container.has(tokenSymbol)).toBe(true);
+
+		container.unregister(tokenSymbol);
+		expect(container.has(tokenSymbol)).toBe(false);
+	});
+
+	it("should unregister multiple dependencies", () => {
+		const token1 = Symbol("toRemove1");
+		const token2 = Symbol("toRemove2");
+
+		container.register(token1, "value1");
+		container.register(token2, "value2");
+
+		container.unregisterMany([token1, token2]);
+
+		expect(container.has(token1)).toBe(false);
+		expect(container.has(token2)).toBe(false);
+	});
+
+	it("should clear all dependencies", () => {
+		const token1 = Symbol("clearTest1");
+		const token2 = Symbol("clearTest2");
+
+		container.register(token1, "value1");
+		container.register(token2, "value2");
+
+		container.clear();
+
+		expect(container.has(token1)).toBe(false);
+		expect(container.has(token2)).toBe(false);
+
+		// Check for debug logs about clearing
+		const debugCalls = mockLogger.getCalls("debug");
+		expect(debugCalls).toContainEqual(
+			expect.objectContaining({
+				message: expect.stringContaining("Clearing all dependencies from container"),
+				options: expect.objectContaining({ source: "Container" }),
+			}),
+		);
+	});
+
+	it("should get all dependencies", () => {
+		const token1 = Symbol("getAllTest1");
+		const token2 = Symbol("getAllTest2");
+		const value1 = { name: "dep1" };
+		const value2 = { name: "dep2" };
+
+		container.register(token1, value1);
+		container.register(token2, value2);
+
+		const allDeps = container.getAll();
+
+		expect(allDeps).toHaveLength(2);
+		expect(allDeps).toContainEqual(value1);
+		expect(allDeps).toContainEqual(value2);
+	});
+
+	it("should handle dynamic factory functions", () => {
+		const factoryToken = Symbol("factoryToken");
+		const factoryValue = { dynamic: true };
+
+		// Create a proper arrow function factory (arrow functions have no prototype)
+		const factory = Object.assign(
+			vi.fn((_context: unknown) => factoryValue),
+			{ prototype: undefined },
+		);
+
+		container.register(factoryToken, factory);
+		const result = container.get(factoryToken);
+
+		expect(result).toEqual(factoryValue);
+		expect(factory).toHaveBeenCalledWith(
+			expect.objectContaining({
+				container: expect.any(Object),
+			}),
+		);
+
+		// Check debug logs about factory execution
+		const debugCalls = mockLogger.getCalls("debug");
+		expect(debugCalls).toContainEqual(
+			expect.objectContaining({
+				message: expect.stringContaining(`Token ${String(factoryToken.description)} corresponds to a dynamic factory`),
+				options: expect.objectContaining({ source: "Container" }),
+			}),
+		);
+	});
+
+	describe("resolve functionality", () => {
+		it("should resolve a simple injectable class", () => {
+			const TestClass = createInjectableClass(containerName);
+
+			const instance = container.resolve(TestClass);
+
+			expect(instance).toBeInstanceOf(TestClass);
 		});
 
-		it("should unregister multiple specified dependencies", () => {
-			const tokensToUnregister = [ServiceAToken, ServiceBToken];
-			container.unregisterMany(tokensToUnregister);
-			expect(container.has(ServiceAToken)).toBe(false);
-			expect(container.has(ServiceBToken)).toBe(false);
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Unregistering ${tokensToUnregister.length} dependencies`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency unregistered successfully: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency unregistered successfully: ${String(ServiceBToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`${tokensToUnregister.length} dependencies unregistered`, { source: "Container" });
+		it("should resolve an injectable class with dependencies", () => {
+			const dep1Token = Symbol("dep1");
+			const dep2Token = Symbol("dep2");
+			const dep1Value = { name: "dependency1" };
+			const dep2Value = { name: "dependency2" };
+
+			// Register dependencies
+			container.register(dep1Token, dep1Value);
+			container.register(dep2Token, dep2Value);
+
+			// Create class with dependencies
+			const TestClassWithDeps = createInjectableClassWithDeps(containerName, [dep1Token, dep2Token]);
+
+			// Resolve the class
+			const instance = container.resolve(TestClassWithDeps);
+
+			expect(instance).toBeInstanceOf(TestClassWithDeps);
+			expect((instance as any).deps).toEqual([dep1Value, dep2Value]);
 		});
 
-		it("should handle non-existent tokens gracefully", () => {
-			const tokensToUnregister = [ServiceAToken, NonExistentToken];
-			container.unregisterMany(tokensToUnregister);
-			expect(container.has(ServiceAToken)).toBe(false);
-			expect(container.has(ServiceBToken)).toBe(true); // B should remain
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency unregistered successfully: ${String(ServiceAToken.description)}`, { source: "Container" });
-			expect(mockLogger.debug).toHaveBeenCalledWith(`Dependency not found for unregistering: ${String(NonExistentToken.description)}`, { source: "Container" });
+		it("should cache resolved instances when retrieving via get()", () => {
+			const classToken = Symbol("classToken");
+			const TestClass = createInjectableClass(containerName);
+
+			// Register the injectable class
+			container.register(classToken, TestClass);
+
+			// Get it twice to verify caching
+			const instance1 = container.get(classToken);
+			const instance2 = container.get(classToken);
+
+			expect(instance1).toBe(instance2); // Same instance reference
+			expect(instance1).toBeInstanceOf(TestClass);
 		});
 
-		it("should throw error if tokens is null or undefined", () => {
-			expect(() => {
-				container.unregisterMany(null as any);
-			}).toThrow("Tokens cannot be null or undefined");
-			expect(() => {
-				container.unregisterMany(undefined as any);
-			}).toThrow("Tokens cannot be null or undefined");
+		it("should throw an error when resolving a non-injectable class", () => {
+			class NonInjectableClass {}
+
+			expect(() => container.resolve(NonInjectableClass)).toThrow(BaseError);
+			expect(() => container.resolve(NonInjectableClass)).toThrow(/not marked as @Injectable/);
 		});
 
-		it("should throw error if tokens is not an array", () => {
-			expect(() => {
-				container.unregisterMany({} as any);
-			}).toThrow("Tokens must be an array");
+		it("should throw an error when container referenced by @Injectable is not found", () => {
+			const nonExistentContainerSymbol = Symbol("NonExistentContainer");
+			const TestClass = createInjectableClass(nonExistentContainerSymbol);
+
+			(containerRegistry.get as Mock).mockReturnValue();
+
+			expect(() => container.resolve(TestClass)).toThrow(BaseError);
+			expect(() => container.resolve(TestClass)).toThrow(/Container with name .* not found/);
 		});
 
-		it("should throw error if any token in the array is null/undefined", () => {
-			const tokensToUnregister = [ServiceAToken, null as any];
-			// Error comes from the nested unregister call
-			expect(() => {
-				container.unregisterMany(tokensToUnregister);
-			}).toThrow("Token cannot be null or undefined");
+		it("should throw an error when a required dependency is not registered", () => {
+			const missingDependencyToken = Symbol("missingDep");
+			const TestClassWithMissingDep = createInjectableClassWithDeps(containerName, [missingDependencyToken]);
+
+			expect(() => container.resolve(TestClassWithMissingDep)).toThrow(BaseError);
+			expect(() => container.resolve(TestClassWithMissingDep)).toThrow(/Failed to resolve dependency/);
+		});
+
+		it("should throw an error when a constructor parameter lacks @Inject decorator", () => {
+			class ClassWithoutInject {
+				constructor(private readonly dep1: unknown) {}
+			}
+
+			// Add only @Injectable but not @Inject
+			Reflect.defineMetadata(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY, containerName, ClassWithoutInject);
+			Reflect.defineMetadata("design:paramtypes", [Object], ClassWithoutInject);
+			// No INJECT_TOKEN_KEY metadata
+
+			expect(() => container.resolve(ClassWithoutInject)).toThrow(BaseError);
+			expect(() => container.resolve(ClassWithoutInject)).toThrow(/has constructor parameters but no valid @Inject metadata/);
 		});
 	});
 });

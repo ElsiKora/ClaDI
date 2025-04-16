@@ -1,39 +1,40 @@
-import { ELoggerLogLevel } from "@domain/enum";
 import type { IConsoleLoggerOptions } from "@infrastructure/interface";
+
+import { ELoggerLogLevel } from "@domain/enum";
 import { ConsoleLoggerService } from "@infrastructure/service";
 import { createLogger } from "@presentation/utility/create";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the actual ConsoleLoggerService class
-vi.mock("@infrastructure/service/console-logger.service", () => ({
-	ConsoleLoggerService: vi.fn().mockImplementation((options) => ({
-		__type: "MockLogger",
-		debug: vi.fn(),
-		error: vi.fn(),
-		info: vi.fn(),
-		options: options,
-		trace: vi.fn(),
-		warn: vi.fn(),
-	})),
+// Mock the ConsoleLoggerService implementation
+vi.mock("@infrastructure/service", () => ({
+	ConsoleLoggerService: vi.fn(),
 }));
 
-describe("createLogger Utility", () => {
-	// Reset mocks before each test
+describe("createLogger utility", () => {
+	const mockLoggerInstance = { name: "MockInstance" };
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Or specifically: vi.mocked(ConsoleLoggerService).mockClear();
+		(ConsoleLoggerService as ReturnType<typeof vi.fn>).mockImplementation(() => mockLoggerInstance);
 	});
 
-	it("should create a ConsoleLoggerService instance with provided options", () => {
+	it("should call ConsoleLoggerService constructor with provided options", () => {
 		const options: IConsoleLoggerOptions = {
-			level: ELoggerLogLevel.ERROR,
-			source: "TestCreateLogger",
+			level: ELoggerLogLevel.WARN,
+			source: "UtilityTestSource",
 		};
 		const logger = createLogger(options);
+
 		expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
 		expect(ConsoleLoggerService).toHaveBeenCalledWith(options);
-		// Check the returned object structure (based on mock)
-		expect((logger as any).__type).toBe("MockLogger");
-		expect((logger as any).options).toEqual(options);
+		expect(logger).toBe(mockLoggerInstance);
+	});
+
+	it("should call ConsoleLoggerService constructor without options if none provided", () => {
+		const logger = createLogger();
+
+		expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
+		expect(ConsoleLoggerService).toHaveBeenCalledWith(undefined); // Called with undefined when no args
+		expect(logger).toBe(mockLoggerInstance);
 	});
 });
