@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"alwaysStrict": true,
-		"baseUrl": ".",
+		"baseUrl": "./src",
 		"declaration": true,
 		"declarationMap": true,
 		"emitDecoratorMetadata": true,
@@ -18,12 +18,13 @@
 		"noUnusedParameters": true,
 		"outDir": "./dist",
 		"paths": {
-			"@application/*": ["src/application/*"],
-			"@domain/*": ["src/domain/*"],
-			"@infrastructure/*": ["src/infrastructure/*"],
-			"@presentation/*": ["src/presentation/*"],
-			"@test-shared/*": ["test/unit/shared/*"]
+			"@application/*": ["application/*"],
+			"@domain/*": ["domain/*"],
+			"@infrastructure/*": ["infrastructure/*"],
+			"@presentation/*": ["presentation/*"],
+			"@test-shared/*": ["../test/unit/shared/*"]
 		},
+		"rootDir": "./src",
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
