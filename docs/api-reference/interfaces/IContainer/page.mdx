@@ -1,0 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# IContainer
+
+*Defined in: `src/domain/interface/container/interface.ts`*
+
+Defines the contract for a dependency injection container.
+
+<TSDoc code={`import type { IContainer, TConstructor, TContainerDynamicFactory } from '@elsikora/cladi'; 
+ // Need dependent types
+ export type Ctor<T> = TConstructor<T>;
+ export type DynFactory<T> = TContainerDynamicFactory<T>;
+ export default IContainer`} />
+
+*(See Core Concepts: [Container Pattern](/core-concepts/container))* 

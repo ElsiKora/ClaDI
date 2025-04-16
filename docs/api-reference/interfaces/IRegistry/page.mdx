@@ -1,0 +1,14 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# IRegistry<T>
+
+*Defined in: `src/domain/interface/registry.interface.ts`*
+
+Defines the contract for a registry storing items (or constructors) of type `T`, keyed by `Symbol`.
+
+<TSDoc code={`import type { IRegistry, TConstructor } from '@elsikora/cladi'; 
+// Need TConstructor
+export type Ctor<T> = TConstructor<T>;
+export default IRegistry`} />
+
+*(See Core Concepts: [Registry Pattern](/core-concepts/registry))* 

@@ -1,0 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# createRegistry<T>
+
+Instantiates `BaseRegistry<T>` (which implements `IRegistry<T>`). Requires a type parameter `T`.
+
+<TSDoc code={`import { createRegistry, type IBaseRegistryOptions } from '@elsikora/cladi'; export default createRegistry`} />
+
+- **Purpose**: Set up a named collection (keyed by `Symbol`) for storing configuration templates or object prototypes.
+- **Options (`IBaseRegistryOptions`)**: Allows injecting a logger for monitoring registry operations.
+
+<TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi';
+export default IBaseRegistryOptions`} />
+
+**See Also**: [Core Concepts: Registry](/core-concepts/registry) 

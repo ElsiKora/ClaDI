@@ -1,0 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# createFactory<T>
+
+Instantiates `BaseFactory<T>` (which implements `IFactory<T>`). Requires a type parameter `T` and must be provided with an existing `IRegistry<T>` instance.
+
+<TSDoc code={`import { createFactory, type IBaseFactoryOptions } from '@elsikora/cladi'; export default createFactory`} />
+
+- **Purpose**: Create an object factory that uses a registry as its source for templates.
+- **Options (`IBaseFactoryOptions`)**: Requires `registry`. Optionally takes a `logger` and a `transformer` function.
+
+<TSDoc code={`import type { IBaseFactoryOptions } from '@elsikora/cladi';
+export default IBaseFactoryOptions`} />
+
+**See Also**: [Core Concepts: Factory](/core-concepts/factory) 

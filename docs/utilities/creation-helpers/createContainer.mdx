@@ -1,0 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# createContainer
+
+Instantiates `BaseContainer` (which implements `IContainer`).
+
+<TSDoc code={`import { createContainer, type IBaseContainerOptions } from '@elsikora/cladi'; export default createContainer`} />
+
+- **Purpose**: Quickly get a dependency injection container ready for registrations.
+- **Options (`IBaseContainerOptions`)**: Requires a unique `name: symbol`. Allows injecting a logger to monitor the container's own actions (register, get, etc.).
+
+<TSDoc code={`import type { IBaseContainerOptions } from '@elsikora/cladi';
+export default IBaseContainerOptions`} />
+
+**See Also**: [Core Concepts: Container](/core-concepts/container) 

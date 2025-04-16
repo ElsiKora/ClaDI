@@ -8,7 +8,7 @@ import { BaseContainer } from "@infrastructure/class/base";
  * @param {IBaseContainerOptions} options - The options to use for the container.
  * @returns {IContainer} A new container instance.
  * @throws If a container with the same name is already registered.
- * @see {@link https://elsikora.com/docs/cladi/core-concepts/container} for more information on containers.
+ * @see {@link https://elsikora.com/docs/cladi/utilities/creation-helpers/createContainer} for more information on this utility.
  * @example
  * ```typescript
  * const container = createContainer({

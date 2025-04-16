@@ -3,9 +3,9 @@ import type { TConstructor, TContainerDynamicFactory } from "@domain/type";
 import type { IBaseContainerOptions } from "@infrastructure/interface";
 
 import { BaseError } from "@infrastructure/class/base/error.class";
+import { DECORATOR_TOKENS_CONSTANT } from "@infrastructure/constant";
 import { containerRegistry } from "@infrastructure/registry";
 import { ConsoleLoggerService } from "@infrastructure/service";
-import { DECORATOR_TOKENS_CONSTANT } from "@presentation/constant";
 
 import "reflect-metadata";
 

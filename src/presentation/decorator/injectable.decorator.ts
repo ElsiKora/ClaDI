@@ -1,4 +1,4 @@
-import { DECORATOR_TOKENS_CONSTANT } from "@presentation/constant";
+import { DECORATOR_TOKENS_CONSTANT } from "@infrastructure/constant";
 
 import "reflect-metadata";
 

@@ -1,0 +1,15 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# createLogger
+
+Instantiates `ConsoleLoggerService` (which implements `ILogger`).
+
+<TSDoc code={`import { createLogger, type IConsoleLoggerOptions } from '@elsikora/cladi'; export default createLogger`} />
+
+- **Purpose**: Quickly get a standard console logger instance.
+- **Options (`IConsoleLoggerOptions`)**: Allows setting the minimum `level` and a default `source` identifier.
+
+<TSDoc code={`import type { IConsoleLoggerOptions } from '@elsikora/cladi';
+export default IConsoleLoggerOptions`} />
+
+**See Also**: [Services: Logging](/services/logging) 

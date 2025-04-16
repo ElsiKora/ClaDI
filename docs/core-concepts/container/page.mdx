@@ -93,6 +93,76 @@ Think of the container as a central hub where you register all the building bloc
   logger.debug(`Has Logger after clear: ${container.has(Tokens.Logger)}`); // Logs: false
   ```
 
+## Decorator-Based Injection (@Injectable / @Inject)
+
+While manual registration is always possible, the container truly shines when used with the `@Injectable` and `@Inject` decorators. This automates the process of dependency resolution.
+
+1.  **Mark Services as Injectable**: Use `@Injectable(ContainerName)` on your service class. `ContainerName` must be the `Symbol` used when creating the container instance with `createContainer({ name: ContainerName })`.
+2.  **Declare Dependencies**: Use `@Inject(Token)` on constructor parameters to tell the container which dependency (identified by `Token`) should be injected for that parameter.
+3.  **Register the Class**: Register the *class constructor itself* with the container using its token: `container.register(Tokens.MyService, MyServiceClass);`
+4.  **Retrieve the Instance**: When you call `container.get<IMyService>(Tokens.MyService)`, the container will:
+    *   See that `MyServiceClass` is registered.
+    *   Check its `@Injectable` metadata to ensure it belongs to this container.
+    *   Examine the constructor's `@Inject` metadata.
+    *   Recursively call `get()` for each required dependency token.
+    *   Instantiate `MyServiceClass` with the resolved dependencies.
+    *   Cache and return the instance (singleton scope by default).
+
+```typescript filename="src/decorator-di-example.ts" copy
+import { createContainer, Injectable, Inject, type IContainer, type ILogger } from "@elsikora/cladi";
+
+// 1. Define Tokens and Container Name
+const DiTokens = {
+  Logger: Symbol.for("DiLogger"),
+  DataFetcher: Symbol.for("DataFetcher"),
+  ReportGenerator: Symbol.for("ReportGenerator"),
+};
+const DiContainerName = Symbol.for("DiContainer");
+
+// 2. Define Interfaces
+interface IDataFetcher { fetchData(): string; }
+interface IReportGenerator { generate(): void; }
+
+// 3. Implement Services with Decorators
+@Injectable(DiContainerName)
+class ApiDataFetcher implements IDataFetcher {
+  constructor(@Inject(DiTokens.Logger) private logger: ILogger) {
+    this.logger.debug("ApiDataFetcher constructed");
+  }
+  fetchData(): string { return "Data from API"; }
+}
+
+@Injectable(DiContainerName)
+class ReportGeneratorImpl implements IReportGenerator {
+  constructor(
+    @Inject(DiTokens.Logger) private logger: ILogger,
+    @Inject(DiTokens.DataFetcher) private fetcher: IDataFetcher
+  ) {
+    this.logger.debug("ReportGenerator constructed");
+  }
+  generate(): void {
+    const data = this.fetcher.fetchData();
+    this.logger.info(`Generating report with: ${data}`);
+    // ... generation logic ...
+  }
+}
+
+// 4. Setup Container and Register
+declare const baseLogger: ILogger; // Assume a base logger exists
+const diContainer: IContainer = createContainer({ name: DiContainerName, logger: baseLogger });
+
+diContainer.register(DiTokens.Logger, baseLogger); // Register shared logger
+diContainer.register(DiTokens.DataFetcher, ApiDataFetcher); // Register the class
+diContainer.register(DiTokens.ReportGenerator, ReportGeneratorImpl); // Register the class
+
+// 5. Use the Service
+// Getting ReportGenerator triggers resolution of DataFetcher and Logger
+const reportGenerator = diContainer.get<IReportGenerator>(DiTokens.ReportGenerator);
+reportGenerator.generate();
+```
+
+This approach significantly reduces boilerplate for wiring up dependencies, especially in larger applications.
+
 ## Benefits
 
 - **Loose Coupling**: Components depend only on abstract tokens (symbols) and interfaces, not on the concrete classes or how they are created. This makes your system more flexible and easier to refactor.

@@ -1,0 +1,25 @@
+---
+title: Decorators Overview
+asIndexPage: true
+---
+
+# Decorators
+
+This section details the decorators provided for dependency injection.
+
+- **[@Inject()](./inject)**: Marks a constructor parameter for injection.
+- **[@Injectable()](./injectable)**: Marks a class as injectable.
+
+## @Inject()
+
+*Defined in: `src/presentation/decorator/inject.decorator.ts`*
+Marks a constructor parameter to be injected with a dependency identified by a token.
+
+<TSDoc code={`import { Inject } from '@elsikora/cladi'; export default Inject`} />
+
+## @Injectable()
+
+*Defined in: `src/presentation/decorator/injectable.decorator.ts`*
+Marks a class as injectable and associates it with a specific container name.
+
+<TSDoc code={`import { Injectable } from '@elsikora/cladi'; export default Injectable`} /> 
