@@ -1,8 +1,8 @@
 export default {
-	classes: "Classes",
-	decorators: "Decorators",
-	enums: "Enums",
-	functions: "Functions",
-	interfaces: "Interfaces",
-	types: "Types",
+	constants: "Constants",
+	"core-interfaces": "Core Interfaces",
+	introduction: "Introduction",
+	"key-exports": "Key Exports",
+	"other-utilities": "Other Utilities",
+	"utility-types": "Utility Types",
 };

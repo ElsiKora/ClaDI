@@ -1,8 +1,15 @@
-/* eslint-disable @elsikora/perfectionist/sort-objects */
 export default {
-	"getting-started": "Getting Started",
+	"---": {
+		type: "separator",
+	},
 	"api-reference": "API Reference",
 	"core-concepts": "Core Concepts",
-	services: "Services",
-	utilities: "Utilities",
+	"getting-started": "Getting Started",
+	github: {
+		href: "https://github.com/elsikora/cladi",
+		newWindow: true,
+		title: "GitHub ↗",
+	},
+	guides: "Guides",
+	index: "Introduction",
 };

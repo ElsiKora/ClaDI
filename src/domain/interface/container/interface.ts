@@ -13,28 +13,28 @@ export interface IContainer {
 
 	/**
 	 * Get a dependency from the container.
-	 * @param token Token that identifies the dependency.
-	 * @returns The dependency.
+	 * @param {symbol} token Token that identifies the dependency.
+	 * @returns {T} The dependency.
 	 */
 	get<T>(token: symbol): T;
 
 	/**
 	 * Get all dependencies from the container.
-	 * @returns An array of all dependencies.
+	 * @returns {Array<T>} An array of all dependencies.
 	 */
 	getAll<T>(): Array<T>;
 
 	/**
 	 * Get multiple dependencies from the container.
-	 * @param tokens Tokens that identify the dependencies.
-	 * @returns An array of dependencies.
+	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
+	 * @returns {Array<T>} An array of dependencies.
 	 */
 	getMany<T>(tokens: Array<symbol>): Array<T>;
 
 	/**
 	 * Check if a dependency exists in the container.
-	 * @param token Token that identifies the dependency.
-	 * @returns True if the dependency exists, false otherwise.
+	 * @param {symbol} token Token that identifies the dependency.
+	 * @returns {boolean} True if the dependency exists, false otherwise.
 	 */
 	has(token: symbol): boolean;
 
@@ -57,21 +57,21 @@ export interface IContainer {
 	/**
 	 * Resolve a class constructor, creating an instance with injected dependencies.
 	 * This is typically used internally by `get` but can be called directly.
-	 * @param constructor The class constructor to resolve.
-	 * @returns The resolved instance.
-	 * @template T The type of the class.
+	 * @param {TConstructor<T>} classConstructor The class constructor to resolve.
+	 * @returns {T} The resolved instance.
+	 * @template {T} The type of the class.
 	 */
-	resolve<T>(constructor: TConstructor<T>): T;
+	resolve<T>(classConstructor: TConstructor<T>): T;
 
 	/**
 	 * Unregister a dependency from the container.
-	 * @param token Token that identifies the dependency.
+	 * @param {symbol} token Token that identifies the dependency.
 	 */
 	unregister(token: symbol): void;
 
 	/**
 	 * Unregister multiple dependencies from the container.
-	 * @param tokens Tokens that identify the dependencies.
+	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
 	 */
 	unregisterMany(tokens: Array<symbol>): void;
 }

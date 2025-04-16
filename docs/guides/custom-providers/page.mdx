@@ -1,0 +1,255 @@
+import { Callout, Steps } from 'nextra/components'
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# Custom Providers (using Factory Functions)
+
+While registering pre-made instances or using `@Injectable` constructors covers many DI scenarios, sometimes dependency creation requires more complex logic or needs access to other dependencies during its setup phase. ClaDI supports this through **factory function providers**.
+
+## When to Use Factory Functions?
+
+Consider using a factory function provider when:
+
+1.  **Complex Instantiation:** The object requires multi-step setup or configuration logic beyond a simple `new Class(...)` call.
+2.  **Dependency on Other Services for Configuration:** The creation of service `A` depends on configuration or values provided by service `B`, which must also be resolved from the container.
+3.  **Conditional Logic:** The specific instance or configuration returned depends on runtime conditions or other resolved dependencies.
+4.  **Asynchronous Setup:** The dependency requires an asynchronous operation during initialization (e.g., connecting to a database, fetching remote config). *(Note: See specific patterns for handling async initialization)*.
+5.  **Integrating Third-Party Libraries:** You need to instantiate and configure an object from an external library that doesn't use ClaDI decorators.
+
+## The `TContainerDynamicFactory<T>` Type
+
+As detailed in the [Container documentation](../core-concepts/dependency-injection/container#registration-register--registermany), you can register a function matching the `TContainerDynamicFactory<T>` type:
+
+<TSDoc code={`import type { TContainerDynamicFactory, IContainerDynamicFactoryResolutionContext } from '@elsikora/cladi';
+export type { TContainerDynamicFactory, IContainerDynamicFactoryResolutionContext }`} />
+
+Key points:
+
+-   The function receives a `context` object containing the `container` instance.
+-   It **must return** an instance of the dependency type `<T>`.
+-   The container executes this function **only the first time** the dependency token is requested via `get()`.
+-   The **result returned by the factory is cached** by the container (singleton scope). Subsequent `get()` calls for the same token return the cached instance.
+
+## Example 1: Database Connection Pool
+
+Imagine needing a database connection pool (like `pg-pool`) where the connection string comes from a configuration service, both managed by the container.
+
+```typescript filename="src/setup.ts" copy
+import { createContainer } from '@elsikora/cladi';
+import pg from 'pg'; // Assume 'pg' and '@types/pg' are installed
+
+// --- Interfaces and Tokens ---
+interface IConfigService {
+  getDatabaseUrl(): string;
+}
+
+const Tokens = {
+  ConfigService: Symbol.for('ConfigService'),
+  DatabasePool: Symbol.for('DatabasePool'),
+};
+
+// --- Concrete Implementations ---
+class ConfigService implements IConfigService {
+  // In a real app, this might load from .env or other sources
+  getDatabaseUrl(): string {
+    return process.env.DATABASE_URL || 'postgres://user:pass@host:port/db';
+  }
+}
+
+// --- Container Setup ---
+const container = createContainer({ name: Symbol.for('AppContainer') });
+
+// 1. Register the simple ConfigService (instance or constructor)
+container.register<IConfigService>(Tokens.ConfigService, new ConfigService());
+
+// 2. Register the DatabasePool using a factory function
+container.register<pg.Pool>(Tokens.DatabasePool, (context) => {
+  console.log('DatabasePool factory executed!');
+  // Resolve the ConfigService dependency *within* the factory
+  const configService = context.container.get<IConfigService>(Tokens.ConfigService);
+  const databaseUrl = configService.getDatabaseUrl();
+
+  // Perform complex instantiation using the resolved config
+  const pool = new pg.Pool({
+    connectionString: databaseUrl,
+    // other pool options...
+  });
+
+  // You could potentially add event listeners or other setup here
+  pool.on('connect', () => console.log('DB Pool client connected'));
+  pool.on('error', (err) => console.error('DB Pool error:', err));
+
+  return pool; // Return the fully configured pool instance
+});
+
+// --- Usage ---
+async function queryDb() {
+  console.log('Requesting DB Pool...');
+  // First call executes the factory
+  const pool = container.get<pg.Pool>(Tokens.DatabasePool);
+  console.log('Got DB Pool instance.');
+
+  console.log('Requesting DB Pool again...');
+  // Second call returns the cached instance (factory doesn't run again)
+  const pool2 = container.get<pg.Pool>(Tokens.DatabasePool);
+  console.log('Got DB Pool instance again.');
+  console.log('Pool instances are the same:', pool === pool2); // true
+
+  // Use the pool
+  const client = await pool.connect();
+  try {
+    const res = await client.query('SELECT NOW()');
+    console.log('DB Query Result:', res.rows[0]);
+  } finally {
+    client.release();
+    // In a real app, consider pool.end() on shutdown
+  }
+}
+
+// queryDb(); // Uncomment to run
+```
+
+In this example, the `DatabasePool` factory function fetches the required `ConfigService` from the container *at the time the pool is first needed*, ensuring the configuration is available before creating the pool.
+
+## Example 2: Conditional Provider
+
+Provide different implementations based on configuration or environment.
+
+```typescript filename="src/conditional-provider.ts" copy
+import { createContainer } from '@elsikora/cladi';
+
+// --- Interfaces and Tokens ---
+interface INotificationService {
+  notify(message: string): void;
+}
+const Tokens = {
+  Config: Symbol.for('AppConfig'),
+  NotificationService: Symbol.for('NotificationService'),
+};
+
+// --- Implementations ---
+class EmailNotificationService implements INotificationService {
+  notify(message: string) { console.log(`EMAIL: ${message}`); }
+}
+class SmsNotificationService implements INotificationService {
+  notify(message: string) { console.log(`SMS: ${message}`); }
+}
+
+// --- Container Setup ---
+const container = createContainer({ name: Symbol.for('AppContainer') });
+
+// Register some configuration
+const appConfig = {
+  notificationChannel: process.env.NOTIFY_CHANNEL || 'email', // 'email' or 'sms'
+};
+container.register(Tokens.Config, appConfig);
+
+// Register NotificationService using a factory
+container.register<INotificationService>(Tokens.NotificationService, (context) => {
+  const config = context.container.get<{ notificationChannel: string }>(Tokens.Config);
+
+  if (config.notificationChannel === 'sms') {
+    console.log('Notification factory: Providing SMS service');
+    return new SmsNotificationService();
+  } else {
+    console.log('Notification factory: Providing Email service');
+    return new EmailNotificationService();
+  }
+});
+
+// --- Usage ---
+const notifier = container.get<INotificationService>(Tokens.NotificationService);
+notifier.notify('Your order has shipped!');
+// Output depends on the config (e.g., EMAIL: Your order has shipped!)
+```
+
+## Handling Asynchronicity
+
+If your factory function needs to perform `async` operations (like connecting to a database before returning the client/pool), you **cannot** directly make the factory function `async` and `await` inside it, because the container's `register` signature expects a synchronous function `() => T`.
+
+Common patterns to handle this include:
+
+<Steps>
+
+### Async Initialization Method
+
+The factory synchronously returns an instance that has an `async initialize()` method. The application code retrieving the dependency is responsible for calling `initialize()` *after* getting the instance from the container.
+
+```typescript
+// Factory Registration
+container.register(Tokens.AsyncService, () => {
+  const service = new MyAsyncService();
+  // Return instance immediately, NOT initialized yet
+  return service;
+});
+
+// Usage
+async function useService() {
+  const service = container.get<MyAsyncService>(Tokens.AsyncService);
+  await service.initialize(); // Caller manages initialization
+  // ... use initialized service
+}
+```
+
+**Pros:** Simple factory.
+**Cons:** Burden on the consumer to remember to call `initialize()`.
+
+### Wrapper Promise
+
+The factory synchronously returns a `Promise<T>` which resolves with the fully initialized instance. The application code `await`s this promise after getting it from the container.
+
+```typescript
+// Factory Registration
+container.register<Promise<MyInitializedService>>(Tokens.AsyncServicePromise, () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const service = new MyInitializedService();
+      await service.connectToDb(); // Async setup inside promise
+      resolve(service);
+    } catch (err) {
+      reject(err);
+    }
+  });
+});
+
+// Usage
+async function useService() {
+  const servicePromise = container.get<Promise<MyInitializedService>>(Tokens.AsyncServicePromise);
+  const service = await servicePromise; // Await the promise from the container
+  // ... use initialized service
+}
+```
+
+**Pros:** Factory handles initialization logic.
+**Cons:** Consumers need to know they are getting a Promise and must `await` it.
+
+### Application Bootstrapping
+
+Perform all critical async setup during application startup, *before* the main application logic runs and potentially before the container is even fully configured for general use. Register the fully initialized instance once setup is complete.
+
+```typescript
+// main.ts or bootstrap.ts
+async function bootstrap() {
+  const dbPool = new pg.Pool({ /* ... */ });
+  await dbPool.connect(); // Ensure connection before registering
+
+  const container = createContainer({ name: Symbol.for('App') });
+  // Register the ALREADY initialized pool
+  container.register(Tokens.DatabasePool, dbPool);
+
+  // Start the rest of the application using the container
+  startApp(container);
+}
+
+bootstrap();
+```
+
+**Pros:** Simplest for consumers; dependencies are guaranteed to be ready.
+**Cons:** Can increase application startup time; might not be suitable if initialization depends on other complex runtime dependencies.
+
+</Steps>
+
+The exact approach depends on your application structure and how dependencies are consumed.
+
+<Callout type="info">
+  Factory functions provide flexibility for complex scenarios but remember their result is cached. If you need a *new* instance on every `get()` call (transient scope), factory functions in ClaDI's `BaseContainer` are not the direct solution; you would typically use the Factory Pattern itself or handle scoping outside the container.
+</Callout> 

@@ -1,0 +1,73 @@
+# Deployment
+
+This documentation site is built with [Nextra](https://nextra.site/), which uses [Next.js](https://nextjs.org/) under the hood. Deploying it follows standard Next.js deployment procedures.
+
+## Building the Site
+
+Before deployment, you need to build the static assets.
+
+1.  **Ensure Dependencies:** Make sure you have installed all project dependencies, including Nextra and its peers (`react`, `react-dom`, `next`).
+    ```bash
+    npm install
+    # or
+    yarn install
+    # or
+    pnpm install
+    ```
+2.  **Build Command:** Run the standard Next.js build command. This typically generates an optimized production build in the `.next` directory.
+    ```bash
+    npm run build
+    # or
+    yarn build
+    # or
+    pnpm build
+    ```
+    *(This assumes you have a `build` script defined in your `package.json` like `"build": "next build"`)*
+
+## Deployment Options
+
+Once built, you have several options for deployment:
+
+### 1. Static Export (Recommended for Simple Hosting)
+
+If your site is purely static (no server-side logic needed by Nextra themes typically), you can export it as static HTML/CSS/JS files.
+
+1.  **Add Export Script:** Add an `export` script to your `package.json`:
+    ```json filename="package.json"
+    {
+      "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "export": "next build && next export" 
+      }
+    }
+    ```
+2.  **Configure `next.config.js` (Optional):** For static export, ensure you don't have conflicting configurations. You might need to disable image optimization features that require a server, or configure them for static export if your hosting supports it. Nextra's default theme is usually compatible with static export.
+3.  **Run Export:**
+    ```bash
+    npm run export
+    # or
+    yarn export
+    # or
+    pnpm export
+    ```
+    This will generate the static site in the `out` directory by default.
+4.  **Deploy:** Deploy the contents of the `out` directory to any static web hosting provider like:
+    *   [Vercel](https://vercel.com/)
+    *   [Netlify](https://www.netlify.com/)
+    *   [GitHub Pages](https://pages.github.com/)
+    *   AWS S3/CloudFront
+    *   Firebase Hosting
+    *   etc.
+
+### 2. Next.js Hosting (Vercel, Netlify, Node.js Server)
+
+You can also deploy the site as a standard Next.js application.
+
+1.  **Build:** Run `npm run build` (or equivalent).
+2.  **Deploy:**
+    *   **Vercel/Netlify:** These platforms have built-in support for Next.js. Connect your Git repository, and they will typically detect it's a Next.js project, build it, and deploy it automatically.
+    *   **Node.js Server:** You can run the built application using `npm run start` (or `yarn start`, `pnpm start`) on any Node.js hosting environment (like AWS EC2, Google Cloud Run, Heroku, DigitalOcean Apps).
+
+Choose the deployment method that best suits your hosting infrastructure and needs. For most documentation sites built with Nextra, static export is often the simplest and most cost-effective option. 

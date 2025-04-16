@@ -43,6 +43,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * Get a single item from the registry by name.
 	 * @param {symbol} name The name of the item to get.
 	 * @returns {TConstructor<T> | undefined} The item or undefined if it doesn't exist.
+	 * @throws {BaseError} if the name is empty.
 	 */
 	// eslint-disable-next-line @elsikora/sonar/use-type-alias
 	public get(name: symbol): T | TConstructor<T> | undefined {
@@ -93,6 +94,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * Get multiple items from the registry by their names.
 	 * @param {Array<symbol>} names The names of the items to get.
 	 * @returns {Array<T>} An array of items.
+	 * @throws {BaseError} if the names are invalid.
 	 */
 	public getMany(names: Array<symbol>): Array<T | TConstructor<T>> {
 		if (!names) {
@@ -130,7 +132,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 
 	/**
 	 * Check if an item exists in the registry by name.
-	 * @param {string} name The name of the item to check.
+	 * @param {symbol} name The name of the item to check.
 	 * @returns {boolean} True if the item exists, false otherwise.
 	 */
 	public has(name: symbol): boolean {
@@ -151,7 +153,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	 * Register a single item in the registry.
 	 * @param {symbol} name The name of the item to register.
 	 * @param {TConstructor<T>} item The item to register.
-	 * @throws ValidationError if the item is invalid.
+	 * @throws {BaseError} if the item is invalid.
 	 */
 	public register(name: symbol, item: T | TConstructor<T>): void {
 		if (!item) {
@@ -184,7 +186,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	/**
 	 * Register multiple items in the registry.
 	 * @param {Record<symbol, TConstructor<T>>} items The items to register.
-	 * @throws ValidationError if any item is invalid.
+	 * @throws {BaseError} if any item is invalid.
 	 */
 	public registerMany(items: Record<symbol, T | TConstructor<T>>): void {
 		if (!items) {
@@ -217,6 +219,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	/**
 	 * Unregister a single item from the registry by name.
 	 * @param {symbol} name The name of the item to unregister.
+	 * @throws {BaseError} if the name is empty.
 	 */
 	public unregister(name: symbol): void {
 		this.LOGGER.debug(`Unregistering item with name: ${String(name)}`, { source: "Registry" });
@@ -242,6 +245,7 @@ export class BaseRegistry<T> implements IRegistry<T> {
 	/**
 	 * Unregister multiple items from the registry by their names.
 	 * @param {Array<symbol>} names The names of the items to unregister.
+	 * @throws {BaseError} if the names are invalid.
 	 */
 	public unregisterMany(names: Array<symbol>): void {
 		if (!names) {

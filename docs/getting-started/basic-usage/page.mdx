@@ -1,0 +1,119 @@
+import { Steps } from 'nextra/components'
+
+# Basic Usage
+
+This example demonstrates the core concept of using the ClaDI container to manage and retrieve dependencies.
+
+<Steps>
+
+### Define Dependencies and Tokens
+
+First, let's define a simple service and an interface it implements. We'll also create unique `Symbol` tokens to identify our dependencies.
+
+```typescript filename="src/dependencies.ts" copy
+// Define an interface for our logger
+export interface IAppLogger {
+  log(message: string): void;
+}
+
+// Define a simple logger implementation
+export class SimpleLogger implements IAppLogger {
+  log(message: string): void {
+    console.log(`[LOG]: ${message}`);
+  }
+}
+
+// Define a service that uses the logger
+export class DataService {
+  constructor(private readonly logger: IAppLogger) {}
+
+  fetchData(): string {
+    this.logger.log("Fetching data...");
+    // Simulate fetching data
+    return "Sample Data";
+  }
+}
+
+// Define unique tokens for injection
+export const Tokens = {
+  Logger: Symbol.for('AppLogger'),
+  DataService: Symbol.for('DataService'),
+};
+```
+
+### Create and Configure the Container
+
+Next, we create a ClaDI container and register our dependencies.
+
+```typescript filename="src/container-setup.ts" copy
+import {
+  createContainer,
+  createLogger as createClaDiLogger, // Use alias to avoid name clash
+} from "@elsikora/cladi";
+import {
+  SimpleLogger,
+  DataService,
+  Tokens,
+  type IAppLogger,
+} from "./dependencies";
+
+// Create a ClaDI container
+// We can optionally pass a logger for the container itself
+const internalLogger = createClaDiLogger({ source: "ClaDIContainer" });
+const container = createContainer({ name: Symbol.for("AppContainer"), logger: internalLogger });
+
+// Create instances of our services
+const loggerInstance = new SimpleLogger();
+// Manually inject logger into DataService for this registration example
+const dataServiceInstance = new DataService(loggerInstance);
+
+// Register the instances with the container using the tokens
+container.register<IAppLogger>(Tokens.Logger, loggerInstance);
+container.register<DataService>(Tokens.DataService, dataServiceInstance);
+
+internalLogger.info("Application dependencies registered.");
+
+// Export the container and tokens for use elsewhere
+export { container, Tokens };
+```
+
+### Use the Container to Get Dependencies
+
+Finally, in another part of our application, we can retrieve the registered dependencies from the container.
+
+```typescript filename="src/main.ts" copy
+import 'reflect-metadata'; // Import needed if using decorators later
+import { container, Tokens } from "./container-setup";
+import type { DataService } from "./dependencies";
+
+function main() {
+  console.log("Application starting...");
+
+  // Retrieve the DataService instance from the container
+  const dataService = container.get<DataService>(Tokens.DataService);
+
+  if (dataService) {
+    const data = dataService.fetchData();
+    console.log(`Retrieved data: ${data}`);
+  } else {
+    console.error("Could not retrieve DataService from container!");
+  }
+
+  console.log("Application finished.");
+}
+
+main();
+```
+
+</Steps>
+
+This basic example shows how to:
+
+1.  Define services and unique tokens (`Symbol`).
+2.  Create a ClaDI `container`.
+3.  `register` service instances with their corresponding tokens.
+4.  `get` service instances from the container elsewhere in the application using the tokens.
+
+This promotes decoupling, as the `main.ts` file only needs to know about the `DataService` token, not how `DataService` or its own dependencies (like `SimpleLogger`) are created or managed.
+
+**Next:** [Core Concepts Introduction](../core-concepts/introduction) 

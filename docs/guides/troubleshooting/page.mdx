@@ -1,0 +1,109 @@
+import { Callout } from 'nextra/components'
+
+# Troubleshooting / FAQ
+
+Here are some common issues encountered when using ClaDI and how to resolve them.
+
+## Decorator Issues (`@Injectable`, `@Inject`)
+
+**Problem:** Decorators don't seem to work; dependencies are `undefined` or errors occur during resolution.
+
+**Solutions:**
+
+1.  **`reflect-metadata`:** Ensure you have installed (`npm install reflect-metadata`) and imported `reflect-metadata` **once** at the very top of your application's entry point (e.g., `main.ts`, `index.ts`).
+    ```typescript
+    import 'reflect-metadata';
+    // Rest of your app bootstrap
+    ```
+2.  **`tsconfig.json`:** Verify that `compilerOptions` in your `tsconfig.json` has **both** `experimentalDecorators` and `emitDecoratorMetadata` set to `true`.
+    ```json filename="tsconfig.json"
+    {
+      "compilerOptions": {
+        // ... other options
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+      }
+    }
+    ```
+3.  **`@Injectable` on Class:** Make sure the class receiving injections is decorated with `@Injectable(containerNameSymbol)`. The `containerNameSymbol` must match the `name` option used when creating the container that manages this class.
+4.  **`@Inject` on All Constructor Parameters:** Ensure **every** constructor parameter that you expect the container to inject is decorated with `@Inject(TokenSymbol)`. Missing even one `@Inject` can prevent the container from resolving the class correctly.
+5.  **Correct Container:** Double-check that the class is registered in the *same* container instance identified by the `Symbol` passed to `@Injectable`.
+
+## "Dependency not found for token..." Error
+
+**Problem:** `container.get(SomeToken)` throws a `BaseError` with code `CONTAINER_DEPENDENCY_NOT_FOUND`.
+
+**Solutions:**
+
+1.  **Token Mismatch:** Ensure the `Symbol` token used in `container.get(Token)` is the *exact same* `Symbol` instance used during `container.register(Token, ...)`.
+    <Callout type="warning">
+      `Symbol('MyToken') !== Symbol('MyToken')`. Use `Symbol.for('MyToken')` or export/import the same symbol instance from a shared file to guarantee identity.
+    </Callout>
+2.  **Not Registered:** Verify that the dependency was actually registered in the specific container instance you are calling `get` on. Check your container setup code.
+3.  **Typo:** Check for typos in the token variable name or the string used in `Symbol.for()`.
+4.  **Wrong Container:** If using multiple containers, ensure you are calling `get` on the container where the dependency was registered.
+
+## "Class ... is not marked as @Injectable..." Error
+
+**Problem:** `container.get()` or `container.resolve()` throws `CONTAINER_CLASS_NOT_INJECTABLE`.
+
+**Solution:** The class constructor you registered (or are trying to resolve) needs the `@Injectable(containerNameSymbol)` decorator applied directly to the class definition.
+
+## "Container with name ... not found..." Error
+
+**Problem:** `container.resolve()` (often called internally by `get` for decorated classes) throws `CONTAINER_INSTANCE_NOT_FOUND`.
+
+**Solution:** The `Symbol` passed to `@Injectable(containerNameSymbol)` on the class being resolved does not correspond to a container instance that has been created and registered globally via `createContainer({ name: containerNameSymbol })`. Ensure the container is created *before* any attempt is made to resolve classes associated with it.
+
+## Circular Dependencies
+
+**Problem:** Service A depends on Service B, and Service B depends on Service A (directly or indirectly). This can lead to runtime errors or hangs during resolution.
+
+**Example:**
+
+```typescript
+@Injectable(AppSymbol)
+class ServiceA { constructor(@Inject(Tokens.ServiceB) b: ServiceB) {} }
+
+@Injectable(AppSymbol)
+class ServiceB { constructor(@Inject(Tokens.ServiceA) a: ServiceA) {} }
+
+// Registering ServiceA and ServiceB constructors...
+// container.get(Tokens.ServiceA) will likely fail.
+```
+
+**Solutions:**
+
+1.  **Refactor:** The best solution is usually to redesign your classes to break the circular dependency. Can one service use only specific methods of the other via an interface? Can a third orchestrating service manage both?
+2.  **Property Injection (Manual):** Instead of constructor injection, use property injection *after* initial instantiation. This is **not directly supported** by ClaDI's decorators but can be done manually. This often indicates a design smell.
+3.  **Factory Provider with Delayed Resolution:** Use a factory provider for one of the services that resolves the circular dependency *inside a method call* rather than at construction time. (Advanced and can hide design issues).
+
+<Callout type="warning">
+  ClaDI's `BaseContainer` does not have built-in sophisticated circular dependency detection or resolution mechanisms like some larger frameworks (e.g., forwardRef). Refactoring is strongly recommended.
+</Callout>
+
+## Dependencies are Always the Same Instance (Singleton Scope)
+
+**Problem:** You call `container.get(SomeToken)` multiple times and always receive the exact same object instance.
+
+**Explanation:** This is the default and intended behavior of ClaDI's `BaseContainer`. When a dependency (instance, factory result, or resolved `@Injectable` class) is first retrieved, it is **cached** within the container. Subsequent calls to `get` for the same token return the cached instance.
+
+**Solution (If Transient Scope Needed):** ClaDI's `BaseContainer` inherently provides singleton scope. If you need a new instance each time (transient scope):
+
+*   Use the **Factory Pattern**: Register a class constructor in a `Registry` and use a `Factory` instance's `create()` method each time you need a new object.
+*   Register a **Factory Function** in the container that *returns a function*, and call that returned function to get a new instance.
+    ```typescript
+    container.register(Tokens.ServiceFactory, () => {
+        // This outer function runs once
+        const config = container.get(Tokens.Config);
+        // Return a function that creates new instances
+        return (args) => new MyService(config, args);
+    });
+
+    // Usage:
+    const createMyService = container.get(Tokens.ServiceFactory);
+    const service1 = createMyService({ /* args */});
+    const service2 = createMyService({ /* args */}); // service1 !== service2
+    ```
+
+</rewritten_file> 

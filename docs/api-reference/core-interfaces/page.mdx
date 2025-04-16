@@ -1,0 +1,57 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# Core Interfaces
+
+This page provides detailed API documentation for the core interfaces used throughout ClaDI. These define the contracts for containers, registries, factories, loggers, and errors.
+
+## `IContainer`
+
+Defines the contract for the dependency injection container.
+
+<TSDoc code={`import type { IContainer } from '@elsikora/cladi'; export default IContainer`} />
+
+## `IRegistry<T>`
+
+Defines the contract for a generic registry storing items of type `T` by symbol.
+
+<TSDoc code={`import type { IRegistry } from '@elsikora/cladi'; export default IRegistry`} />
+
+## `IFactory<T>`
+
+Defines the contract for a generic factory creating items of type `T`, typically using an associated `IRegistry`.
+
+<TSDoc code={`import type { IFactory } from '@elsikora/cladi'; export default IFactory`} />
+
+## `ILogger`
+
+Defines the contract for logging services.
+
+<TSDoc code={`import type { ILogger } from '@elsikora/cladi'; export default ILogger`} />
+
+## `IError`
+
+Defines the contract for standardized errors, extending the built-in `Error`.
+
+<TSDoc code={`import type { IError } from '@elsikora/cladi'; export default IError`} />
+
+## Option Interfaces
+
+These interfaces define the configuration options for creating core components:
+
+-   **`IBaseContainerOptions`**: For `createContainer`.
+    <TSDoc code={`import type { IBaseContainerOptions } from '@elsikora/cladi'; export default IBaseContainerOptions`} />
+
+-   **`IBaseRegistryOptions`**: For `createRegistry`.
+    <TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi'; export default IBaseRegistryOptions`} />
+
+-   **`IBaseFactoryOptions<T>`**: For `createFactory`.
+    <TSDoc code={`import type { IBaseFactoryOptions } from '@elsikora/cladi'; export default IBaseFactoryOptions`} />
+
+-   **`IBaseErrorOptions`**: For `BaseError` constructor.
+    <TSDoc code={`import type { IBaseErrorOptions } from '@elsikora/cladi'; export default IBaseErrorOptions`} />
+
+-   **`IConsoleLoggerOptions`**: For `createLogger` (specific to `ConsoleLoggerService`).
+    <TSDoc code={`import type { IConsoleLoggerOptions } from '@elsikora/cladi'; export default IConsoleLoggerOptions`} />
+
+-   **`ILoggerMethodOptions`**: For individual log method calls (`info`, `debug`, etc.).
+    <TSDoc code={`import type { ILoggerMethodOptions } from '@elsikora/cladi'; export default ILoggerMethodOptions`} /> 

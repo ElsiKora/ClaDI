@@ -1,0 +1,54 @@
+# Installation
+
+To use ClaDI in your project, you can install it using npm, yarn, or pnpm.
+
+Choose your preferred package manager:
+
+```bash filename="Terminal"
+# NPM
+npm install @elsikora/cladi
+
+# Yarn
+yarn add @elsikora/cladi
+
+# PNPM
+pnpm add @elsikora/cladi
+```
+
+## Requirements
+
+-   **TypeScript:** ClaDI is built with TypeScript and requires `typescript` as a peer dependency. Ensure you have TypeScript installed in your project (`npm install -D typescript` or `yarn add -D typescript`).
+-   **`reflect-metadata`:** For decorator-based dependency injection (`@Injectable`, `@Inject`), you need to install and import `reflect-metadata` once in your application's entry point.
+
+    ```bash filename="Terminal"
+    npm install reflect-metadata
+    # or
+    yarn add reflect-metadata
+    # or
+    pnpm add reflect-metadata
+    ```
+
+    Then, import it at the top of your main application file (e.g., `main.ts`, `index.ts`, `app.ts`):
+
+    ```typescript filename="src/main.ts" copy
+    import 'reflect-metadata';
+    // ... rest of your application bootstrap code
+    ```
+
+-   **TypeScript Configuration (`tsconfig.json`):**
+    For decorator support, you need to enable the following compiler options in your `tsconfig.json`:
+
+    ```json filename="tsconfig.json" copy
+    {
+      "compilerOptions": {
+        // ... other options
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+        // ... other options
+      }
+    }
+    ```
+
+With these steps completed, you are ready to start using ClaDI features in your project.
+
+**Next:** [Basic Usage](./basic-usage) 

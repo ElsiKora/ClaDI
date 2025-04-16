@@ -1,0 +1,143 @@
+import { Callout } from 'nextra/components'
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# Registry Pattern
+
+The Registry pattern provides a centralized place to store and retrieve objects or configurations using a unique key, often a `Symbol`. In ClaDI, the `Registry` is primarily used by the [Factory pattern](./factory-pattern) but can also be employed independently for managing named resources.
+
+ClaDI offers a `BaseRegistry` implementation and a [`createRegistry`](../../api-reference/key-exports) utility.
+
+## Core Idea
+
+Instead of scattering configurations or templates throughout your codebase, you register them in a central `Registry` instance. When you need a specific item, you request it from the registry using its unique key (token).
+
+## Creating a Registry
+
+Use the [`createRegistry`](../../api-reference/key-exports) utility function. It's a generic function, so you specify the type `<T>` of items the registry will hold.
+
+```typescript filename="src/registry-setup.ts" copy
+import { createRegistry } from '@elsikora/cladi';
+
+// Define the structure of items to be stored
+interface ServiceConfig {
+  url: string;
+  timeout: number;
+  retries: number;
+}
+
+// Create a registry specifically for ServiceConfig objects
+const configRegistry = createRegistry<ServiceConfig>();
+
+export { configRegistry };
+```
+
+### Registry Options (`IBaseRegistryOptions`)
+
+The [`createRegistry`](../../api-reference/key-exports) function accepts an optional [options object](../../api-reference/core-interfaces#ibaseregistryoptions):
+
+<TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi'; export default IBaseRegistryOptions`} />
+
+-   `logger`: (Optional) An [`ILogger`](../../api-reference/core-interfaces#ilogger) instance. If provided, the registry logs its operations (register, get, clear, etc.).
+
+## Core Operations
+
+<Callout>
+  Similar to the Container, it's best practice to define `Symbol` tokens for your registry keys.
+</Callout>
+
+### Registration (`register` / `registerMany`)
+
+Store items in the registry using their `Symbol` token.
+
+```typescript filename="src/register-configs.ts" copy
+import { configRegistry } from './registry-setup';
+import type { ServiceConfig } from './registry-setup';
+
+// Define tokens for different service configurations
+const ConfigTokens = {
+  AuthService: Symbol.for('Config::AuthService'),
+  UserService: Symbol.for('Config::UserService'),
+  PaymentService: Symbol.for('Config::PaymentService'),
+};
+
+// Register individual configurations
+configRegistry.register(ConfigTokens.AuthService, {
+  url: '/api/auth',
+  timeout: 5000,
+  retries: 3,
+});
+
+// Or register multiple configurations at once
+const otherConfigs: Record<symbol, ServiceConfig> = {
+  [ConfigTokens.UserService]: {
+    url: '/api/users',
+    timeout: 3000,
+    retries: 2,
+  },
+  [ConfigTokens.PaymentService]: {
+    url: '/api/payments',
+    timeout: 10000,
+    retries: 5,
+  },
+};
+configRegistry.registerMany(otherConfigs);
+
+export { ConfigTokens };
+```
+
+<Callout type="warning">
+  Registering an item with a token that already exists in the registry will throw a [`BaseError`](./error-handling).
+</Callout>
+
+### Retrieval (`get` / `getMany` / `getAll`)
+
+Fetch items using their tokens.
+
+```typescript filename="src/use-configs.ts" copy
+import { configRegistry } from './registry-setup';
+import { ConfigTokens } from './register-configs';
+import type { ServiceConfig } from './registry-setup';
+
+// Get a single configuration
+const authConfig = configRegistry.get(ConfigTokens.AuthService);
+if (authConfig) {
+  console.log(`Auth Service Timeout: ${authConfig.timeout}`);
+}
+
+// Get multiple configurations
+const configs = configRegistry.getMany([
+  ConfigTokens.UserService,
+  ConfigTokens.PaymentService,
+]);
+console.log(`Retrieved ${configs.length} configs.`);
+
+// Get all registered configurations
+const allConfigs = configRegistry.getAll();
+console.log('All registered configs:', allConfigs);
+```
+
+### Checking Existence (`has`)
+
+Verify if a token is registered.
+
+```typescript filename="src/check-config.ts" copy
+import { configRegistry } from './registry-setup';
+import { ConfigTokens } from './register-configs';
+
+if (configRegistry.has(ConfigTokens.PaymentService)) {
+  console.log('Payment service configuration is available.');
+}
+```
+
+### Unregistration (`unregister` / `unregisterMany`) / Clearing (`clear`)
+
+These methods work similarly to the `Container` for removing items or clearing the entire registry, primarily for testing or dynamic scenarios.
+
+## Use Cases
+
+-   Storing configuration objects.
+-   Managing reusable templates or blueprints.
+-   Holding references to specific service instances (though the Container is often better suited for dependency injection).
+-   Acting as the backing store for the [Factory pattern](./factory-pattern).
+
+**Next:** [Factory Pattern](./factory-pattern) 

@@ -8,14 +8,15 @@ import type { IRegistry } from "./registry.interface";
 export interface IFactory<T> {
 	/**
 	 * Create an item by name.
-	 * @param name The name of the item to create.
-	 * @returns The created item.
+	 * @param {symbol} name The name of the item to create.
+	 * @param {...unknown[]} constructorArguments The arguments to pass to the constructor.
+	 * @returns {T} The created item.
 	 */
 	create(name: symbol, ...constructorArguments: Array<unknown>): T;
 
 	/**
 	 * Get the registry associated with this factory.
-	 * @returns The registry instance.
+	 * @returns {IRegistry<T>} The registry instance.
 	 */
 	getRegistry(): IRegistry<T>;
 }

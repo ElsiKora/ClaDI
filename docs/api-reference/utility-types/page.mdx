@@ -1,0 +1,32 @@
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# Utility Types
+
+ClaDI exports a few utility types primarily used in interface definitions and function signatures.
+
+## `TConstructor<T>`
+
+Represents a general-purpose constructor function for a class that produces instances of type `T`. It accepts any number of arguments (`...args: any[]`).
+
+<TSDoc code={`import type { TConstructor } from '@elsikora/cladi'; export default TConstructor`} />
+
+**Usage:** Used in `IFactory`, `IRegistry`, and `IContainer` to refer to class constructors that can be registered or instantiated.
+
+## `TContainerDynamicFactory<T>`
+
+Represents a factory function specifically designed for use with the `IContainer`. This function is executed by the container the first time a dependency registered with this factory is requested.
+
+<TSDoc code={`import type { TContainerDynamicFactory } from '@elsikora/cladi'; export default TContainerDynamicFactory`} />
+
+-   It receives a `context` object (`IContainerDynamicFactoryResolutionContext`) containing the container instance itself, allowing the factory to resolve other dependencies if needed.
+-   It must return an instance of type `T`.
+
+**Usage:** Used in `IContainer` registration methods (`register`, `registerMany`) as an alternative to registering instances or `@Injectable` constructors.
+
+## `IContainerDynamicFactoryResolutionContext`
+
+The interface for the context object passed to a `TContainerDynamicFactory<T>` function during resolution.
+
+<TSDoc code={`import type { IContainerDynamicFactoryResolutionContext } from '@elsikora/cladi'; export default IContainerDynamicFactoryResolutionContext`} />
+
+-   `container`: Provides access to the `IContainer` instance performing the resolution, enabling the factory to call `container.get()` for its own internal dependencies. 

@@ -1,0 +1,59 @@
+# Key Exports
+
+These are the primary functions, classes, and decorators you typically import directly from the `@elsikora/cladi` package.
+
+## Creation Utilities
+
+These functions are used to create instances of the core ClaDI components.
+
+-   `createContainer(options: IBaseContainerOptions): IContainer`
+    -   Creates a dependency injection container.
+    -   See: [Core Concepts: Container](../core-concepts/dependency-injection/container)
+-   `createRegistry<T>(options?: IBaseRegistryOptions): IRegistry<T>`
+    -   Creates a registry for storing items by symbol.
+    -   See: [Core Concepts: Registry Pattern](../core-concepts/registry-pattern)
+-   `createFactory<T>(options: IBaseFactoryOptions<T>): IFactory<T>`
+    -   Creates a factory linked to a registry for object instantiation.
+    -   See: [Core Concepts: Factory Pattern](../core-concepts/factory-pattern)
+-   `createLogger(options?: IConsoleLoggerOptions): ILogger`
+    -   Creates an instance of the default console logger.
+    -   See: [Core Concepts: Logging](../core-concepts/logging)
+
+## Decorators
+
+Used for simplifying dependency injection with the container.
+
+-   `Injectable(containerName: symbol): ClassDecorator`
+    -   Marks a class as manageable by a specific container instance.
+-   `Inject(token: symbol): ParameterDecorator`
+    -   Marks a constructor parameter for dependency injection using a token.
+-   See: [Core Concepts: Decorators](../core-concepts/dependency-injection/decorators)
+
+## Core Classes
+
+While often used via the creation utilities or interfaces, the base implementations are also exported.
+
+-   [`BaseContainer`](../core-concepts/dependency-injection/container): Implements `IContainer`.
+-   [`BaseRegistry`](../core-concepts/registry-pattern): Implements `IRegistry<T>`.
+-   [`BaseFactory`](../core-concepts/factory-pattern): Implements `IFactory<T>`.
+-   [`BaseError`](../core-concepts/error-handling): Implements `IError`, the standard error class.
+    -   See: [Core Concepts: Error Handling](../core-concepts/error-handling)
+-   [`ConsoleLoggerService`](../core-concepts/logging): Implements `ILogger`.
+
+## Core Interfaces & Types
+
+Key interfaces and types are exported for type hinting and implementing custom components.
+
+-   Interfaces: `IContainer`, `IRegistry`, `IFactory`, `ILogger`, `IError`, `IBaseContainerOptions`, `IBaseRegistryOptions`, `IBaseFactoryOptions`, `IBaseErrorOptions`, `IConsoleLoggerOptions`, `ILoggerMethodOptions`, etc.
+    -   See: [API Reference: Core Interfaces](./core-interfaces)
+-   Types: `TConstructor`, `TContainerDynamicFactory`, `IContainerDynamicFactoryResolutionContext`.
+    -   See: [API Reference: Utility Types](./utility-types)
+-   Enums: `ELoggerLogLevel`.
+
+## Other Utilities
+
+Standalone helper functions.
+
+-   `safeDeepClone<T>(source: T): T`
+-   `hasFunctions(object: unknown): boolean`
+-   See: [API Reference: Other Utilities](./other-utilities) 

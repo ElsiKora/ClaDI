@@ -1,0 +1,108 @@
+---
+asIndexPage: true
+title: DI Introduction
+---
+
+# Dependency Injection (DI)
+
+Dependency Injection is a fundamental design pattern that promotes **loose coupling** and **testability** in software development. Instead of components creating their own dependencies internally, they receive them from an external source. ClaDI provides a robust `Container` to facilitate this pattern.
+
+## Why Use Dependency Injection?
+
+Imagine a `ReportGenerator` class that needs a `DatabaseConnection` and an `EmailService`.
+
+**Without DI:**
+
+```typescript
+class EmailService { /* ... */ }
+class DatabaseConnection { /* ... */ }
+
+class ReportGenerator {
+  private dbConnection: DatabaseConnection;
+  private emailService: EmailService;
+
+  constructor() {
+    // Tight Coupling: ReportGenerator is responsible for creating its dependencies
+    this.dbConnection = new DatabaseConnection(/* connection details */);
+    this.emailService = new EmailService(/* smtp details */);
+  }
+
+  generateAndSend() {
+    const data = this.dbConnection.query("SELECT ...");
+    const report = this.formatReport(data);
+    this.emailService.send("recipient@example.com", "Report", report);
+  }
+
+  private formatReport(data: any): string { /* ... */ }
+}
+
+// Usage
+const generator = new ReportGenerator();
+generator.generateAndSend();
+```
+
+**Problems:**
+
+1.  **Tight Coupling:** `ReportGenerator` is directly tied to the *concrete* `DatabaseConnection` and `EmailService` classes. If we want to use a different database or email provider, we have to modify `ReportGenerator`.
+2.  **Difficult Testing:** Unit testing `ReportGenerator` is hard. We can't easily replace the real database or email service with mocks or stubs without complex workarounds or modifying the class.
+3.  **Configuration Management:** Connection details and SMTP settings are hardcoded or managed within the class, making configuration difficult.
+
+**With DI (Conceptual):**
+
+```typescript
+interface IDatabaseConnection { query(sql: string): any; }
+interface IEmailService { send(to: string, subject: string, body: string): void; }
+
+class ReportGenerator {
+  // Depends on interfaces (abstractions), not concrete classes
+  constructor(
+    private readonly dbConnection: IDatabaseConnection,
+    private readonly emailService: IEmailService
+  ) {}
+
+  generateAndSend() {
+    const data = this.dbConnection.query("SELECT ...");
+    const report = this.formatReport(data);
+    this.emailService.send("recipient@example.com", "Report", report);
+  }
+  private formatReport(data: any): string { /* ... */ }
+}
+
+// --- Somewhere else (e.g., application bootstrap) ---
+
+// Concrete implementations
+class MyDbConnection implements IDatabaseConnection { /* ... */ }
+class MyEmailService implements IEmailService { /* ... */ }
+
+// Create instances
+const db = new MyDbConnection(/* config */);
+const email = new MyEmailService(/* config */);
+
+// Create ReportGenerator, *injecting* dependencies
+const generator = new ReportGenerator(db, email);
+generator.generateAndSend();
+```
+
+**Benefits:**
+
+1.  **Loose Coupling:** `ReportGenerator` depends only on the `IDatabaseConnection` and `IEmailService` *interfaces*. It doesn't know or care about the specific implementations (`MyDbConnection`, `MyEmailService`).
+2.  **Enhanced Testability:** In tests, we can easily create mock implementations of the interfaces and inject them into `ReportGenerator`:
+    ```typescript
+    const mockDb: IDatabaseConnection = { query: () => ['test data'] };
+    const mockEmail: IEmailService = { send: () => {} };
+    const testGenerator = new ReportGenerator(mockDb, mockEmail);
+    // Now test testGenerator in isolation
+    ```
+3.  **Improved Reusability & Maintainability:** Components are more modular. Dependency creation and configuration are handled centrally.
+
+## ClaDI's Role
+
+Manually creating and injecting dependencies like in the example above can become complex in large applications. ClaDI's **Container** automates this process:
+
+1.  You **register** your services (like `MyDbConnection`, `MyEmailService`) with the container, usually using unique **tokens** (Symbols).
+2.  When the container needs to create an instance (like `ReportGenerator`), it automatically **resolves** and **injects** the required dependencies based on the registered tokens.
+
+This section will explore ClaDI's implementation of DI:
+
+-   **[Container](./container):** The core component for managing dependencies.
+-   **[Decorators](./decorators):** Using `@Injectable` and `@Inject` for simplified registration and injection. 

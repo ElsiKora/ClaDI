@@ -60,7 +60,7 @@ export class BaseContainer implements IContainer {
 
 		this.LOGGER.debug(`Getting dependency with token: ${String(token.description)}`, { source: "Container" });
 
-		const registeredValue: unknown = this.DEPENDENCIES.get(token);
+		const registeredValue: T | undefined = this.DEPENDENCIES.get(token) as T | undefined;
 
 		if (registeredValue === undefined) {
 			this.LOGGER.warn(`Dependency not found for token "${String(token.description)}"`, { source: "Container" });
@@ -122,7 +122,8 @@ export class BaseContainer implements IContainer {
 
 	/**
 	 * Get all dependencies from the container.
-	 * @returns {Array<unknown>} An array of all dependencies.
+	 * @returns {Array<T>} An array of all dependencies.
+	 * @template T The type of the dependencies.
 	 */
 	public getAll<T>(): Array<T> {
 		this.LOGGER.debug("Getting all dependencies", { source: "Container" });
@@ -140,7 +141,9 @@ export class BaseContainer implements IContainer {
 	/**
 	 * Get multiple dependencies from the container.
 	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
-	 * @returns {Array<unknown>} An array of dependencies.
+	 * @returns {Array<T>} An array of dependencies.
+	 * @template T The type of the dependencies.
+	 * @throws {BaseError} If the tokens are invalid.
 	 */
 	public getMany<T>(tokens: Array<symbol>): Array<T> {
 		if (!tokens) {
@@ -196,6 +199,7 @@ export class BaseContainer implements IContainer {
 	 * @param {symbol} token Token that identifies the dependency.
 	 * @param {T | TConstructor<T> | TContainerDynamicFactory<T>} implementation Instance, constructor, or factory.
 	 * @template T The type of the dependency.
+	 * @throws {BaseError} If the token is invalid.
 	 */
 
 	public register<T>(token: symbol, implementation: T | TConstructor<T> | TContainerDynamicFactory<T>): void {
@@ -237,6 +241,7 @@ export class BaseContainer implements IContainer {
 	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
 	 * @param {Record<symbol, T | TConstructor<T> | TContainerDynamicFactory<T>>} implementations Map of tokens to instances, constructors, or factories.
 	 * @template T The type of the dependency.
+	 * @throws {BaseError} If the tokens are invalid.
 	 */
 	public registerMany<T>(tokens: Array<symbol>, implementations: Record<symbol, T | TConstructor<T> | TContainerDynamicFactory<T>>): void {
 		if (!tokens) {
@@ -289,18 +294,18 @@ export class BaseContainer implements IContainer {
 	 * The class must be decorated with @Injectable to determine the correct container.
 	 * Note: This method performs the core resolution logic and is called by `get` when needed.
 	 * @template T The type of the class to resolve.
-	 * @param {TConstructor<T>} constructor The class constructor to instantiate.
+	 * @param {TConstructor<T>} classConstructor The class constructor to instantiate.
 	 * @returns {T} The instantiated class instance with dependencies injected.
 	 * @throws {BaseError} If the class is not injectable, the container is not found, or dependencies cannot be resolved.
 	 */
-	public resolve<T>(constructor: TConstructor<T>): T {
-		this.LOGGER.debug(`Resolving class: ${constructor.name}`, { source: "Container" });
-		const containerName: symbol | undefined = Reflect.getMetadata(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY, constructor) as symbol | undefined;
+	public resolve<T>(classConstructor: TConstructor<T>): T {
+		this.LOGGER.debug(`Resolving class: ${classConstructor.name}`, { source: "Container" });
+		const containerName: symbol | undefined = Reflect.getMetadata(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY, classConstructor) as symbol | undefined;
 
 		if (typeof containerName !== "symbol") {
-			throw new BaseError(`Class ${constructor.name} is not marked as @Injectable or container name metadata is invalid.`, {
+			throw new BaseError(`Class ${classConstructor.name} is not marked as @Injectable or container name metadata is invalid.`, {
 				code: "CONTAINER_CLASS_NOT_INJECTABLE",
-				context: { className: constructor.name },
+				context: { className: classConstructor.name },
 				source: "Container",
 			});
 		}
@@ -308,18 +313,18 @@ export class BaseContainer implements IContainer {
 		const targetContainer: IContainer | undefined = containerRegistry.get(containerName) as IContainer | undefined;
 
 		if (!targetContainer) {
-			throw new BaseError(`Container with name "${String(containerName.description)}" not found for resolving ${constructor.name}. Ensure this container is created before resolving dependents.`, {
+			throw new BaseError(`Container with name "${String(containerName.description)}" not found for resolving ${classConstructor.name}. Ensure this container is created before resolving dependents.`, {
 				code: "CONTAINER_INSTANCE_NOT_FOUND",
-				context: { className: constructor.name, containerName: String(containerName.description) },
+				context: { className: classConstructor.name, containerName: String(containerName.description) },
 				source: "Container",
 			});
 		}
 
-		const injectionMap: unknown = Reflect.getMetadata(DECORATOR_TOKENS_CONSTANT.INJECT_TOKEN_KEY, constructor);
-		const constructorParameters: unknown = (Reflect.getMetadata("design:paramtypes", constructor) as unknown) ?? [];
+		const injectionMap: unknown = Reflect.getMetadata(DECORATOR_TOKENS_CONSTANT.INJECT_TOKEN_KEY, classConstructor);
+		const constructorParameters: unknown = (Reflect.getMetadata("design:paramtypes", classConstructor) as unknown) ?? [];
 
 		if (Array.isArray(constructorParameters) && constructorParameters.length === 0 && injectionMap instanceof Map && injectionMap.size > 0) {
-			this.LOGGER.warn(`Constructor parameters metadata missing for ${constructor.name}, but injectionMap exists with ${String(injectionMap.size)} entries. Using injectionMap for dependency resolution.`, { source: "Container" });
+			this.LOGGER.warn(`Constructor parameters metadata missing for ${classConstructor.name}, but injectionMap exists with ${String(injectionMap.size)} entries. Using injectionMap for dependency resolution.`, { source: "Container" });
 
 			const mapKeys: Array<number> = [...injectionMap.keys()] as Array<number>;
 			const parameterCount: number = Math.max(...mapKeys) + 1;
@@ -328,18 +333,18 @@ export class BaseContainer implements IContainer {
 			const validInjectionMap: Map<number, symbol> = injectionMap as Map<number, symbol>;
 
 			for (const [index, injectionToken] of validInjectionMap.entries()) {
-				this.LOGGER.debug(`Resolving dependency for param ${String(index)} of ${constructor.name} using token: ${String(injectionToken.description)}`, { source: "Container" });
+				this.LOGGER.debug(`Resolving dependency for param ${String(index)} of ${classConstructor.name} using token: ${String(injectionToken.description)}`, { source: "Container" });
 
 				try {
 					resolvedArguments[index] = targetContainer.get.call(targetContainer, injectionToken);
 				} catch (error) {
-					this.LOGGER.error(`Failed to get dependency for token ${String(injectionToken.description)} from container ${String(containerName.description)} while resolving ${constructor.name}`, { context: { error }, source: "Container" });
+					this.LOGGER.error(`Failed to get dependency for token ${String(injectionToken.description)} from container ${String(containerName.description)} while resolving ${classConstructor.name}`, { context: { error }, source: "Container" });
 
-					throw new BaseError(`Failed to resolve dependency [${String(injectionToken.description)}] for parameter ${String(index)} of class ${constructor.name}.`, {
+					throw new BaseError(`Failed to resolve dependency [${String(injectionToken.description)}] for parameter ${String(index)} of class ${classConstructor.name}.`, {
 						cause: error instanceof Error ? error : undefined,
 						code: "CONTAINER_DEPENDENCY_RESOLUTION_FAILED",
 						context: {
-							className: constructor.name,
+							className: classConstructor.name,
 							dependencyToken: String(injectionToken.description),
 							parameterIndex: index,
 							targetContainer: String(containerName.description),
@@ -349,29 +354,29 @@ export class BaseContainer implements IContainer {
 				}
 			}
 
-			this.LOGGER.debug(`Instantiating ${constructor.name} with ${String(resolvedArguments.length)} resolved arguments from injectionMap.`, { source: "Container" });
+			this.LOGGER.debug(`Instantiating ${classConstructor.name} with ${String(resolvedArguments.length)} resolved arguments from injectionMap.`, { source: "Container" });
 
 			try {
-				const instance: T = new constructor(...resolvedArguments);
-				this.LOGGER.info(`Successfully resolved and instantiated ${constructor.name}.`, { source: "Container" });
+				const instance: T = new classConstructor(...resolvedArguments);
+				this.LOGGER.info(`Successfully resolved and instantiated ${classConstructor.name}.`, { source: "Container" });
 
 				return instance;
 			} catch (error) {
-				this.LOGGER.error(`Error during instantiation of ${constructor.name}: ${error instanceof Error ? error.message : String(error)}`, { context: { error }, source: "Container" });
+				this.LOGGER.error(`Error during instantiation of ${classConstructor.name}: ${error instanceof Error ? error.message : String(error)}`, { context: { error }, source: "Container" });
 
-				throw new BaseError(`Failed to instantiate class ${constructor.name}. Check constructor implementation.`, {
+				throw new BaseError(`Failed to instantiate class ${classConstructor.name}. Check constructor implementation.`, {
 					cause: error instanceof Error ? error : undefined,
 					code: "CONTAINER_INSTANTIATION_FAILED",
-					context: { className: constructor.name },
+					context: { className: classConstructor.name },
 					source: "Container",
 				});
 			}
 		}
 
 		if (!Array.isArray(constructorParameters)) {
-			throw new BaseError(`Failed to retrieve constructor parameter types for ${constructor.name}. Ensure 'emitDecoratorMetadata' is true in tsconfig.`, {
+			throw new BaseError(`Failed to retrieve constructor parameter types for ${classConstructor.name}. Ensure 'emitDecoratorMetadata' is true in tsconfig.`, {
 				code: "CONTAINER_METADATA_ERROR",
-				context: { className: constructor.name },
+				context: { className: classConstructor.name },
 				source: "Container",
 			});
 		}
@@ -387,18 +392,18 @@ export class BaseContainer implements IContainer {
 				const injectionToken: symbol | undefined = validInjectionMap.get(index);
 
 				if (injectionToken) {
-					this.LOGGER.debug(`Resolving dependency for param ${String(index)} of ${constructor.name} using token: ${String(injectionToken.description)}`, { source: "Container" });
+					this.LOGGER.debug(`Resolving dependency for param ${String(index)} of ${classConstructor.name} using token: ${String(injectionToken.description)}`, { source: "Container" });
 
 					try {
 						resolvedArguments[index] = targetContainer.get.call(targetContainer, injectionToken);
 					} catch (error) {
-						this.LOGGER.error(`Failed to get dependency for token ${String(injectionToken.description)} from container ${String(containerName.description)} while resolving ${constructor.name}`, { context: { error }, source: "Container" });
+						this.LOGGER.error(`Failed to get dependency for token ${String(injectionToken.description)} from container ${String(containerName.description)} while resolving ${classConstructor.name}`, { context: { error }, source: "Container" });
 
-						throw new BaseError(`Failed to resolve dependency [${String(injectionToken.description)}] for parameter ${String(index)} of class ${constructor.name}.`, {
+						throw new BaseError(`Failed to resolve dependency [${String(injectionToken.description)}] for parameter ${String(index)} of class ${classConstructor.name}.`, {
 							cause: error instanceof Error ? error : undefined,
 							code: "CONTAINER_DEPENDENCY_RESOLUTION_FAILED",
 							context: {
-								className: constructor.name,
+								className: classConstructor.name,
 								dependencyToken: String(injectionToken.description),
 								parameterIndex: index,
 								targetContainer: String(containerName.description),
@@ -407,36 +412,36 @@ export class BaseContainer implements IContainer {
 						});
 					}
 				} else {
-					throw new BaseError(`Constructor parameter at index ${String(index)} for class ${constructor.name} is not marked with @Inject. All constructor parameters must be decorated for automatic resolution.`, {
+					throw new BaseError(`Constructor parameter at index ${String(index)} for class ${classConstructor.name} is not marked with @Inject. All constructor parameters must be decorated for automatic resolution.`, {
 						code: "CONTAINER_MISSING_INJECT_DECORATOR",
-						context: { className: constructor.name, parameterIndex: index },
+						context: { className: classConstructor.name, parameterIndex: index },
 						source: "Container",
 					});
 				}
 			}
 		} else if (constructorParameters.length > 0) {
-			throw new BaseError(`Class ${constructor.name} has constructor parameters but no valid @Inject metadata found (injectionMap type: ${typeof injectionMap}). Ensure parameters are decorated.`, {
+			throw new BaseError(`Class ${classConstructor.name} has constructor parameters but no valid @Inject metadata found (injectionMap type: ${typeof injectionMap}). Ensure parameters are decorated.`, {
 				code: "CONTAINER_MISSING_INJECTION_METADATA",
-				context: { className: constructor.name },
+				context: { className: classConstructor.name },
 				source: "Container",
 			});
 		}
 
-		this.LOGGER.debug(`Instantiating ${constructor.name} with ${String(resolvedArguments.length)} resolved arguments.`, { source: "Container" });
+		this.LOGGER.debug(`Instantiating ${classConstructor.name} with ${String(resolvedArguments.length)} resolved arguments.`, { source: "Container" });
 
 		try {
-			const instance: T = new constructor(...resolvedArguments);
+			const instance: T = new classConstructor(...resolvedArguments);
 
-			this.LOGGER.info(`Successfully resolved and instantiated ${constructor.name}.`, { source: "Container" });
+			this.LOGGER.info(`Successfully resolved and instantiated ${classConstructor.name}.`, { source: "Container" });
 
 			return instance;
 		} catch (error) {
-			this.LOGGER.error(`Error during instantiation of ${constructor.name}: ${error instanceof Error ? error.message : String(error)}`, { context: { error }, source: "Container" });
+			this.LOGGER.error(`Error during instantiation of ${classConstructor.name}: ${error instanceof Error ? error.message : String(error)}`, { context: { error }, source: "Container" });
 
-			throw new BaseError(`Failed to instantiate class ${constructor.name}. Check constructor implementation.`, {
+			throw new BaseError(`Failed to instantiate class ${classConstructor.name}. Check constructor implementation.`, {
 				cause: error instanceof Error ? error : undefined,
 				code: "CONTAINER_INSTANTIATION_FAILED",
-				context: { className: constructor.name },
+				context: { className: classConstructor.name },
 				source: "Container",
 			});
 		}
@@ -445,6 +450,7 @@ export class BaseContainer implements IContainer {
 	/**
 	 * Remove a dependency from the container.
 	 * @param {symbol} token Token that identifies the dependency.
+	 * @throws {BaseError} If the token is invalid.
 	 */
 	public unregister(token: symbol): void {
 		if (!token) {
@@ -469,6 +475,7 @@ export class BaseContainer implements IContainer {
 	/**
 	 * Remove multiple dependencies from the container.
 	 * @param {Array<symbol>} tokens Tokens that identify the dependencies.
+	 * @throws {BaseError} If the tokens are invalid.
 	 */
 	public unregisterMany(tokens: Array<symbol>): void {
 		if (!tokens) {

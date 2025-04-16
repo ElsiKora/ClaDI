@@ -13,22 +13,21 @@ export interface IRegistry<T> {
 
 	/**
 	 * Get a single item from the registry by name.
-	 * @param name The name of the item to get.
-	 * @returns The item or undefined if it doesn't exist.
+	 * @param {symbol} name The name of the item to get.
+	 * @returns {T | TConstructor<T> | undefined} The item or undefined if it doesn't exist.
 	 */
 	get(name: symbol): T | TConstructor<T> | undefined;
 
 	/**
 	 * Get all items from the registry.
-	 * @returns An array of all items.
+	 * @returns {Array<T | TConstructor<T>>} An array of all items.
 	 */
-
 	getAll(): Array<T | TConstructor<T>>;
 
 	/**
 	 * Get multiple items from the registry by their names.
-	 * @param names The names of the items to get.
-	 * @returns An array of items.
+	 * @param {Array<symbol>} names The names of the items to get.
+	 * @returns {Array<T | TConstructor<T>>} An array of items.
 	 */
 	getMany(names: Array<symbol>): Array<T | TConstructor<T>>;
 
@@ -41,26 +40,26 @@ export interface IRegistry<T> {
 
 	/**
 	 * Register a single item in the registry.
-	 * @param name The name of the item to register.
-	 * @param item The item to register.
+	 * @param {symbol} name The name of the item to register.
+	 * @param {T | TConstructor<T>} item The item to register.
 	 */
 	register(name: symbol, item: T | TConstructor<T>): void;
 
 	/**
 	 * Register multiple items in the registry.
-	 * @param items The items to register.
+	 * @param {Record<symbol, T | TConstructor<T>>} items The items to register.
 	 */
 	registerMany(items: Record<symbol, T | TConstructor<T>>): void;
 
 	/**
 	 * Unregister a single item from the registry by name.
-	 * @param name The name of the item to unregister.
+	 * @param {symbol} name The name of the item to unregister.
 	 */
 	unregister(name: symbol): void;
 
 	/**
 	 * Unregister multiple items from the registry by their names.
-	 * @param names The names of the items to unregister.
+	 * @param {Array<symbol>} names The names of the items to unregister.
 	 */
 	unregisterMany(names: Array<symbol>): void;
 }

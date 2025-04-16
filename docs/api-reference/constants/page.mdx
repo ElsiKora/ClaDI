@@ -1,0 +1,36 @@
+import { Callout } from 'nextra/components'
+
+# Constants
+
+ClaDI exports a few constants, primarily used internally for decorator metadata keys and default configurations.
+
+## `DECORATOR_TOKENS_CONSTANT`
+
+An object containing unique `Symbol` keys used by the `@Injectable` and `@Inject` decorators to store metadata via `reflect-metadata`.
+
+```typescript
+import { DECORATOR_TOKENS_CONSTANT } from '@elsikora/cladi';
+
+console.log(DECORATOR_TOKENS_CONSTANT.INJECTABLE_CONTAINER_KEY); // Symbol(cladi:injectable_container)
+console.log(DECORATOR_TOKENS_CONSTANT.INJECT_TOKEN_KEY);          // Symbol(cladi:inject_token)
+```
+
+-   `INJECTABLE_CONTAINER_KEY`: Metadata key storing the `Symbol` name of the container associated with an `@Injectable` class.
+-   `INJECT_TOKEN_KEY`: Metadata key storing a `Map<number, symbol>` on a constructor, where the map key is the parameter index and the value is the injection `Symbol` token provided via `@Inject`.
+
+<Callout type="info">
+  You typically don't need to interact with these constants directly unless you are building advanced tooling or debugging decorator behavior.
+</Callout>
+
+## `CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT`
+
+An object representing the default options used by `ConsoleLoggerService` when no options are provided to `createLogger` or its constructor.
+
+```typescript
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT, ELoggerLogLevel } from '@elsikora/cladi';
+
+console.log(CONSOLE_LOGGER_DEFAULT_OPTIONS_CONSTANT);
+// Output: { level: ELoggerLogLevel.INFO } (or { level: 'info' })
+```
+
+-   Provides the default logging `level`, which is `ELoggerLogLevel.INFO`. 

@@ -1,0 +1,59 @@
+# Other Utilities
+
+ClaDI includes a couple of general-purpose utility functions exported from the root package.
+
+## `safeDeepClone<T>(source: T): T`
+
+Performs a deep clone of an object, attempting to handle various types safely, including objects with functions, Dates, and Arrays.
+
+-   Uses `structuredClone` internally for plain objects without functions for optimal performance.
+-   Falls back to manual recursive cloning for objects with functions, class instances, or if `structuredClone` fails.
+
+```typescript filename="src/clone-example.ts" copy
+import { safeDeepClone } from '@elsikora/cladi';
+
+class MyClass {
+  constructor(public value: number, public method: () => string) {}
+}
+
+const original = new MyClass(10, () => 'hello');
+const cloned = safeDeepClone(original);
+
+console.log(cloned instanceof MyClass); // true
+console.log(original === cloned); // false
+console.log(original.value === cloned.value); // true
+console.log(original.method === cloned.method); // true (functions are copied by reference)
+
+cloned.value = 20;
+console.log(original.value); // 10 (original is unchanged)
+
+const plainObject = { a: 1, b: { c: new Date() } };
+const clonedPlain = safeDeepClone(plainObject);
+
+console.log(plainObject === clonedPlain); // false
+console.log(plainObject.b === clonedPlain.b); // false
+console.log(plainObject.b.c === clonedPlain.b.c); // false (Date is cloned)
+console.log(plainObject.b.c.getTime() === clonedPlain.b.c.getTime()); // true
+```
+
+**Use Case:** Useful when you need to create a completely independent copy of a potentially complex object before modification, often used in state management or configuration handling.
+
+## `hasFunctions(object: unknown): boolean`
+
+Recursively checks if an object or any of its nested properties (including elements in arrays) is a function.
+
+```typescript filename="src/check-functions.ts" copy
+import { hasFunctions } from '@elsikora/cladi';
+
+console.log(hasFunctions({ a: 1, b: 'text' })); // false
+console.log(hasFunctions({ a: 1, func: () => {} })); // true
+console.log(hasFunctions([1, { nestedFunc: () => {} }])); // true
+console.log(hasFunctions(new Date())); // false (by default, checks prototype chain)
+
+class MyClassWithMethod {
+  method() {}
+}
+console.log(hasFunctions(new MyClassWithMethod())); // true
+```
+
+**Use Case:** Primarily used internally by `safeDeepClone` to determine if the faster `structuredClone` can be used, but potentially useful in other scenarios where function presence affects serialization or cloning logic. 

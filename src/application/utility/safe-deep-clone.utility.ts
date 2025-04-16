@@ -6,6 +6,7 @@ import { hasFunctions } from "./has-functions.utility";
  * @param {T} source Object to clone
  * @returns {T} A deep clone of the object
  * @template T Type of object to clone
+ * @see {@link https://elsikora.com/docs/cladi/utility/safe-deep-clone}
  */
 export function safeDeepClone<T>(source: T): T {
 	if (source == null || typeof source !== "object") {

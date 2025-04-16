@@ -1,0 +1,203 @@
+import { Callout } from 'nextra/components'
+
+# Testing with ClaDI
+
+One of the primary benefits of using Dependency Injection (DI) and a container like ClaDI is improved testability. By decoupling components from their concrete dependencies, you can easily substitute mocks or stubs during testing.
+
+This guide demonstrates how to test a service that relies on dependencies retrieved from a ClaDI container.
+
+## Scenario: Testing a `UserService`
+
+Let's assume we have a `UserService` that depends on a `UserRepository` and an `IEmailService`. We'll use decorators for simplicity.
+
+**1. Define Interfaces and Tokens:**
+
+```typescript filename="src/interfaces.ts" copy
+export interface IUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface IUserRepository {
+  findById(id: string): Promise<IUser | null>;
+  save(user: IUser): Promise<void>;
+}
+
+export interface IEmailService {
+  sendWelcomeEmail(email: string, name: string): Promise<void>;
+}
+
+export const Tokens = {
+  UserRepository: Symbol.for('UserRepository'),
+  EmailService: Symbol.for('EmailService'),
+  UserService: Symbol.for('UserService'),
+};
+```
+
+**2. Implement the `UserService`:**
+
+```typescript filename="src/user.service.ts" copy
+import { Injectable, Inject } from '@elsikora/cladi';
+import { Tokens, type IUserRepository, type IEmailService, type IUser } from './interfaces';
+
+const AppContainerName = Symbol.for('AppContainer');
+
+@Injectable(AppContainerName)
+export class UserService {
+  constructor(
+    @Inject(Tokens.UserRepository) private readonly userRepo: IUserRepository,
+    @Inject(Tokens.EmailService) private readonly emailService: IEmailService
+  ) {}
+
+  async registerUser(name: string, email: string): Promise<IUser> {
+    // Basic validation (example)
+    if (!name || !email) {
+      throw new Error('Name and email are required.');
+    }
+
+    const newUser: IUser = {
+      id: crypto.randomUUID(), // Use built-in crypto for example
+      name,
+      email,
+    };
+
+    await this.userRepo.save(newUser);
+    await this.emailService.sendWelcomeEmail(email, name);
+
+    return newUser;
+  }
+
+  async getUser(id: string): Promise<IUser | null> {
+    return this.userRepo.findById(id);
+  }
+}
+```
+
+## Testing Strategy: Mocking Dependencies in the Container
+
+To unit test `UserService`, we don't want to interact with a real database or send actual emails. Instead, we'll:
+
+1.  Create a dedicated **test container** for each test or test suite.
+2.  Register **mock implementations** of `IUserRepository` and `IEmailService` in the test container using the *same tokens* (`Tokens.UserRepository`, `Tokens.EmailService`).
+3.  Register the actual `UserService` constructor (`UserService`) in the test container.
+4.  Retrieve the `UserService` instance from the test container using `container.get(Tokens.UserService)`. This instance will automatically receive the *mock* dependencies we registered.
+5.  Run tests against the `UserService` instance, asserting its behavior and verifying interactions with the mocks.
+6.  **Crucially:** Clear the test container after each test (`container.clear()`) to ensure test isolation.
+
+## Example Test (using Vitest syntax)
+
+```typescript filename="src/user.service.test.ts" copy
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createContainer, type IContainer } from '@elsikora/cladi';
+import 'reflect-metadata'; // Needed for decorators
+
+import {
+  Tokens,
+  type IUserRepository,
+  type IEmailService,
+  type IUser,
+} from './interfaces';
+import { UserService } from './user.service';
+
+// --- Mock Implementations ---
+const mockUserRepository: IUserRepository = {
+  findById: vi.fn(),
+  save: vi.fn(),
+};
+
+const mockEmailService: IEmailService = {
+  sendWelcomeEmail: vi.fn(),
+};
+// --- End Mock Implementations ---
+
+describe('UserService', () => {
+  let container: IContainer;
+  let userService: UserService;
+
+  beforeEach(() => {
+    // 1. Create a fresh test container for each test
+    container = createContainer({ name: Symbol.for('TestContainer') });
+
+    // 2. Register MOCKS for dependencies using the real tokens
+    container.register<IUserRepository>(
+      Tokens.UserRepository,
+      mockUserRepository
+    );
+    container.register<IEmailService>(Tokens.EmailService, mockEmailService);
+
+    // 3. Register the REAL UserService constructor
+    container.register<UserService>(Tokens.UserService, UserService);
+
+    // 4. Get the UserService instance - it will be injected with mocks
+    userService = container.get<UserService>(Tokens.UserService);
+
+    // Reset mock call history before each test
+    vi.clearAllMocks();
+  });
+
+  // 6. Clear container after each test (optional but good practice)
+  // afterEach(() => {
+  //   container.clear();
+  // });
+
+  it('should register a new user successfully', async () => {
+    const name = 'Test User';
+    const email = 'test@example.com';
+
+    // Configure mock behavior (optional)
+    mockUserRepository.save.mockResolvedValue(undefined);
+    mockEmailService.sendWelcomeEmail.mockResolvedValue(undefined);
+
+    // Call the method under test
+    const registeredUser = await userService.registerUser(name, email);
+
+    // Assert results
+    expect(registeredUser).toBeDefined();
+    expect(registeredUser.name).toBe(name);
+    expect(registeredUser.email).toBe(email);
+    expect(registeredUser.id).toEqual(expect.any(String));
+
+    // Assert mock interactions
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledWith(registeredUser);
+
+    expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledTimes(1);
+    expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(email, name);
+  });
+
+  it('should throw error if name is missing during registration', async () => {
+    await expect(userService.registerUser('', 'test@example.com')).rejects.toThrow(
+      'Name and email are required.'
+    );
+
+    // Verify mocks were NOT called
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
+  });
+
+  it('should retrieve a user by ID', async () => {
+    const userId = 'user-123';
+    const mockUser: IUser = { id: userId, name: 'Found User', email: 'found@example.com' };
+
+    // Configure mock behavior
+    mockUserRepository.findById.mockResolvedValue(mockUser);
+
+    // Call method
+    const foundUser = await userService.getUser(userId);
+
+    // Assert results
+    expect(foundUser).toEqual(mockUser);
+
+    // Assert mock interactions
+    expect(mockUserRepository.findById).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
+  });
+});
+```
+
+<Callout>
+  This example uses `vitest` for the test runner and mocking (`vi.fn()`, `vi.clearAllMocks()`). You can adapt the mocking strategy to your preferred testing framework (Jest, Mocha/Sinon, etc.). The core principle of registering mocks in the container remains the same.
+</Callout>
+
+By using the container to manage dependencies even in tests, you ensure that your component under test (`UserService`) is instantiated correctly with its required (mocked) dependencies, mirroring how it would operate in the real application but with controlled, predictable collaborators. 

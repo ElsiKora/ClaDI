@@ -1,0 +1,143 @@
+import { Callout } from 'nextra/components'
+
+# Decorators (`@Injectable` & `@Inject`)
+
+ClaDI provides two decorators, `@Injectable` and `@Inject`, to streamline the process of registering classes and injecting their dependencies using the Container. This approach is heavily inspired by frameworks like Angular and NestJS.
+
+<Callout type="info">
+  **Prerequisites:** Using decorators requires `reflect-metadata` to be installed and imported once in your application entry point, and `experimentalDecorators` and `emitDecoratorMetadata` to be enabled in your `tsconfig.json`. See the [Installation guide](../../getting-started/installation#requirements) for details.
+</Callout>
+
+## `@Injectable(containerName: symbol)`
+
+This **class decorator** marks a class as managed by the ClaDI dependency injection system.
+
+-   **Purpose:** It tells the container system that this class can have dependencies injected into its constructor.
+-   **Argument:** It takes one argument: the `Symbol` name of the container instance that should manage this class.
+
+When a class decorated with `@Injectable` is registered with a container (typically by providing the constructor function itself to `container.register`), the container knows it can instantiate this class later when requested via `get`.
+
+## `@Inject(token: symbol)`
+
+This **parameter decorator** is used within the `constructor` of an `@Injectable` class.
+
+-   **Purpose:** It marks a specific constructor parameter to be injected with a dependency from the container.
+-   **Argument:** It takes one argument: the `Symbol` token corresponding to the dependency that should be injected into that parameter.
+
+<Callout type="warning">
+  All constructor parameters of an `@Injectable` class that require automatic injection **must** be decorated with `@Inject`. The container uses this metadata (along with `design:paramtypes` emitted by TypeScript) to determine which dependencies to resolve and inject when instantiating the class.
+</Callout>
+
+## Example: Putting it Together
+
+Let's refactor the `DataService` from the [Basic Usage](../../getting-started/basic-usage) example to use decorators.
+
+```typescript filename="src/tokens.ts" copy
+// Define unique tokens for injection
+export const Tokens = {
+  Logger: Symbol.for('AppLogger'),
+  DataService: Symbol.for('DataService'),
+};
+```
+
+```typescript filename="src/logger.service.ts" copy
+import { Injectable } from '@elsikora/cladi';
+import { Tokens } from './tokens';
+
+// Define an interface for our logger
+export interface IAppLogger {
+  log(message: string): void;
+}
+
+// Mark the logger as Injectable, managed by the 'AppContainer'
+@Injectable(Symbol.for('AppContainer'))
+export class SimpleLogger implements IAppLogger {
+  log(message: string): void {
+    console.log(`[LOG]: ${message}`);
+  }
+}
+```
+
+```typescript filename="src/data.service.ts" copy
+import { Injectable, Inject } from '@elsikora/cladi';
+import { Tokens } from './tokens';
+import type { IAppLogger } from './logger.service';
+
+// Mark DataService as Injectable, managed by the 'AppContainer'
+@Injectable(Symbol.for('AppContainer'))
+export class DataService {
+  // Mark the constructor parameter to be injected with the Logger token
+  constructor(@Inject(Tokens.Logger) private readonly logger: IAppLogger) {}
+
+  fetchData(): string {
+    this.logger.log("Fetching data...");
+    return "Sample Data";
+  }
+}
+```
+
+```typescript filename="src/container-setup.ts" copy
+import 'reflect-metadata'; // Ensure this is imported once
+import { createContainer, createLogger } from '@elsikora/cladi';
+import { Tokens } from './tokens';
+import { SimpleLogger } from './logger.service';
+import { DataService } from './data.service'; // Import the class itself
+import type { IAppLogger } from './logger.service';
+
+const containerName = Symbol.for('AppContainer');
+const internalLogger = createLogger({ source: 'ClaDIContainer' });
+const container = createContainer({ name: containerName, logger: internalLogger });
+
+// Register the *constructors* of the injectable classes
+// Note: We register SimpleLogger constructor for the IAppLogger token
+container.register<IAppLogger>(Tokens.Logger, SimpleLogger);
+container.register<DataService>(Tokens.DataService, DataService); // Register DataService constructor
+
+internalLogger.info("Injectable dependencies registered.");
+
+export { container, Tokens };
+```
+
+```typescript filename="src/main.ts" copy
+import { container, Tokens } from './container-setup';
+import type { DataService } from './data.service';
+
+function main() {
+  // First time container.get(Tokens.DataService) is called:
+  // 1. Container sees DataService constructor is registered.
+  // 2. Container sees DataService is @Injectable(Symbol.for('AppContainer')).
+  // 3. Container checks constructor parameters using metadata.
+  // 4. Sees parameter 0 needs Tokens.Logger.
+  // 5. Calls container.get(Tokens.Logger).
+  // 6. Sees SimpleLogger constructor is registered for Tokens.Logger.
+  // 7. Sees SimpleLogger is @Injectable(Symbol.for('AppContainer')) and has no constructor args.
+  // 8. Instantiates SimpleLogger -> new SimpleLogger(). Caches it for Tokens.Logger.
+  // 9. Instantiates DataService with the logger instance -> new DataService(loggerInstance). Caches it for Tokens.DataService.
+  // 10. Returns the DataService instance.
+  const dataService = container.get<DataService>(Tokens.DataService);
+
+  const data = dataService.fetchData();
+  console.log(`Retrieved data: ${data}`);
+
+  // Subsequent calls return the cached instances
+  const anotherDataService = container.get<DataService>(Tokens.DataService);
+  console.log(dataService === anotherDataService); // true
+}
+
+main();
+```
+
+## How it Works: `container.resolve()`
+
+When you call `container.get(SomeToken)` and the registered item is an `@Injectable` constructor, the container internally uses its `resolve(Constructor)` method. This method:
+
+1.  Reads the `@Injectable(containerName)` metadata to confirm the class is managed by the correct container.
+2.  Reads the `@Inject(token)` metadata for each constructor parameter.
+3.  Reads the `design:paramtypes` metadata (emitted by TypeScript) to understand the expected types (though ClaDI primarily relies on the `@Inject` tokens).
+4.  Recursively calls `container.get(dependencyToken)` for each parameter to get the required dependency instances.
+5.  Instantiates the class using `new Constructor(...resolvedDependencies)`.
+6.  Caches the resulting instance against the original token (`SomeToken`) for subsequent `get` calls.
+
+This automates the dependency graph resolution and instantiation process.
+
+**Next:** [Registry Pattern](../registry-pattern) 

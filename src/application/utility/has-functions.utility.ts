@@ -2,6 +2,7 @@
  * Check if an object contains any functions in its property tree
  * @param {unknown} object Object to check
  * @returns {boolean} True if the object contains functions, false otherwise
+ * @see {@link https://elsikora.com/docs/cladi/utility/has-functions}
  */
 export function hasFunctions(object: unknown): boolean {
 	if (object == null || typeof object !== "object") {

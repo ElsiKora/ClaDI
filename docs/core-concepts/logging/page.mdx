@@ -1,0 +1,102 @@
+import { Callout } from 'nextra/components'
+import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+
+# Logging
+
+Effective logging is crucial for understanding application behavior and diagnosing issues. ClaDI provides a simple yet flexible logging abstraction (`ILogger`) and a default console-based implementation (`ConsoleLoggerService`).
+
+## `ILogger` Interface
+
+The core abstraction defines the standard logging methods:
+
+<TSDoc code={`import type { ILogger } from '@elsikora/cladi'; export default ILogger`} />
+
+Any logging provider you use with ClaDI (either the built-in one or a custom one) should implement this interface. It includes standard levels:
+
+-   `error(message, options?)`
+-   `warn(message, options?)`
+-   `info(message, options?)`
+-   `debug(message, options?)`
+-   `trace(message, options?)`
+
+Each method accepts an optional `options` object:
+
+<TSDoc code={`import type { ILoggerMethodOptions } from '@elsikora/cladi'; export default ILoggerMethodOptions`} />
+
+-   `context`: An optional `Record<string, unknown>` to add structured data to the log entry.
+-   `source`: An optional string to identify the origin of the log message (e.g., 'AuthService', 'DatabaseModule').
+
+## `ConsoleLoggerService`
+
+This is the default implementation provided by ClaDI. It outputs formatted log messages to the standard browser console or Node.js terminal.
+
+-   **Levels:** Respects log levels. If the logger is set to `INFO`, `debug` and `trace` messages will be ignored.
+-   **Formatting:** Includes timestamp, log level, source (if provided), message, and context (JSON stringified).
+-   **Source Handling:** If both the logger instance and the log method call provide a `source`, they are combined (e.g., `[InstanceSource -> MethodSource]`).
+
+## Creating a Logger (`createLogger`)
+
+The easiest way to get a logger instance is using the `createLogger` utility.
+
+```typescript filename="src/create-loggers.ts" copy
+import { createLogger, ELoggerLogLevel } from '@elsikora/cladi';
+
+// Default logger (level INFO, no source)
+const defaultLogger = createLogger();
+defaultLogger.info('This is an info message.');
+defaultLogger.debug('This debug message will NOT be shown.');
+
+// Logger with DEBUG level and a source
+const debugLogger = createLogger({
+  level: ELoggerLogLevel.DEBUG,
+  source: 'MyComponent',
+});
+debugLogger.info('Component initialized.');
+debugLogger.debug('Component state updated.', { context: { userId: 123 } });
+
+// Logger specifically for TRACE level
+const traceLogger = createLogger({ level: ELoggerLogLevel.TRACE, source: 'LowLevelUtil' });
+traceLogger.trace('Function entered', { context: { args: [1, 'a'] } });
+```
+
+### Logger Options (`IConsoleLoggerOptions`)
+
+`createLogger` accepts options specific to the `ConsoleLoggerService`:
+
+<TSDoc code={`import type { IConsoleLoggerOptions } from '@elsikora/cladi'; export default IConsoleLoggerOptions`} />
+
+-   `level`: (Optional) The minimum log level to output. Defaults to `ELoggerLogLevel.INFO`.
+    <TSDoc code={`import { ELoggerLogLevel } from '@elsikora/cladi'; export default ELoggerLogLevel`} />
+-   `source`: (Optional) A default source string to include in all logs from this logger instance.
+
+## Using Loggers with Container/Registry/Factory
+
+All core ClaDI components (`BaseContainer`, `BaseRegistry`, `BaseFactory`) accept an optional `logger` in their options. Providing one enables detailed internal logging of their operations, which is invaluable for debugging dependency resolution, registry lookups, or factory creation issues.
+
+```typescript filename="src/container-with-logging.ts" copy
+import { createContainer, createLogger } from '@elsikora/cladi';
+
+const containerLogger = createLogger({ source: 'AppContainer', level: 'debug' });
+
+const container = createContainer({
+  name: Symbol.for('AppContainer'),
+  logger: containerLogger, // Pass the logger here
+});
+
+// Now, container operations will be logged by containerLogger
+const MyToken = Symbol.for('MyService');
+if (!container.has(MyToken)) {
+  containerLogger.warn(`Token ${MyToken.toString()} not found, registering...`);
+  // Registering will also log messages
+  container.register(MyToken, { someValue: 42 });
+}
+
+// Getting the dependency will log resolution steps
+const service = container.get(MyToken);
+```
+
+## Custom Loggers
+
+While `ConsoleLoggerService` is provided, you can implement your own logger (e.g., one that sends logs to a file, a remote service like Datadog, or uses a library like Winston or Pino) by simply creating a class that implements the `ILogger` interface.
+
+**Next:** [Error Handling](./error-handling) 
