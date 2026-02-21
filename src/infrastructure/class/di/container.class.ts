@@ -1,5 +1,5 @@
 import type { EDependencyLifecycle } from "@domain/enum";
-import type { IContainerSnapshot, ILogger, IResolutionExplanation, IResolveInterceptor } from "@domain/interface";
+import type { IContainerSnapshot, IDIScopeCreateOptions, ILogger, IResolutionExplanation, IResolveInterceptor } from "@domain/interface";
 import type { IDIContainer, Provider, Token } from "@domain/type";
 import type { IInternalContainerOptions } from "@infrastructure/class/di/interface/internal-container-options.interface";
 import type { IProviderLookup, IProviderRegistration } from "@infrastructure/class/di/interface/provider";
@@ -280,13 +280,16 @@ export class DIContainer implements IDIContainer {
 		}
 	}
 
-	public createScope(name?: string): DIContainer {
+	public createScope(name?: string, options?: IDIScopeCreateOptions): DIContainer {
 		this.ensureNotDisposing();
 		this.ensureActive();
 
 		return new DIContainer({
+			captiveDependencyPolicy: options?.captiveDependencyPolicy,
+			duplicateProviderPolicy: options?.duplicateProviderPolicy,
 			logger: this.LOGGER,
 			parent: this,
+			resolveInterceptors: options?.resolveInterceptors,
 			root: this.ROOT,
 			scopeName: name,
 		});
@@ -373,6 +376,10 @@ export class DIContainer implements IDIContainer {
 
 	public resolveOptional<T>(token: Token<T>): T | undefined {
 		return this.RESOLUTION_ENGINE.resolveOptional(token, (tokenSymbol: symbol) => this.DEPENDENCY_GRAPH_COORDINATOR.findProvider(this, tokenSymbol).registration !== undefined);
+	}
+
+	public async resolveOptionalAsync<T>(token: Token<T>): Promise<T | undefined> {
+		return await this.RESOLUTION_ENGINE.resolveOptionalAsync(token, (tokenSymbol: symbol) => this.DEPENDENCY_GRAPH_COORDINATOR.findProvider(this, tokenSymbol).registration !== undefined);
 	}
 
 	public snapshot(): IContainerSnapshot {

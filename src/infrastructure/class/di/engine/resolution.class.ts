@@ -165,4 +165,33 @@ export class ResolutionEngine {
 			throw error;
 		}
 	}
+
+	public async resolveOptionalAsync<T>(dependencyKey: Token<T>, hasRegistration: (dependencyKeySymbol: symbol) => boolean): Promise<T | undefined> {
+		this.ENSURE_NOT_DISPOSING();
+		this.ENSURE_ACTIVE();
+		const dependencyKeySymbol: symbol = this.ASSERT_KEY(dependencyKey);
+		const scopeId: string = this.GET_SCOPE_ID();
+		this.NOTIFY_ON_START(dependencyKeySymbol, true, false, true, scopeId);
+
+		if (!hasRegistration(dependencyKeySymbol)) {
+			this.NOTIFY_ON_SUCCESS(dependencyKeySymbol, true, false, true, scopeId);
+
+			return undefined;
+		}
+
+		this.ON_ASYNC_RESOLUTION_START();
+
+		try {
+			const resolvedValue: T = (await this.RESOLVE_ASYNC_INTERNAL(dependencyKeySymbol, [], new Set<symbol>())) as T;
+			this.NOTIFY_ON_SUCCESS(dependencyKeySymbol, true, false, true, scopeId, resolvedValue);
+
+			return resolvedValue;
+		} catch (error) {
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, true, false, true, scopeId, toError(error));
+
+			throw error;
+		} finally {
+			this.ON_ASYNC_RESOLUTION_END();
+		}
+	}
 }

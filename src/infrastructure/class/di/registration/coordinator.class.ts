@@ -5,10 +5,6 @@ import type { IProviderRegistration } from "@infrastructure/class/di/interface/p
 import { EDependencyLifecycle, EDiContainerDuplicateProviderPolicy, EProviderType } from "@domain/enum";
 import { BaseError } from "@infrastructure/class/base/error.class";
 
-const ASYNC_FUNCTION_PROTOTYPE: object = Object.getPrototypeOf(async function asyncFactoryPrototypeMarker(): Promise<void> {
-	await Promise.resolve();
-}) as object;
-
 export class RegistrationCoordinator {
 	private readonly ASSERT_KEY: <T>(dependencyKey: Token<T>) => symbol;
 
@@ -126,8 +122,16 @@ export class RegistrationCoordinator {
 			});
 		}
 
-		for (const dependencyKey of dependencies) {
-			this.ASSERT_KEY(dependencyKey as Token<unknown>);
+		for (let dependencyIndex: number = 0; dependencyIndex < dependencies.length; dependencyIndex += 1) {
+			if (!Object.prototype.hasOwnProperty.call(dependencies, dependencyIndex)) {
+				throw new BaseError("Provider deps has sparse dependency indexes", {
+					code: "PROVIDER_DEPS_SPARSE",
+					context: { index: dependencyIndex, token: this.DESCRIBE_KEY(this.ASSERT_KEY(providerKey)) },
+					source: "DIContainer",
+				});
+			}
+
+			this.ASSERT_KEY(dependencies[dependencyIndex] as Token<unknown>);
 		}
 	}
 
@@ -197,7 +201,13 @@ export class RegistrationCoordinator {
 	}
 
 	private isAsyncFactoryFunction(factoryFunction: (...arguments_: Array<never>) => unknown): boolean {
-		return Object.getPrototypeOf(factoryFunction) === ASYNC_FUNCTION_PROTOTYPE;
+		const functionConstructor: unknown = (factoryFunction as { constructor?: unknown }).constructor;
+
+		if (typeof functionConstructor === "function" && (functionConstructor as { name?: unknown }).name === "AsyncFunction") {
+			return true;
+		}
+
+		return Object.prototype.toString.call(factoryFunction) === "[object AsyncFunction]";
 	}
 
 	private isConstructable(candidate: unknown): boolean {
@@ -262,6 +272,7 @@ export class RegistrationCoordinator {
 			}
 
 			this.ensureDependenciesAreValid(classProvider.deps, provider.provide);
+			this.warnOnArityMismatch(classProvider.deps, classProvider.useClass.length, provider.provide);
 
 			return;
 		}
@@ -284,6 +295,24 @@ export class RegistrationCoordinator {
 			}
 
 			this.ensureDependenciesAreValid(factoryProvider.deps, provider.provide);
+			this.warnOnArityMismatch(factoryProvider.deps, factoryProvider.useFactory.length, provider.provide);
 		}
+	}
+
+	private warnOnArityMismatch(dependencies: ReadonlyArray<Token<unknown>> | undefined, expectedArity: number, providerKey: Token<unknown>): void {
+		const depsLength: number = dependencies?.length ?? 0;
+
+		if (depsLength === expectedArity || expectedArity === 0) {
+			return;
+		}
+
+		this.LOGGER.warn(`Provider deps count (${String(depsLength)}) does not match function parameter count (${String(expectedArity)})`, {
+			context: {
+				depsCount: depsLength,
+				expectedArity,
+				token: this.DESCRIBE_KEY(this.ASSERT_KEY(providerKey)),
+			},
+			source: "DIContainer",
+		});
 	}
 }

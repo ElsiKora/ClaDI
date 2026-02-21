@@ -8,5 +8,6 @@ export type { IProviderBase } from "./provider-base.interface";
 export type { IResolutionExplanation } from "./resolution-explanation.interface";
 export type { IResolveInterceptor } from "./resolve-interceptor.interface";
 export type { IDiResolver as IDIResolver } from "./resolver.interface";
+export type { IDiScopeCreateOptions as IDIScopeCreateOptions } from "./scope-create-options.interface";
 export type { IDiScope as IDIScope } from "./scope.interface";
 export type { IValueProvider } from "./value-provider.interface";

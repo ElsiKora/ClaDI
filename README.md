@@ -260,7 +260,7 @@ ClaDI/
 
 ## 📋 Prerequisites
 
-- Node.js >= 18.0.0
+- Node.js >= 20.0.0
 - npm >= 9.0.0
 - TypeScript >= 5.0.0 (for development)
 

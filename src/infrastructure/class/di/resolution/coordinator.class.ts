@@ -7,6 +7,8 @@ import { EDependencyLifecycle, EProviderType } from "@domain/enum";
 import { BaseError } from "@infrastructure/class/base/error.class";
 import { toError } from "@infrastructure/utility/to-error.utility";
 
+const MAX_STALE_REGISTRATION_RETRIES: number = 10;
+
 export class ResolutionCoordinator {
 	private readonly ASSERT_KEY: <T>(dependencyKey: Token<T>) => symbol;
 
@@ -309,7 +311,7 @@ export class ResolutionCoordinator {
 		const dependencyInstances: Array<unknown> = dependencies.map((dependencyToken: Token<unknown>) => this.resolveSyncInternal(this.ASSERT_KEY(dependencyToken), dependencyResolutionScope, path, visitedTokens));
 		const result: unknown = factoryProvider.useFactory(...(dependencyInstances as Array<never>));
 
-		if (result instanceof Promise) {
+		if (this.isPromiseLike(result)) {
 			throw this.createAsyncProviderError(this.ASSERT_KEY(factoryProvider.provide));
 		}
 
@@ -334,6 +336,20 @@ export class ResolutionCoordinator {
 
 	private invokeOnInitSync(registration: IProviderRegistration<unknown>, dependencyKeySymbol: symbol, instance: unknown): void {
 		this.runLifecycleHookSync(registration.provider, "onInit", instance, dependencyKeySymbol);
+	}
+
+	private isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+		if (value === null || value === undefined) {
+			return false;
+		}
+
+		const valueType: string = typeof value;
+
+		if (valueType !== "function" && valueType !== "object") {
+			return false;
+		}
+
+		return typeof (value as { then?: unknown }).then === "function";
 	}
 
 	private async resolveRegistrationAsync(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer, dependencyKeySymbol: symbol, path: Array<symbol>, visitedTokens: ReadonlySet<symbol>): Promise<unknown> {
@@ -413,7 +429,7 @@ export class ResolutionCoordinator {
 		if (cache?.has(cacheKey)) {
 			const cachedValue: unknown = cache.get(cacheKey);
 
-			if (cachedValue instanceof Promise) {
+			if (this.isPromiseLike(cachedValue)) {
 				throw this.createAsyncProviderError(dependencyKeySymbol);
 			}
 
@@ -457,7 +473,7 @@ export class ResolutionCoordinator {
 		return this.invokeAfterResolveSync(registration, dependencyKeySymbol, createdValue);
 	}
 
-	private async resolveSingleRegistrationAsync(dependencyKeySymbol: symbol, lookup: IProviderLookup<DIContainer>, path: Array<symbol>, requestScope: DIContainer, visitedTokens: ReadonlySet<symbol>): Promise<unknown> {
+	private async resolveSingleRegistrationAsync(dependencyKeySymbol: symbol, lookup: IProviderLookup<DIContainer>, path: Array<symbol>, requestScope: DIContainer, visitedTokens: ReadonlySet<symbol>, staleRetryCount: number = 0): Promise<unknown> {
 		const registration: IProviderRegistration<unknown> = this.ASSERT_SINGLE_BINDING_LOOKUP(dependencyKeySymbol, lookup);
 		const nextVisitedTokens: Set<symbol> = new Set<symbol>(visitedTokens);
 		nextVisitedTokens.add(dependencyKeySymbol);
@@ -490,7 +506,13 @@ export class ResolutionCoordinator {
 
 					await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
 
-					return await this.resolveAsyncInternal(dependencyKeySymbol, requestScope, path, visitedTokens);
+					if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
+						throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+					}
+
+					const retryLookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+					return await this.resolveSingleRegistrationAsync(dependencyKeySymbol, retryLookup, path, requestScope, visitedTokens, staleRetryCount + 1);
 				}
 
 				try {
@@ -530,7 +552,7 @@ export class ResolutionCoordinator {
 		return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, createdValue);
 	}
 
-	private resolveSingleRegistrationSync(dependencyKeySymbol: symbol, lookup: IProviderLookup<DIContainer>, path: Array<symbol>, requestScope: DIContainer, visitedTokens: ReadonlySet<symbol>): unknown {
+	private resolveSingleRegistrationSync(dependencyKeySymbol: symbol, lookup: IProviderLookup<DIContainer>, path: Array<symbol>, requestScope: DIContainer, visitedTokens: ReadonlySet<symbol>, staleRetryCount: number = 0): unknown {
 		const registration: IProviderRegistration<unknown> = this.ASSERT_SINGLE_BINDING_LOOKUP(dependencyKeySymbol, lookup);
 		const nextVisitedTokens: Set<symbol> = new Set<symbol>(visitedTokens);
 		nextVisitedTokens.add(dependencyKeySymbol);
@@ -544,7 +566,7 @@ export class ResolutionCoordinator {
 		if (cache?.has(cacheKey)) {
 			const cachedValue: unknown = cache.get(cacheKey);
 
-			if (cachedValue instanceof Promise) {
+			if (this.isPromiseLike(cachedValue)) {
 				throw this.createAsyncProviderError(dependencyKeySymbol);
 			}
 
@@ -557,7 +579,13 @@ export class ResolutionCoordinator {
 			const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
 
 			if (!isCurrentRegistration) {
-				return this.resolveSyncInternal(dependencyKeySymbol, requestScope, path, visitedTokens);
+				if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
+					throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+				}
+
+				const retryLookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+				return this.resolveSingleRegistrationSync(dependencyKeySymbol, retryLookup, path, requestScope, visitedTokens, staleRetryCount + 1);
 			}
 
 			try {
@@ -612,7 +640,7 @@ export class ResolutionCoordinator {
 		try {
 			const hookResult: Promise<void> | void = hook(instance);
 
-			if (hookResult instanceof Promise) {
+			if (this.isPromiseLike(hookResult)) {
 				throw this.createAsyncProviderHookError(dependencyKeySymbol, hookName);
 			}
 		} catch (error) {

@@ -6,4 +6,5 @@ export interface IDiResolver {
 	resolveAllAsync<T>(token: Token<T>): Promise<Array<T>>;
 	resolveAsync<T>(token: Token<T>): Promise<T>;
 	resolveOptional<T>(token: Token<T>): T | undefined;
+	resolveOptionalAsync<T>(token: Token<T>): Promise<T | undefined>;
 }

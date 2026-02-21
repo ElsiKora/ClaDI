@@ -15,6 +15,7 @@ const AliasChainLevelTwoToken = createToken<number>("AliasChainLevelTwo");
 const AliasChainLevelThreeToken = createToken<number>("AliasChainLevelThree");
 const MultiBindingToken = createToken<{ id: string }>("MultiBinding");
 const AsyncToken = createToken<number>("AsyncValue");
+const AsyncThenableToken = createToken<number>("AsyncThenableValue");
 const AsyncMultiBindingToken = createToken<number>("AsyncMultiBinding");
 const AsyncScopedRaceToken = createToken<{ id: number }>("AsyncScopedRace");
 const AsyncReregisterToken = createToken<string>("AsyncReregister");
@@ -42,6 +43,7 @@ const ScopedLazyResolverToken = createToken<() => Promise<{ id: string }>>("Scop
 const HookedSingletonToken = createToken<{ id: number }>("HookedSingleton");
 const AsyncOnInitToken = createToken<{ id: string }>("AsyncOnInit");
 const AsyncAfterResolveToken = createToken<number>("AsyncAfterResolve");
+const ThenableOnInitToken = createToken<number>("ThenableOnInit");
 const InvalidAfterResolveToken = createToken<number>("InvalidAfterResolve");
 const InvalidOnInitToken = createToken<number>("InvalidOnInit");
 
@@ -119,6 +121,16 @@ describe("DIContainer", () => {
 		container.register({ provide: ValueToken, useValue: 42 });
 
 		expect(container.resolveOptional(ValueToken)).toBe(42);
+	});
+
+	it("returns undefined from resolveOptionalAsync when token is not registered", async () => {
+		await expect(container.resolveOptionalAsync(ResolveOptionalMissingToken)).resolves.toBeUndefined();
+	});
+
+	it("returns resolved value from resolveOptionalAsync when token exists", async () => {
+		container.register({ provide: ValueToken, useValue: 42 });
+
+		await expect(container.resolveOptionalAsync(ValueToken)).resolves.toBe(42);
 	});
 
 	it("supports lazy provider strategy with deferred resolution", async () => {
@@ -215,6 +227,15 @@ describe("DIContainer", () => {
 		expect(warnContainer.resolve(DuplicatePolicyToken)).toBe(2);
 	});
 
+	it("supports overriding duplicate provider policy for child scopes", () => {
+		const childScope = container.createScope("strict-child", {
+			duplicateProviderPolicy: EDiContainerDuplicateProviderPolicy.ERROR,
+		});
+
+		childScope.register({ provide: DuplicatePolicyToken, useValue: 1 });
+		expect(() => childScope.register({ provide: DuplicatePolicyToken, useValue: 2 })).toThrow("Provider with token already registered in scope");
+	});
+
 	it("invokes resolve interceptors for sync resolve and optional resolve", () => {
 		const onErrorSpy = vi.fn();
 		const onStartSpy = vi.fn();
@@ -288,6 +309,22 @@ describe("DIContainer", () => {
 				tokenDescription: "Symbol(AsyncMultiBinding)",
 			}),
 		);
+	});
+
+	it("supports overriding resolve interceptors for child scopes", () => {
+		const parentOnStartSpy = vi.fn();
+		const childOnStartSpy = vi.fn();
+		const parentContainer = new DIContainer({
+			resolveInterceptors: [{ onStart: parentOnStartSpy }],
+		});
+		parentContainer.register({ provide: ValueToken, useValue: 42 });
+		const childScope = parentContainer.createScope("child-scope", {
+			resolveInterceptors: [{ onStart: childOnStartSpy }],
+		});
+
+		expect(childScope.resolve(ValueToken)).toBe(42);
+		expect(childOnStartSpy).toHaveBeenCalledTimes(1);
+		expect(parentOnStartSpy).toHaveBeenCalledTimes(0);
 	});
 
 	it("does not fail resolution when interceptor callback throws", () => {
@@ -400,6 +437,21 @@ describe("DIContainer", () => {
 		});
 
 		expect(() => container.resolve(MultiBindingToken)).toThrow("Token has multiple providers; use resolveAll() or resolveAllAsync()");
+	});
+
+	it("throws when resolving multi-bound token via resolveOptionalAsync", async () => {
+		container.register({
+			isMultiBinding: true,
+			provide: MultiBindingToken,
+			useFactory: () => ({ id: "first" }),
+		});
+		container.register({
+			isMultiBinding: true,
+			provide: MultiBindingToken,
+			useFactory: () => ({ id: "second" }),
+		});
+
+		await expect(container.resolveOptionalAsync(MultiBindingToken)).rejects.toThrow("Token has multiple providers; use resolveAll() or resolveAllAsync()");
 	});
 
 	it("throws on mixed multi-binding and single-binding providers for one token", () => {
@@ -563,6 +615,25 @@ describe("DIContainer", () => {
 		expect(disabledLogger.warn).toHaveBeenCalledTimes(0);
 	});
 
+	it("supports overriding captive dependency policy for child scopes", () => {
+		const childScope = container.createScope("strict-captive-child", {
+			captiveDependencyPolicy: EDiContainerCaptiveDependencyPolicy.ERROR,
+		});
+		childScope.register({
+			lifecycle: EDependencyLifecycle.SCOPED,
+			provide: CaptiveScopedToken,
+			useFactory: () => ({ id: "scoped-instance" }),
+		});
+		childScope.register({
+			deps: [CaptiveScopedToken],
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: CaptiveSingletonToken,
+			useFactory: (scopedValue: { id: string }) => ({ scoped: scopedValue }),
+		});
+
+		expect(() => childScope.resolve(CaptiveSingletonToken)).toThrow("Singleton provider depends on non-singleton provider");
+	});
+
 	it("uses singleton lifecycle cache", () => {
 		const factory = vi.fn(() => ({ createdAt: Date.now() }));
 		const token = createToken<{ createdAt: number }>("SingletonFactory");
@@ -717,6 +788,40 @@ describe("DIContainer", () => {
 		expect(asyncFactoryCalls).toBe(0);
 		await expect(container.resolveAsync(AsyncToken)).resolves.toBe(123);
 		expect(asyncFactoryCalls).toBe(1);
+	});
+
+	it("resolves async providers via resolveOptionalAsync", async () => {
+		let asyncFactoryCalls = 0;
+		container.register({
+			provide: AsyncToken,
+			useFactory: async () => {
+				asyncFactoryCalls += 1;
+
+				return 456;
+			},
+		});
+
+		await expect(container.resolveOptionalAsync(AsyncToken)).resolves.toBe(456);
+		expect(asyncFactoryCalls).toBe(1);
+	});
+
+	it("throws from resolve when factory returns thenable without async keyword", () => {
+		let factoryCalls = 0;
+		container.register({
+			provide: AsyncThenableToken,
+			useFactory: () => {
+				factoryCalls += 1;
+
+				return {
+					then: (resolve: (value: number) => void): void => {
+						resolve(999);
+					},
+				} as unknown as Promise<number>;
+			},
+		});
+
+		expect(() => container.resolve(AsyncThenableToken)).toThrow("Use resolveAsync() for async providers");
+		expect(factoryCalls).toBe(1);
 	});
 
 	it("deduplicates async singleton creation under race", async () => {
@@ -1242,6 +1347,47 @@ describe("DIContainer", () => {
 		}
 	});
 
+	it("throws PROVIDER_DEPS_SPARSE when deps has sparse indexes", () => {
+		try {
+			container.register({
+				deps: [ValueToken, , DuplicatePolicyToken] as unknown as ReadonlyArray<Token<unknown>>,
+				provide: InvalidClassToken,
+				useClass: ExampleService as unknown as new (...arguments_: Array<never>) => { id: string },
+			} as unknown as Provider);
+			expect.unreachable("register should throw when deps is sparse");
+		} catch (error) {
+			expect(error).toBeInstanceOf(BaseError);
+			expect((error as BaseError).code).toBe("PROVIDER_DEPS_SPARSE");
+			expect((error as Error).message).toContain("Provider deps has sparse dependency indexes");
+		}
+	});
+
+	it("warns when provider deps count does not match factory parameter count", () => {
+		const warnLogger = {
+			debug: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
+			trace: vi.fn(),
+			warn: vi.fn(),
+		};
+		const warnContainer = new DIContainer({
+			logger: warnLogger,
+		});
+		const mismatchToken = createToken<number>("MismatchDeps");
+		const firstDep = createToken<number>("MismatchDepFirst");
+		const secondDep = createToken<number>("MismatchDepSecond");
+		warnContainer.register({ provide: firstDep, useValue: 1 });
+		warnContainer.register({ provide: secondDep, useValue: 2 });
+		warnContainer.register({
+			deps: [firstDep, secondDep],
+			provide: mismatchToken,
+			useFactory: (first: number) => first,
+		});
+
+		expect(warnLogger.warn).toHaveBeenCalledTimes(1);
+		expect(warnContainer.resolve(mismatchToken)).toBe(1);
+	});
+
 	it("validates provider runtime shape for constructable class providers", () => {
 		expect(() =>
 			container.register({
@@ -1358,6 +1504,22 @@ describe("DIContainer", () => {
 
 		expect(() => container.resolve(AsyncOnInitToken)).toThrow("Provider onInit hook requires resolveAsync()");
 		await expect(container.resolveAsync(AsyncOnInitToken)).resolves.toEqual({ id: "async-init" });
+	});
+
+	it("requires resolveAsync when onInit hook returns a thenable", async () => {
+		container.register({
+			onInit: () =>
+				({
+					then: (resolve: () => void): void => {
+						resolve();
+					},
+				}) as unknown as Promise<void>,
+			provide: ThenableOnInitToken,
+			useValue: 1,
+		});
+
+		expect(() => container.resolve(ThenableOnInitToken)).toThrow("Provider onInit hook requires resolveAsync()");
+		await expect(container.resolveAsync(ThenableOnInitToken)).resolves.toBe(1);
 	});
 
 	it("requires resolveAsync when afterResolve hook is async", async () => {
