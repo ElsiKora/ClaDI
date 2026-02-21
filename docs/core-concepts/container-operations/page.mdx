@@ -1,0 +1,67 @@
+# Container Operations
+
+ClaDI supports explicit runtime operations for startup hardening and diagnostics.
+
+## `bootstrap(tokens?)`
+
+Pre-resolve singleton providers and execute their `onInit` hooks during startup:
+
+```ts filename="src/bootstrap.ts" copy
+import { createDIContainer, createToken, EDependencyLifecycle } from "@elsikora/cladi";
+
+const DbToken = createToken<{ ping(): Promise<void> }>("Db");
+const CacheToken = createToken<{ warmup(): void }>("Cache");
+
+const container = createDIContainer();
+
+container.register({
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	provide: DbToken,
+	useFactory: async () => await connectDatabase(),
+});
+
+container.register({
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	onInit: (cache) => cache.warmup(),
+	provide: CacheToken,
+	useFactory: () => createCache(),
+});
+
+await container.bootstrap();
+// or: await container.bootstrap([DbToken, CacheToken]);
+```
+
+## `lock()` and `isLocked`
+
+Freeze provider registrations after composition:
+
+```ts filename="src/lock.ts" copy
+container.validate();
+container.lock();
+
+if (container.isLocked) {
+	console.log("Container registration surface is locked");
+}
+```
+
+When locked, `register()` and `unregister()` throw with `SCOPE_LOCKED`.
+
+## `exportGraph()`
+
+Export structured dependency graph data for tooling and observability:
+
+```ts filename="src/graph.ts" copy
+const graph = container.exportGraph();
+
+console.log(graph.scopeId);
+console.log(graph.nodes);
+console.log(graph.edges);
+```
+
+`exportGraph()` returns:
+
+- `scopeId`
+- `nodes`: token/lifecycle/provider metadata per registration
+- `edges`: `from -> to` dependency relationships
+
+Use this output to generate diagrams, startup audits, or custom health reports.

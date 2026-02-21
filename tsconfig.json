@@ -21,7 +21,7 @@
 			"@infrastructure/*": ["infrastructure/*"],
 			"@presentation/*": ["presentation/*"]
 		},
-		"rootDir": "./src",
+		"rootDir": ".",
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,

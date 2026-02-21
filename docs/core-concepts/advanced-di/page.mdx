@@ -1,0 +1,63 @@
+# Advanced DI Container
+
+The container builds and resolves dependency graphs through explicit provider contracts.
+
+## Building Blocks
+
+- **Tokens**: `createToken<T>()`
+- **Providers**: `useValue`, `useClass`, `useFactory`, `useExisting`, `useLazy`
+- **Lifecycles**: `singleton`, `scoped`, `transient`
+- **Resolvers**: `resolve`, `resolveAsync`, `resolveAll`, `resolveAllAsync`, `resolveOptional`
+- **Diagnostics**: `validate`, `explain`, `snapshot`
+
+## End-to-End Example
+
+```ts filename="src/composition-root.ts" copy
+import { createDIContainer, createLazyProvider, createToken, EDependencyLifecycle } from "@elsikora/cladi";
+
+const DbToken = createToken<{ query(sql: string): Promise<unknown> }>("Db");
+const RepoToken = createToken<{ getById(id: string): Promise<unknown> }>("Repo");
+const LazyRepoToken = createToken<() => Promise<{ getById(id: string): Promise<unknown> }>>("LazyRepo");
+
+const container = createDIContainer({ scopeName: "root" });
+
+container.register({
+	provide: DbToken,
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	useFactory: async () => ({
+		query: async (sql: string) => ({ sql }),
+	}),
+});
+
+container.register({
+	provide: RepoToken,
+	deps: [DbToken],
+	lifecycle: EDependencyLifecycle.SCOPED,
+	onInit: (repo) => {
+		void repo;
+	},
+	afterResolve: (repo) => {
+		void repo;
+	},
+	useFactory: (db) => ({
+		getById: async (id: string) => db.query(`select * from users where id='${id}'`),
+	}),
+});
+
+container.register(createLazyProvider(LazyRepoToken, RepoToken));
+container.validate();
+```
+
+## Runtime Guarantees
+
+- Circular dependencies are rejected with structured errors.
+- Missing dependencies are reported with lookup path context.
+- Multi-binding misuse is blocked when single resolution is requested.
+- Async factories/hooks require async resolution paths.
+- Cached lifecycle behavior is deterministic across scopes.
+
+## Cleanup Model
+
+- `onDispose` is tracked for cached instances (`singleton`, `scoped`).
+- `dispose()` / `close()` / `Symbol.dispose` / `Symbol.asyncDispose` are supported.
+- Scope disposal waits for in-flight async resolutions before cleanup.

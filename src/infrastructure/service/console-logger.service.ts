@@ -36,6 +36,7 @@ export class ConsoleLoggerService implements ILogger {
 	 */
 	public debug(message: string, options?: ILoggerMethodOptions): void {
 		if (this.shouldLog(ELoggerLogLevel.DEBUG)) {
+			// eslint-disable-next-line @elsikora/javascript/no-console
 			console.debug(this.formatMessage(ELoggerLogLevel.DEBUG, message, options));
 		}
 	}
@@ -58,6 +59,7 @@ export class ConsoleLoggerService implements ILogger {
 	 */
 	public info(message: string, options?: ILoggerMethodOptions): void {
 		if (this.shouldLog(ELoggerLogLevel.INFO)) {
+			// eslint-disable-next-line @elsikora/javascript/no-console
 			console.info(this.formatMessage(ELoggerLogLevel.INFO, message, options));
 		}
 	}
@@ -69,6 +71,7 @@ export class ConsoleLoggerService implements ILogger {
 	 */
 	public trace(message: string, options?: ILoggerMethodOptions): void {
 		if (this.shouldLog(ELoggerLogLevel.TRACE)) {
+			// eslint-disable-next-line @elsikora/javascript/no-console
 			console.trace(this.formatMessage(ELoggerLogLevel.TRACE, message, options));
 		}
 	}
@@ -94,19 +97,15 @@ export class ConsoleLoggerService implements ILogger {
 			return undefined;
 		}
 
-		if (!this.SOURCE && optionsSource) {
+		if (!this.SOURCE) {
 			return `[${optionsSource}]`;
 		}
 
-		if (this.SOURCE && !optionsSource) {
+		if (!optionsSource) {
 			return `[${this.SOURCE}]`;
 		}
 
-		if (this.SOURCE && optionsSource) {
-			return `[${this.SOURCE} → ${optionsSource}]`;
-		}
-
-		return undefined;
+		return `[${this.SOURCE} → ${optionsSource}]`;
 	}
 
 	/**

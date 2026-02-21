@@ -1,17 +1,14 @@
-import type { IContainer, IFactory, ILogger, IRegistry } from "@domain/interface";
-import type { IBaseContainerOptions, IBaseFactoryOptions, IBaseRegistryOptions, IConsoleLoggerOptions, ICoreFactoryOptions } from "@infrastructure/interface";
+import type { ILogger } from "@domain/interface";
+import type { IDIContainer } from "@domain/type";
+import type { IConsoleLoggerOptions, ICoreFactoryOptions, IDIContainerOptions } from "@infrastructure/interface";
 
-import { BaseContainer, BaseFactory, BaseRegistry } from "@infrastructure/class/base";
+import { DIContainer } from "@infrastructure/class/di";
 import { ConsoleLoggerService } from "@infrastructure/service";
 
 /**
- * Factory for creating infrastructure components.
- * Provides methods to create instances of Registry, Factory, Container, and Logger.
- * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory} for more details on factories.
+ * Factory for creating DI infrastructure components.
  */
 export class CoreFactory {
-	private static instance: CoreFactory;
-
 	private readonly LOGGER: ILogger;
 
 	/**
@@ -24,50 +21,29 @@ export class CoreFactory {
 	}
 
 	/**
-	 * Gets the singleton instance of the InfrastructureFactory.
+	 * Creates a new factory instance.
+	 * Useful for static composition-root bootstrap flows.
 	 * @param {ICoreFactoryOptions} options - The options to use for the factory.
-	 * @returns {CoreFactory} The singleton instance.
+	 * @returns {CoreFactory} A new factory instance.
 	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
 	 */
 	public static getInstance(options: ICoreFactoryOptions): CoreFactory {
-		if (!CoreFactory.instance) {
-			CoreFactory.instance = new CoreFactory(options);
-		}
-
-		return CoreFactory.instance;
+		return new CoreFactory(options);
 	}
 
 	/**
-	 * Creates a new container instance.
-	 * @param {IBaseContainerOptions} options - The options to use for the container.
-	 * @returns {IContainer} A new container instance.
-	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/container}
+	 * Creates a new advanced DI container instance.
+	 * @param {IDIContainerOptions} options - The options to use for the DI container.
+	 * @returns {IDIContainer} A new advanced DI container.
 	 */
-	public createContainer(options: IBaseContainerOptions): IContainer {
-		this.LOGGER?.debug("Creating new container instance", { source: "InfrastructureFactory" });
+	public createDIContainer(options: IDIContainerOptions = {}): IDIContainer {
+		this.LOGGER?.debug("Creating new DI container instance", { source: "InfrastructureFactory" });
 
-		const container: IContainer = new BaseContainer(options);
+		const container: IDIContainer = new DIContainer(options);
 
-		this.LOGGER?.debug("Container instance created", { source: "InfrastructureFactory" });
+		this.LOGGER?.debug("DI container instance created", { source: "InfrastructureFactory" });
 
 		return container;
-	}
-
-	/**
-	 * Creates a new factory instance.
-	 * @template T The type of items created by the factory.
-	 * @param {IBaseFactoryOptions<T>} options Factory creation options.
-	 * @returns {IFactory<T>} A new factory instance.
-	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/factory}
-	 */
-	public createFactory<T>(options: IBaseFactoryOptions<T>): IFactory<T> {
-		this.LOGGER?.debug("Creating new factory instance", { source: "InfrastructureFactory" });
-
-		const factory: IFactory<T> = new BaseFactory<T>(options);
-
-		this.LOGGER?.debug("Factory instance created", { source: "InfrastructureFactory" });
-
-		return factory;
 	}
 
 	/**
@@ -87,22 +63,5 @@ export class CoreFactory {
 		this.LOGGER?.debug("Logger instance created", { source: "InfrastructureFactory" });
 
 		return logger;
-	}
-
-	/**
-	 * Creates a new registry instance.
-	 * @template T The type of items stored in the registry (must have a name property).
-	 * @param {IBaseRegistryOptions} options - The options to use for the registry.
-	 * @returns {IRegistry<T>} A new registry instance.
-	 * @see {@link https://elsikora.com/docs/cladi/core-concepts/registry}
-	 */
-	public createRegistry<T extends { getName(): string }>(options: IBaseRegistryOptions): IRegistry<T> {
-		this.LOGGER?.debug("Creating new registry instance", { source: "InfrastructureFactory" });
-
-		const registry: IRegistry<T> = new BaseRegistry<T>(options);
-
-		this.LOGGER?.debug("Registry instance created", { source: "InfrastructureFactory" });
-
-		return registry;
 	}
 }

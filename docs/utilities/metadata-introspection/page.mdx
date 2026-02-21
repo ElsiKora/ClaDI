@@ -1,0 +1,41 @@
+# Metadata Introspection
+
+ClaDI exposes helper utilities for reading decorator metadata.
+
+## `getInjectableMetadata()`
+
+Read metadata produced by `@Injectable()`, `@Inject()`, and lifecycle decorators:
+
+```ts filename="src/injectable-metadata.ts" copy
+import { getInjectableMetadata } from "@elsikora/cladi";
+
+const metadata = getInjectableMetadata(UserService);
+
+console.log(metadata?.token);
+console.log(metadata?.lifecycle);
+console.log(metadata?.deps);
+console.log(metadata?.onInitMethod);
+console.log(metadata?.afterResolveMethod);
+console.log(metadata?.onDisposeMethod);
+```
+
+## `getModuleMetadata()`
+
+Read metadata produced by `@Module()`:
+
+```ts filename="src/module-metadata.ts" copy
+import { getModuleMetadata } from "@elsikora/cladi";
+
+const moduleMetadata = getModuleMetadata(AppModule);
+
+console.log(moduleMetadata?.name);
+console.log(moduleMetadata?.imports);
+console.log(moduleMetadata?.providers);
+console.log(moduleMetadata?.exports);
+```
+
+## Common Use Cases
+
+- Unit tests that assert decorator wiring
+- Build-time or startup diagnostics
+- Tooling that converts class metadata to plain `IDIModule` definitions

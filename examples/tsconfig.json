@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"esModuleInterop": true,
+		"experimentalDecorators": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"outDir": "./dist",
+		"rootDir": ".",
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ESNext"
+	},
+	"exclude": ["dist"],
+	"include": ["./**/*.ts"]
+}
