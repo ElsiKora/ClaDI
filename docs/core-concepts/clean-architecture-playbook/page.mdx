@@ -1,0 +1,41 @@
+# Clean Architecture Playbook
+
+Use the container only at composition boundaries. Domain and application layers should depend on contracts, not DI APIs.
+
+## Layer Rules
+
+- Domain: entities, value objects, policies, ports.
+- Application: use-cases and orchestration.
+- Infrastructure: adapters and external integrations.
+- Composition root: provider registration and scope lifecycle.
+
+## Typical Boundaries
+
+### HTTP Request
+
+- Root scope holds process-level adapters (db/http/logger/config).
+- Request scope registers request context (`requestId`, auth claims, tenant).
+- Use-case handlers resolve from request scope.
+- Request scope is disposed in `finally`.
+
+### Queue Job
+
+- Root scope owns transport and retry policies.
+- Job scope registers payload + deadlines.
+- Job handler resolves graph from job scope.
+- Job scope always disposes after execution.
+
+### CLI Command
+
+- Parse args before scope creation.
+- Register parsed args/options in command scope.
+- Resolve command handler and execute.
+- Dispose scope after command completion.
+
+## Practical Checklist
+
+- Register only interfaces/contracts as public tokens.
+- Avoid direct infra creation inside use-cases.
+- Keep async boundaries explicit with `resolveAsync`.
+- Use `validate()` at startup.
+- Use `explain()` and `snapshot()` for diagnostics.

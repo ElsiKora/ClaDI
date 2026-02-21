@@ -2,12 +2,15 @@
 asIndexPage: true
 ---
 
-# Overview
+# Core Concepts
 
-This section delves into the fundamental design patterns and concepts employed within the library.
-Understanding these concepts is key to effectively using the provided utilities.
+This section explains how to model, resolve, and operate dependency graphs in ClaDI.
 
-- **[Dependency Injection (Container)](/docs/cladi/core-concepts/container)**: Learn how the `Container` manages dependencies and promotes loose coupling.
-- **[Registry Pattern](/docs/cladi/core-concepts/registry)**: Discover how the `Registry` is used to store and retrieve named templates or configurations.
-- **[Factory Pattern](/docs/cladi/core-concepts/factory)**: See how the `Factory` utilizes the `Registry` to create instances of objects.
-- **[Error Handling](/docs/cladi/core-concepts/error-handling)**: Understand the standardized `Error` structure used throughout the library. 
+- **[Advanced DI Container](/docs/cladi/core-concepts/advanced-di)** — full provider lifecycle and resolution behavior.
+- **[Container Fundamentals](/docs/cladi/core-concepts/container)** — composition-root and scope model.
+- **[Container Operations](/docs/cladi/core-concepts/container-operations)** — lock, bootstrap, and dependency graph export.
+- **[Decorator Modules](/docs/cladi/core-concepts/decorator-modules)** — `@Module` workflows and module-class composition.
+- **[Factory Providers](/docs/cladi/core-concepts/factory)** — object creation patterns with provider factories.
+- **[Configuration Registries](/docs/cladi/core-concepts/registry)** — named configuration sets via tokenized providers.
+- **[Clean Architecture Playbook](/docs/cladi/core-concepts/clean-architecture-playbook)** — modular boundaries and orchestration.
+- **[Error Handling](/docs/cladi/core-concepts/error-handling)** — structured error contracts and operational diagnostics.

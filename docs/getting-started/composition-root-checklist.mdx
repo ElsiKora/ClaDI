@@ -1,0 +1,31 @@
+# Composition Root Checklist
+
+Use this checklist when wiring a production container.
+
+## Registration
+
+- Create typed tokens for every public dependency contract.
+- Keep provider definitions close to the bootstrap/composition layer.
+- Prefer `useFactory` for integration boundaries (db/http/queues).
+- Keep domain code unaware of container APIs.
+
+## Lifecycle
+
+- Use `singleton` for process-wide adapters and clients.
+- Use `scoped` for request/job/command context.
+- Use `transient` for stateless, short-lived objects.
+- Define `onInit` / `afterResolve` only where lifecycle behavior is meaningful.
+
+## Resolution
+
+- Use `resolve()` for synchronous graphs.
+- Use `resolveAsync()` when any dependency path can be async.
+- Use `resolveAll()` / `resolveAllAsync()` for multi-binding tokens.
+- Use `resolveOptional()` only for truly optional contracts.
+
+## Safety
+
+- Call `validate()` during startup.
+- Wrap scope usage with `try/finally` and always call `dispose()`.
+- Use `explain(token)` for dependency troubleshooting.
+- Use `snapshot()` for runtime introspection and monitoring.

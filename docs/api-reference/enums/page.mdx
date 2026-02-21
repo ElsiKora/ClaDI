@@ -1,12 +1,58 @@
 # Enums
 
+## `EDependencyLifecycle`
+
+```ts copy
+export enum EDependencyLifecycle {
+	SCOPED = "scoped",
+	SINGLETON = "singleton",
+	TRANSIENT = "transient",
+}
+```
+
+Defines container caching behavior for providers.
+
+## `EProviderType`
+
+```ts copy
+export enum EProviderType {
+	ALIAS = "alias",
+	CLASS = "class",
+	FACTORY = "factory",
+	LAZY = "lazy",
+	VALUE = "value",
+}
+```
+
+Represents normalized provider strategy categories used by registration and resolution internals.
+
+## `EDiContainerDuplicateProviderPolicy`
+
+```ts copy
+export enum EDiContainerDuplicateProviderPolicy {
+	ERROR = "error",
+	OVERWRITE = "overwrite",
+	WARN = "warn",
+}
+```
+
+Controls behavior when the same token is registered more than once.
+
+## `EDiContainerCaptiveDependencyPolicy`
+
+```ts copy
+export enum EDiContainerCaptiveDependencyPolicy {
+	DISABLED = "disabled",
+	ERROR = "error",
+	WARN = "warn",
+}
+```
+
+Controls handling of lifecycle mismatches (for example, a singleton depending on scoped state).
+
 ## `ELoggerLogLevel`
 
-*Defined in: `src/domain/enum/logger-log-level.enum.ts`*
-
-Defines the available log levels for the `ILogger`.
-
-```typescript filename="src/domain/enum/logger-log-level.enum.ts" copy
+```ts copy
 export enum ELoggerLogLevel {
 	DEBUG = "debug",
 	ERROR = "error",
@@ -16,5 +62,4 @@ export enum ELoggerLogLevel {
 }
 ```
 
-- **Hierarchy**: `TRACE` > `DEBUG` > `INFO` > `WARN` > `ERROR` (most verbose to least verbose).
-- **Usage**: Used in [`IConsoleLoggerOptions`](/docs/cladi/api-reference/interfaces#iconsoleloggeroptions) to set the minimum logging level.
+Defines logger threshold semantics used for message filtering.

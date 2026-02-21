@@ -1,102 +1,51 @@
-import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+# Configuration Registries
 
-# Registry Pattern
+Named configuration maps are modeled through tokenized providers.
 
-The `Registry` pattern, implemented by `IRegistry` and `BaseRegistry`, provides a way to store and retrieve objects or configuration templates using a simple string name.
-It's often used as the data source for a [Factory](/docs/cladi/core-concepts/factory).
+## Registry-by-Token Pattern
 
-Imagine needing different sets of configuration for different environments (dev, staging, prod) or different types of resources (small server, large server). A Registry is ideal for managing these named variations.
+```ts filename="src/config-registry.ts" copy
+enum EEnvironment {
+	DEV = "dev",
+	PROD = "prod",
+}
 
-## Key Features & Examples
+const ConfigMapToken = createToken<Record<string, { apiUrl: string }>>("ConfigMap");
+const EnvironmentToken = createToken<EEnvironment>("Environment");
+const RuntimeConfigToken = createToken<{ apiUrl: string }>("RuntimeConfig");
 
-- **Registration (`register`/`registerMany`)**: Store items. Each item **must** have a `name: string` property that serves as its unique key.
+container.register({
+	provide: ConfigMapToken,
+	useValue: {
+		dev: { apiUrl: "http://localhost:3000" },
+		prod: { apiUrl: "https://api.example.com" },
+	},
+});
 
-  ```typescript filename="src/config-registry.ts" copy
-  import { createRegistry, type IRegistry } from '@elsikora/cladi';
+container.register({ provide: EnvironmentToken, useValue: EEnvironment.DEV });
 
-  // Define the structure of our configuration objects
-  interface ServerConfig {
-    name: string; // Mandatory for the registry key
-    cpu: number;
-    memory: string;
-    storage: string;
-    region: 'us-east-1' | 'eu-west-1';
-  }
+container.register({
+	provide: RuntimeConfigToken,
+	deps: [ConfigMapToken, EnvironmentToken],
+	useFactory: (configs, env) => configs[env],
+});
+```
 
-  const registry: IRegistry<ServerConfig> = createRegistry<ServerConfig>({}); // Logger can be passed in options
+## Benefits
 
-  // Register different server configurations
-  registry.register({
-    name: "standard-dev",
-    cpu: 2,
-    memory: "4Gi",
-    storage: "50Gi",
-    region: "us-east-1",
-  });
+- Keeps configuration strongly typed.
+- Makes environment selection explicit and testable.
+- Avoids hidden globals and static registries.
+- Works naturally with scopes and lifecycle hooks.
 
-  registry.register({
-    name: "high-mem-prod",
-    cpu: 8,
-    memory: "32Gi",
-    storage: "500Gi",
-    region: "eu-west-1",
-  });
+## Scoped Registry Pattern
 
-  console.log(`Registry contains 'standard-dev': ${registry.has("standard-dev")}`); // true
-  ```
+Request-scoped data sets can be registered as scoped values:
 
-- **Retrieval (`get`/`getMany`/`getAll`)**: Fetch items by their registered name(s). `getAll` retrieves all registered items.
-
-  ```typescript filename="src/retrieve-configs.ts" copy
-  // Assuming registry from previous example
-
-  const devConfig = registry.get("standard-dev");
-  console.log(`Dev CPU: ${devConfig?.cpu}`); // 2
-
-  const prodConfig = registry.get("high-mem-prod");
-  console.log(`Prod Memory: ${prodConfig?.memory}`); // "32Gi"
-
-  const allConfigs = registry.getAll();
-  console.log(`Total configs registered: ${allConfigs.length}`); // 2
-
-  const specificConfigs = registry.getMany(["standard-dev", "non-existent"]);
-  console.log(`Found specific configs: ${specificConfigs.length}`); // 1 (only standard-dev)
-  ```
-
-- **Checking Existence (`has`)**: Quickly check if a name is registered without retrieving the object.
-  ```typescript filename="src/check-config.ts" copy
-  if (registry.has("high-mem-prod")) {
-    console.log("Production configuration is available.");
-  }
-  ```
-
-- **Unregistration (`unregister`/`unregisterMany`)**: Remove items by name.
-  ```typescript filename="src/unregister-config.ts" copy
-  registry.unregister("standard-dev");
-  console.log(`Registry contains 'standard-dev' after unregister: ${registry.has("standard-dev")}`); // false
-  ```
-
-- **Clearing (`clear`)**: Empty the entire registry.
-  ```typescript filename="src/clear-registry.ts" copy
-  registry.clear();
-  console.log(`Total configs after clear: ${registry.getAll().length}`); // 0
-  ```
-
-- **Caching (Internal)**: The `BaseRegistry` implementation automatically caches the results of `getAll` and `getMany` calls. Subsequent identical calls return the cached result for performance. The cache is automatically cleared whenever `register`, `registerMany`, `unregister`, `unregisterMany`, or `clear` is called.
-
-## Purpose & Use Cases
-
-- **Managing Variations**: Store different versions or configurations of an object (e.g., environment settings, feature flag states, UI themes, resource definitions).
-- **Decoupling Definitions**: Separates the *definition* of these variations from the code that *uses* them.
-- **Data Source for Factories**: Provide the named templates that a [Factory](/docs/cladi/core-concepts/factory) will use to create actual instances.
-
-## Core Implementation
-
-- **`IRegistry<T>` (Interface)**: Located in `src/domain/interface/registry.interface.ts`. Defines the contract. The generic type `T` is constrained to be an object with at least a `name: string` property (`T extends { getName(): string }`).
-- **`BaseRegistry<T>` (Class)**: Located in `src/infrastructure/class/base/registry.class.ts`. The default implementation, featuring internal caching and optional logging.
-- **`createRegistry<T>` (Utility)**: Exported from the library root. A convenient function to instantiate `BaseRegistry`, accepting `IBaseRegistryOptions` (primarily for passing a logger).
-
-### Base Implementation Options (`IBaseRegistryOptions`)
-
-<TSDoc code={`import type { IBaseRegistryOptions } from '@elsikora/cladi';
-export default IBaseRegistryOptions`} /> 
+```ts filename="src/request-context.ts" copy
+scope.register({
+	provide: RequestContextToken,
+	lifecycle: EDependencyLifecycle.SCOPED,
+	useValue: { requestId, tenantId },
+});
+```
