@@ -1,4 +1,4 @@
-import { unstable_TSDoc as TSDoc } from "nextra/tsdoc";
+import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 # Logging Service
 
@@ -19,8 +19,10 @@ export interface ILogger {
 ### `ILoggerMethodOptions`
 
 <TSDoc
-	code={`import type { ILoggerMethodOptions } from "@elsikora/cladi";
-export default ILoggerMethodOptions`}
+	definition={generateDefinition({
+		code: `import type { ILoggerMethodOptions } from "@elsikora/cladi";
+export default ILoggerMethodOptions`,
+	})}
 />
 
 ## `ConsoleLoggerService`
@@ -30,8 +32,10 @@ export default ILoggerMethodOptions`}
 ### `IConsoleLoggerOptions`
 
 <TSDoc
-	code={`import type { IConsoleLoggerOptions } from "@elsikora/cladi";
-export default IConsoleLoggerOptions`}
+	definition={generateDefinition({
+		code: `import type { IConsoleLoggerOptions } from "@elsikora/cladi";
+export default IConsoleLoggerOptions`,
+	})}
 />
 
 ## `createLogger()`

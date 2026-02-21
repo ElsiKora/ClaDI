@@ -1,4 +1,4 @@
-import { unstable_TSDoc as TSDoc } from "nextra/tsdoc";
+import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 # Interfaces
 
@@ -9,27 +9,33 @@ This page groups the primary exported contracts used for container setup, provid
 ### `IDIContainer`, `IDIScope`, `IDIResolver`
 
 <TSDoc
-	code={`import type { IDIContainer, IDIScope, IDIResolver } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { IDIContainer, IDIScope, IDIResolver } from "@elsikora/cladi";
 export interface ContainerContracts {
   container: IDIContainer;
   scope: IDIScope;
   resolver: IDIResolver;
 }
-export default ContainerContracts`}
+export default ContainerContracts`,
+	})}
 />
 
 ### `IDIContainerOptions`
 
 <TSDoc
-	code={`import type { IDIContainerOptions } from "@elsikora/cladi";
-export default IDIContainerOptions`}
+	definition={generateDefinition({
+		code: `import type { IDIContainerOptions } from "@elsikora/cladi";
+export default IDIContainerOptions`,
+	})}
 />
 
 ### `IResolveInterceptor`
 
 <TSDoc
-	code={`import type { IResolveInterceptor } from "@elsikora/cladi";
-export default IResolveInterceptor`}
+	definition={generateDefinition({
+		code: `import type { IResolveInterceptor } from "@elsikora/cladi";
+export default IResolveInterceptor`,
+	})}
 />
 
 ## Provider Contracts
@@ -37,19 +43,23 @@ export default IResolveInterceptor`}
 ### `Provider` and `Token<T>`
 
 <TSDoc
-	code={`import type { Provider, Token } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { Provider, Token } from "@elsikora/cladi";
 export interface ProviderReference {
   provider: Provider;
   token: Token<unknown>;
 }
-export default ProviderReference`}
+export default ProviderReference`,
+	})}
 />
 
 ### `ILazyProvider`
 
 <TSDoc
-	code={`import type { ILazyProvider } from "@elsikora/cladi";
-export default ILazyProvider`}
+	definition={generateDefinition({
+		code: `import type { ILazyProvider } from "@elsikora/cladi";
+export default ILazyProvider`,
+	})}
 />
 
 ## Logging and Errors
@@ -57,34 +67,40 @@ export default ILazyProvider`}
 ### `ILogger` and `ILoggerMethodOptions`
 
 <TSDoc
-	code={`import type { ILogger, ILoggerMethodOptions } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { ILogger, ILoggerMethodOptions } from "@elsikora/cladi";
 export interface LoggerContracts {
   logger: ILogger;
   options: ILoggerMethodOptions;
 }
-export default LoggerContracts`}
+export default LoggerContracts`,
+	})}
 />
 
 ### `IError` and `IBaseErrorOptions`
 
 <TSDoc
-	code={`import type { IError, IBaseErrorOptions } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { IError, IBaseErrorOptions } from "@elsikora/cladi";
 export interface ErrorContracts {
   error: IError;
   options: IBaseErrorOptions;
 }
-export default ErrorContracts`}
+export default ErrorContracts`,
+	})}
 />
 
 ### `IConsoleLoggerOptions` and `ICoreFactoryOptions`
 
 <TSDoc
-	code={`import type { IConsoleLoggerOptions, ICoreFactoryOptions } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { IConsoleLoggerOptions, ICoreFactoryOptions } from "@elsikora/cladi";
 export interface InfraFactoryContracts {
   logger: IConsoleLoggerOptions;
   factory: ICoreFactoryOptions;
 }
-export default InfraFactoryContracts`}
+export default InfraFactoryContracts`,
+	})}
 />
 
 ## Graph and Decorator Contracts
@@ -92,22 +108,26 @@ export default InfraFactoryContracts`}
 ### `IDependencyGraph`, `IDependencyGraphNode`, `IDependencyGraphEdge`
 
 <TSDoc
-	code={`import type { IDependencyGraph, IDependencyGraphNode, IDependencyGraphEdge } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { IDependencyGraph, IDependencyGraphNode, IDependencyGraphEdge } from "@elsikora/cladi";
 export interface GraphContracts {
   graph: IDependencyGraph;
   node: IDependencyGraphNode;
   edge: IDependencyGraphEdge;
 }
-export default GraphContracts`}
+export default GraphContracts`,
+	})}
 />
 
 ### `IInjectableMetadata` and `IModuleDecoratorOptions`
 
 <TSDoc
-	code={`import type { IInjectableMetadata, IModuleDecoratorOptions } from "@elsikora/cladi";
+	definition={generateDefinition({
+		code: `import type { IInjectableMetadata, IModuleDecoratorOptions } from "@elsikora/cladi";
 export interface DecoratorMetadataContracts {
   injectable: IInjectableMetadata;
   module: IModuleDecoratorOptions;
 }
-export default DecoratorMetadataContracts`}
+export default DecoratorMetadataContracts`,
+	})}
 />
