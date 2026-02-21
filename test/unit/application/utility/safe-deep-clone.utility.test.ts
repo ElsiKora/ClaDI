@@ -102,4 +102,43 @@ describe("safeDeepClone", () => {
 		expect(cloned.nested.formatter).toBe(formatter);
 		expect(cloned.formatter("ok")).toBe("OK");
 	});
+
+	it("clones ArrayBuffer and typed array values", () => {
+		const arrayBuffer = new ArrayBuffer(4);
+		const typedArray = new Uint8Array(arrayBuffer);
+		typedArray.set([1, 2, 3, 4]);
+		const source = {
+			arrayBuffer,
+			typedArray,
+		};
+
+		const cloned = safeDeepClone(source);
+
+		expect(cloned.arrayBuffer).not.toBe(arrayBuffer);
+		expect(new Uint8Array(cloned.arrayBuffer)).toEqual(new Uint8Array([1, 2, 3, 4]));
+		expect(cloned.typedArray).not.toBe(typedArray);
+		expect(cloned.typedArray).toEqual(new Uint8Array([1, 2, 3, 4]));
+		cloned.typedArray[0] = 99;
+		expect(typedArray[0]).toBe(1);
+	});
+
+	it("clones Buffer values when Buffer is available", () => {
+		const globalWithBuffer = globalThis as {
+			Buffer?: {
+				from: (value: string) => Uint8Array;
+			};
+		};
+		const bufferApi = globalWithBuffer.Buffer;
+
+		if (!bufferApi) {
+			return;
+		}
+
+		const sourceBuffer = bufferApi.from("cladi");
+		const source = { sourceBuffer };
+		const cloned = safeDeepClone(source);
+
+		expect(cloned.sourceBuffer).not.toBe(sourceBuffer);
+		expect(cloned.sourceBuffer).toEqual(sourceBuffer);
+	});
 });

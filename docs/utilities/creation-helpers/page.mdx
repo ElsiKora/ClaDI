@@ -47,3 +47,12 @@ const logger = createLogger({
 	source: "Bootstrap",
 });
 ```
+
+## Decorator Composition Helpers
+
+When using decorators, these helpers bridge class metadata to provider/module composition:
+
+- `createAutowireProvider(Class, options)` - explicit class-provider creation from metadata and options.
+- `autowire(Class)` - shorthand that reads `token` and lifecycle/dependency metadata from `@Injectable`.
+- `createModuleFromDecorator(ModuleClass)` - converts `@Module` classes into plain `IDIModule` definitions.
+- `composeDecoratedModules(container, modules)` - composes mixed decorated module classes and plain modules directly.

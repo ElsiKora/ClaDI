@@ -19,9 +19,13 @@ export function Injectable(options: IInjectableOptions = {}): ClassDecorator {
 		const currentMetadata: IInjectableMetadata = getInjectableMetadata(target) ?? {};
 
 		const mergedMetadata: IInjectableMetadata = {
-			...currentMetadata,
-			...options,
+			afterResolveMethod: options.afterResolveMethod ?? currentMetadata.afterResolveMethod,
 			deps: options.deps ?? currentMetadata.deps,
+			isMultiBinding: options.isMultiBinding ?? currentMetadata.isMultiBinding,
+			lifecycle: options.lifecycle ?? currentMetadata.lifecycle,
+			onDisposeMethod: options.onDisposeMethod ?? currentMetadata.onDisposeMethod,
+			onInitMethod: options.onInitMethod ?? currentMetadata.onInitMethod,
+			token: options.token ?? currentMetadata.token,
 		};
 		setInjectableMetadata(target, mergedMetadata);
 	};
@@ -70,6 +74,20 @@ function validateInjectableOptions(options: IInjectableOptions): void {
 		throw new BaseError("Injectable options lifecycle is invalid", {
 			code: "INJECTABLE_OPTIONS_LIFECYCLE_INVALID",
 			context: { lifecycle: options.lifecycle },
+			source: "Injectable",
+		});
+	}
+
+	if (options.token !== undefined && typeof options.token !== "symbol") {
+		throw new BaseError("Injectable options token must be a symbol", {
+			code: "INJECTABLE_OPTIONS_TOKEN_INVALID",
+			source: "Injectable",
+		});
+	}
+
+	if (options.isMultiBinding !== undefined && typeof options.isMultiBinding !== "boolean") {
+		throw new BaseError("Injectable options isMultiBinding must be a boolean", {
+			code: "INJECTABLE_OPTIONS_MULTI_BINDING_INVALID",
 			source: "Injectable",
 		});
 	}

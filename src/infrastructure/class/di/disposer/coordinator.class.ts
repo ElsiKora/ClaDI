@@ -24,38 +24,60 @@ export class DisposerCoordinator {
 			getChildScopes: (scopeNode: TScope) => ReadonlyArray<TScope>;
 			getProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol) => Array<() => Promise<void>> | undefined;
 			hasLocalProvider: (scopeNode: TScope, dependencyKeySymbol: symbol) => boolean;
+			removeTrackedDisposer?: (scopeNode: TScope, disposer: () => Promise<void>) => void;
 		},
 	): void {
-		const providerDisposers: Array<() => Promise<void>> | undefined = options.getProviderDisposersByToken(scope, dependencyKeySymbol);
-
-		if (providerDisposers && providerDisposers.length > 0) {
-			options.deleteProviderDisposersByToken(scope, dependencyKeySymbol);
-
-			for (const disposer of [...providerDisposers].reverse()) {
-				void Promise.resolve(disposer()).catch((error: unknown) => {
-					try {
-						this.LOGGER.error("Provider cleanup failed during token overwrite", {
-							context: {
-								error: this.TO_ERROR(error).message,
-								scopeId: scope.id,
-								token: this.STRINGIFY_KEY(dependencyKeySymbol),
-							},
-							source: "DIContainer",
-						});
-					} catch {
-						// Ignore logger failures to avoid unhandled rejections in fire-and-forget cleanup.
-					}
+		void this.disposeCachedInstancesForTokenRecursivelyAsync(dependencyKeySymbol, scope, options).catch((error: unknown) => {
+			try {
+				this.LOGGER.error("Provider cleanup failed during token overwrite", {
+					context: {
+						error: this.TO_ERROR(error).message,
+						scopeId: scope.id,
+						token: this.STRINGIFY_KEY(dependencyKeySymbol),
+					},
+					source: "DIContainer",
 				});
+			} catch {
+				// Ignore logger failures to avoid unhandled rejections in fire-and-forget cleanup.
 			}
+		});
+	}
+
+	public async disposeCachedInstancesForTokenRecursivelyAsync<TScope extends { id: string }>(
+		dependencyKeySymbol: symbol,
+		scope: TScope,
+		options: {
+			deleteProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol) => void;
+			getChildScopes: (scopeNode: TScope) => ReadonlyArray<TScope>;
+			getProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol) => Array<() => Promise<void>> | undefined;
+			hasLocalProvider: (scopeNode: TScope, dependencyKeySymbol: symbol) => boolean;
+			removeTrackedDisposer?: (scopeNode: TScope, disposer: () => Promise<void>) => void;
+		},
+	): Promise<void> {
+		const callbackErrors: Array<{
+			error: Error;
+			scopeId: string;
+		}> = [];
+
+		await this.disposeCachedInstancesForTokenRecursivelyInternal(dependencyKeySymbol, scope, options, callbackErrors);
+
+		if (callbackErrors.length === 0) {
+			return;
 		}
 
-		for (const childScope of options.getChildScopes(scope)) {
-			if (options.hasLocalProvider(childScope, dependencyKeySymbol)) {
-				continue;
-			}
-
-			this.disposeCachedInstancesForTokenRecursively(dependencyKeySymbol, childScope, options);
-		}
+		throw new BaseError("Provider cleanup failed during token cleanup", {
+			cause: callbackErrors[0].error,
+			code: "PROVIDER_TOKEN_CLEANUP_FAILED",
+			context: {
+				errorCount: callbackErrors.length,
+				errors: callbackErrors.map((callbackError: { error: Error; scopeId: string }) => ({
+					error: callbackError.error.message,
+					scopeId: callbackError.scopeId,
+				})),
+				token: this.STRINGIFY_KEY(dependencyKeySymbol),
+			},
+			source: "DIContainer",
+		});
 	}
 
 	public registerDisposer<TScope extends { id: string }>(
@@ -144,5 +166,48 @@ export class DisposerCoordinator {
 		}
 
 		return disposerForToken;
+	}
+
+	private async disposeCachedInstancesForTokenRecursivelyInternal<TScope extends { id: string }>(
+		dependencyKeySymbol: symbol,
+		scope: TScope,
+		options: {
+			deleteProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol) => void;
+			getChildScopes: (scopeNode: TScope) => ReadonlyArray<TScope>;
+			getProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol) => Array<() => Promise<void>> | undefined;
+			hasLocalProvider: (scopeNode: TScope, dependencyKeySymbol: symbol) => boolean;
+			removeTrackedDisposer?: (scopeNode: TScope, disposer: () => Promise<void>) => void;
+		},
+		callbackErrors: Array<{
+			error: Error;
+			scopeId: string;
+		}>,
+	): Promise<void> {
+		const providerDisposers: Array<() => Promise<void>> | undefined = options.getProviderDisposersByToken(scope, dependencyKeySymbol);
+
+		if (providerDisposers && providerDisposers.length > 0) {
+			options.deleteProviderDisposersByToken(scope, dependencyKeySymbol);
+
+			for (const disposer of [...providerDisposers].reverse()) {
+				options.removeTrackedDisposer?.(scope, disposer);
+
+				try {
+					await disposer();
+				} catch (error) {
+					callbackErrors.push({
+						error: this.TO_ERROR(error),
+						scopeId: scope.id,
+					});
+				}
+			}
+		}
+
+		for (const childScope of options.getChildScopes(scope)) {
+			if (options.hasLocalProvider(childScope, dependencyKeySymbol)) {
+				continue;
+			}
+
+			await this.disposeCachedInstancesForTokenRecursivelyInternal(dependencyKeySymbol, childScope, options, callbackErrors);
+		}
 	}
 }

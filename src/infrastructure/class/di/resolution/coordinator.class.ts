@@ -22,6 +22,8 @@ export class ResolutionCoordinator {
 
 	private readonly GET_SCOPED_CACHE_FOR_LIFECYCLE: (lifecycle: EDependencyLifecycle, requestScope: DIContainer, providerOwner: DIContainer) => Map<symbol, unknown> | undefined;
 
+	private readonly IS_PROVIDER_CLEANUP_PENDING: (ownerScope: DIContainer, dependencyKeySymbol: symbol) => boolean;
+
 	private readonly IS_REGISTRATION_CURRENT: (ownerScope: DIContainer, dependencyKeySymbol: symbol, registration: IProviderRegistration<unknown>) => boolean;
 
 	private readonly REGISTER_DISPOSER: (
@@ -36,6 +38,8 @@ export class ResolutionCoordinator {
 
 	private readonly VALIDATE_CAPTIVE_DEPENDENCY: (parentRegistration: IProviderRegistration<unknown>, dependencyToken: Token<unknown>, resolutionScope: DIContainer) => void;
 
+	private readonly WAIT_FOR_PROVIDER_CLEANUP: (ownerScope: DIContainer, dependencyKeySymbol: symbol) => Promise<void>;
+
 	constructor(options: {
 		assertKey: <T>(dependencyKey: Token<T>) => symbol;
 		assertSingleBindingLookup: (tokenSymbol: symbol, lookup: IProviderLookup<DIContainer>) => IProviderRegistration<unknown>;
@@ -43,6 +47,7 @@ export class ResolutionCoordinator {
 		ensureActive: () => void;
 		findProvider: (requestScope: DIContainer, dependencyKeySymbol: symbol) => IProviderLookup<DIContainer>;
 		getScopedCacheForLifecycle: (lifecycle: EDependencyLifecycle, requestScope: DIContainer, providerOwner: DIContainer) => Map<symbol, unknown> | undefined;
+		isProviderCleanupPending: (ownerScope: DIContainer, dependencyKeySymbol: symbol) => boolean;
 		isRegistrationCurrent: (ownerScope: DIContainer, dependencyKeySymbol: symbol, registration: IProviderRegistration<unknown>) => boolean;
 		registerDisposer: (
 			disposerScope: DIContainer,
@@ -54,6 +59,7 @@ export class ResolutionCoordinator {
 			},
 		) => (() => Promise<void>) | undefined;
 		validateCaptiveDependency: (parentRegistration: IProviderRegistration<unknown>, dependencyToken: Token<unknown>, resolutionScope: DIContainer) => void;
+		waitForProviderCleanup: (ownerScope: DIContainer, dependencyKeySymbol: symbol) => Promise<void>;
 	}) {
 		this.ASSERT_KEY = options.assertKey;
 		this.ASSERT_SINGLE_BINDING_LOOKUP = options.assertSingleBindingLookup;
@@ -62,15 +68,22 @@ export class ResolutionCoordinator {
 		this.FIND_PROVIDER = options.findProvider;
 		this.GET_SCOPED_CACHE_FOR_LIFECYCLE = options.getScopedCacheForLifecycle;
 		this.IS_REGISTRATION_CURRENT = options.isRegistrationCurrent;
+		this.IS_PROVIDER_CLEANUP_PENDING = options.isProviderCleanupPending;
 		this.REGISTER_DISPOSER = options.registerDisposer;
 		this.VALIDATE_CAPTIVE_DEPENDENCY = options.validateCaptiveDependency;
+		this.WAIT_FOR_PROVIDER_CLEANUP = options.waitForProviderCleanup;
 	}
 
 	public async resolveAllAsyncInternal(dependencyKeySymbol: symbol, requestScope: DIContainer, path: Array<symbol>, visitedTokens: ReadonlySet<symbol>): Promise<Array<unknown>> {
 		this.ENSURE_ACTIVE();
 		this.throwIfCircularDependency(dependencyKeySymbol, path, visitedTokens);
 
-		const lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+		let lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+		if (lookup.registration && this.IS_PROVIDER_CLEANUP_PENDING(lookup.owner, dependencyKeySymbol)) {
+			await this.WAIT_FOR_PROVIDER_CLEANUP(lookup.owner, dependencyKeySymbol);
+			lookup = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+		}
 
 		if (!lookup.registration) {
 			throw this.createTokenNotFoundError(dependencyKeySymbol, lookup.lookupPath);
@@ -91,6 +104,10 @@ export class ResolutionCoordinator {
 
 		const lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
 
+		if (lookup.registration && this.IS_PROVIDER_CLEANUP_PENDING(lookup.owner, dependencyKeySymbol)) {
+			throw this.createProviderCleanupPendingError(dependencyKeySymbol, lookup.owner.id);
+		}
+
 		if (!lookup.registration) {
 			throw this.createTokenNotFoundError(dependencyKeySymbol, lookup.lookupPath);
 		}
@@ -108,7 +125,12 @@ export class ResolutionCoordinator {
 		this.ENSURE_ACTIVE();
 		this.throwIfCircularDependency(dependencyKeySymbol, path, visitedTokens);
 
-		const lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+		let lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+		if (lookup.registration && this.IS_PROVIDER_CLEANUP_PENDING(lookup.owner, dependencyKeySymbol)) {
+			await this.WAIT_FOR_PROVIDER_CLEANUP(lookup.owner, dependencyKeySymbol);
+			lookup = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+		}
 
 		return await this.resolveSingleRegistrationAsync(dependencyKeySymbol, lookup, path, requestScope, visitedTokens);
 	}
@@ -118,6 +140,10 @@ export class ResolutionCoordinator {
 		this.throwIfCircularDependency(dependencyKeySymbol, path, visitedTokens);
 
 		const lookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+		if (lookup.registration && this.IS_PROVIDER_CLEANUP_PENDING(lookup.owner, dependencyKeySymbol)) {
+			throw this.createProviderCleanupPendingError(dependencyKeySymbol, lookup.owner.id);
+		}
 
 		return this.resolveSingleRegistrationSync(dependencyKeySymbol, lookup, path, requestScope, visitedTokens);
 	}
@@ -172,6 +198,17 @@ export class ResolutionCoordinator {
 		return new BaseError("Lazy provider invoked after scope disposal", {
 			cause,
 			code: "LAZY_SCOPE_DISPOSED",
+			context: {
+				scopeId,
+				token: this.DESCRIBE_KEY(dependencyKeySymbol),
+			},
+			source: "DIContainer",
+		});
+	}
+
+	private createProviderCleanupPendingError(dependencyKeySymbol: symbol, scopeId: string): BaseError {
+		return new BaseError("Provider cleanup is in progress after overwrite", {
+			code: "PROVIDER_CLEANUP_PENDING",
 			context: {
 				scopeId,
 				token: this.DESCRIBE_KEY(dependencyKeySymbol),
@@ -353,6 +390,14 @@ export class ResolutionCoordinator {
 	}
 
 	private async resolveRegistrationAsync(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer, dependencyKeySymbol: symbol, path: Array<symbol>, visitedTokens: ReadonlySet<symbol>): Promise<unknown> {
+		if (this.IS_PROVIDER_CLEANUP_PENDING(providerOwner, dependencyKeySymbol)) {
+			await this.WAIT_FOR_PROVIDER_CLEANUP(providerOwner, dependencyKeySymbol);
+
+			if (!this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration)) {
+				throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+			}
+		}
+
 		const dependencyResolutionScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
 
 		const cache: Map<symbol, unknown> | undefined = this.GET_SCOPED_CACHE_FOR_LIFECYCLE(registration.lifecycle, requestScope, providerOwner);
@@ -362,6 +407,11 @@ export class ResolutionCoordinator {
 			if (cache.has(cacheKey)) {
 				const cachedValue: unknown = cache.get(cacheKey);
 				const resolvedCachedValue: unknown = await Promise.resolve(cachedValue);
+				const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
+
+				if (!isCurrentRegistration) {
+					throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+				}
 
 				return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, resolvedCachedValue);
 			}
@@ -421,6 +471,10 @@ export class ResolutionCoordinator {
 	}
 
 	private resolveRegistrationSync(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer, dependencyKeySymbol: symbol, path: Array<symbol>, visitedTokens: ReadonlySet<symbol>): unknown {
+		if (this.IS_PROVIDER_CLEANUP_PENDING(providerOwner, dependencyKeySymbol)) {
+			throw this.createProviderCleanupPendingError(dependencyKeySymbol, providerOwner.id);
+		}
+
 		const dependencyResolutionScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
 
 		const cache: Map<symbol, unknown> | undefined = this.GET_SCOPED_CACHE_FOR_LIFECYCLE(registration.lifecycle, requestScope, providerOwner);
@@ -433,6 +487,12 @@ export class ResolutionCoordinator {
 				throw this.createAsyncProviderError(dependencyKeySymbol);
 			}
 
+			const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
+
+			if (!isCurrentRegistration) {
+				throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+			}
+
 			return this.invokeAfterResolveSync(registration, dependencyKeySymbol, cachedValue);
 		}
 
@@ -442,6 +502,8 @@ export class ResolutionCoordinator {
 			const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
 
 			if (!isCurrentRegistration) {
+				this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
 				throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
 			}
 
@@ -479,6 +541,19 @@ export class ResolutionCoordinator {
 		nextVisitedTokens.add(dependencyKeySymbol);
 		const nextPath: Array<symbol> = [...path, dependencyKeySymbol];
 		const providerOwner: DIContainer = lookup.owner;
+
+		if (this.IS_PROVIDER_CLEANUP_PENDING(providerOwner, dependencyKeySymbol)) {
+			await this.WAIT_FOR_PROVIDER_CLEANUP(providerOwner, dependencyKeySymbol);
+
+			if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
+				throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+			}
+
+			const retryLookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+			return await this.resolveSingleRegistrationAsync(dependencyKeySymbol, retryLookup, path, requestScope, visitedTokens, staleRetryCount + 1);
+		}
+
 		const dependencyResolutionScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
 
 		const cache: Map<symbol, unknown> | undefined = this.GET_SCOPED_CACHE_FOR_LIFECYCLE(registration.lifecycle, requestScope, providerOwner);
@@ -488,6 +563,17 @@ export class ResolutionCoordinator {
 			if (cache.has(cacheKey)) {
 				const cachedValue: unknown = cache.get(cacheKey);
 				const resolvedCachedValue: unknown = await Promise.resolve(cachedValue);
+				const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
+
+				if (!isCurrentRegistration) {
+					if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
+						throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+					}
+
+					const retryLookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+					return await this.resolveSingleRegistrationAsync(dependencyKeySymbol, retryLookup, path, requestScope, visitedTokens, staleRetryCount + 1);
+				}
 
 				return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, resolvedCachedValue);
 			}
@@ -558,6 +644,11 @@ export class ResolutionCoordinator {
 		nextVisitedTokens.add(dependencyKeySymbol);
 		const nextPath: Array<symbol> = [...path, dependencyKeySymbol];
 		const providerOwner: DIContainer = lookup.owner;
+
+		if (this.IS_PROVIDER_CLEANUP_PENDING(providerOwner, dependencyKeySymbol)) {
+			throw this.createProviderCleanupPendingError(dependencyKeySymbol, providerOwner.id);
+		}
+
 		const dependencyResolutionScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
 
 		const cache: Map<symbol, unknown> | undefined = this.GET_SCOPED_CACHE_FOR_LIFECYCLE(registration.lifecycle, requestScope, providerOwner);
@@ -570,6 +661,18 @@ export class ResolutionCoordinator {
 				throw this.createAsyncProviderError(dependencyKeySymbol);
 			}
 
+			const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
+
+			if (!isCurrentRegistration) {
+				if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
+					throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
+				}
+
+				const retryLookup: IProviderLookup<DIContainer> = this.FIND_PROVIDER(requestScope, dependencyKeySymbol);
+
+				return this.resolveSingleRegistrationSync(dependencyKeySymbol, retryLookup, path, requestScope, visitedTokens, staleRetryCount + 1);
+			}
+
 			return this.invokeAfterResolveSync(registration, dependencyKeySymbol, cachedValue);
 		}
 
@@ -579,6 +682,8 @@ export class ResolutionCoordinator {
 			const isCurrentRegistration: boolean = this.IS_REGISTRATION_CURRENT(providerOwner, dependencyKeySymbol, registration);
 
 			if (!isCurrentRegistration) {
+				this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
 				if (staleRetryCount >= MAX_STALE_REGISTRATION_RETRIES) {
 					throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
 				}

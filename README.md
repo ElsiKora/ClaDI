@@ -79,8 +79,9 @@ ClaDI ships with **5 provider strategies** (`useValue`, `useClass`, `useFactory`
 - ✨ **Circular Dependency Detection** — Detected both at resolution time and proactively via `validate()` at startup
 - ✨ **Captive Dependency Guard** — Warns or errors when a singleton captures a scoped dependency, preventing subtle lifecycle bugs
 - ✨ **Module System** — `createModule()` and `composeModules()` enable declarative, bounded-context module composition with explicit export contracts
-- ✨ **Decorator Support** — Optional `@Injectable()` and `@Inject()` decorators for class-based DI without requiring `reflect-metadata`
-- ✨ **Runtime Diagnostics** — `explain(token)` shows resolution path and cache state; `snapshot()` provides full container introspection
+- ✨ **Decorator Support** — Optional `@Injectable()`, `@Inject()`, `@Module()`, `@OnInit()`, `@AfterResolve()`, and `@OnDispose()` without requiring `reflect-metadata`
+- ✨ **Decorator Composition Helpers** — `autowire()`, `createModuleFromDecorator()`, and `composeDecoratedModules()` keep decorator workflows explicit but concise
+- ✨ **Runtime Diagnostics** — `explain(token)`, `snapshot()`, and `exportGraph()` provide operational visibility into provider lookup and dependency edges
 - ✨ **Deterministic Disposal** — `dispose()` waits for in-flight async resolutions, runs disposers in reverse order, and supports `Symbol.dispose` / `Symbol.asyncDispose`
 - ✨ **Resolve Interceptors** — Hook into every resolution with `onStart`, `onSuccess`, and `onError` callbacks for logging, metrics, or tracing
 - ✨ **Safe Deep Clone Utility** — `safeDeepClone()` handles circular references, functions, Maps, Sets, and class instances unlike `structuredClone`
@@ -448,6 +449,37 @@ composeModules(container, [appModule]);
 
 ---
 
+### Decorator Module Composition (Nest-Like Ergonomics)
+
+```typescript
+import { Inject, Injectable, Module, composeDecoratedModules, createDIContainer, createToken, EDependencyLifecycle } from "@elsikora/cladi";
+
+const ConfigToken = createToken<{ baseUrl: string }>("Config");
+const ApiToken = createToken<{ ping(): string }>("Api");
+
+@Injectable({ token: ApiToken, lifecycle: EDependencyLifecycle.SINGLETON })
+class ApiService {
+	constructor(@Inject(ConfigToken) private readonly config: { baseUrl: string }) {}
+
+	public ping(): string {
+		return `pong:${this.config.baseUrl}`;
+	}
+}
+
+@Module({
+	exports: [ApiToken],
+	providers: [{ provide: ConfigToken, useValue: { baseUrl: "https://api.example.com" } }, ApiService],
+})
+class AppModule {}
+
+const container = createDIContainer();
+composeDecoratedModules(container, [AppModule]);
+```
+
+Use `createModuleFromDecorator()` directly when you need manual conversion to plain `IDIModule` for custom orchestration.
+
+---
+
 ### Lifecycle Hooks
 
 ```typescript
@@ -479,19 +511,45 @@ console.log(snapshot);
 //   tokens: ['Symbol(Config)', 'Symbol(HttpClient)', ...], ... }
 ```
 
+---
+
+### Lock, Bootstrap, and Graph Export
+
+```typescript
+// Eagerly initialize singleton providers (and run onInit hooks)
+await container.bootstrap();
+
+// Optionally bootstrap specific tokens only
+await container.bootstrap([DbToken, CacheToken]);
+
+// Freeze registration surface for runtime safety
+container.lock();
+console.log(container.isLocked); // true
+
+// Export graph for observability or visualization
+const graph = container.exportGraph();
+console.log(graph.nodes);
+console.log(graph.edges);
+```
+
 ## 🧭 API Quick Reference
 
-| Goal                             | API                                            | Notes                                         |
-| -------------------------------- | ---------------------------------------------- | --------------------------------------------- | -------------------------------- |
-| Resolve one dependency (sync)    | `resolve(token)`                               | Throws if provider path is async              |
-| Resolve one dependency (async)   | `resolveAsync(token)`                          | Works with async factories and async hooks    |
-| Resolve many implementations     | `resolveAll(token)` / `resolveAllAsync(token)` | For multi-binding registrations               |
-| Resolve optional dependency      | `resolveOptional(token)`                       | Returns `undefined` if not found              |
-| Create isolated runtime boundary | `createScope(name?)`                           | Use for request/job/command context           |
-| Register providers               | `register(provider                             | provider[])`                                  | Supports all provider strategies |
-| Validate graph at startup        | `validate()`                                   | Checks missing deps, cycles, and policy rules |
-| Inspect runtime graph            | `explain(token)` / `snapshot()`                | Debug lookup path and cache state             |
-| Release resources                | `scope.dispose()` / `container.dispose()`      | Always call in `finally` or shutdown flow     |
+| Goal                              | API                                                      | Notes                                         |
+| --------------------------------- | -------------------------------------------------------- | --------------------------------------------- | -------------------------------- |
+| Resolve one dependency (sync)     | `resolve(token)`                                         | Throws if provider path is async              |
+| Resolve one dependency (async)    | `resolveAsync(token)`                                    | Works with async factories and async hooks    |
+| Resolve many implementations      | `resolveAll(token)` / `resolveAllAsync(token)`           | For multi-binding registrations               |
+| Resolve optional dependency       | `resolveOptional(token)` / `resolveOptionalAsync(token)` | Returns `undefined` if not found              |
+| Create isolated runtime boundary  | `createScope(name?)`                                     | Use for request/job/command context           |
+| Register providers                | `register(provider                                       | provider[])`                                  | Supports all provider strategies |
+| Validate graph at startup         | `validate()`                                             | Checks missing deps, cycles, and policy rules |
+| Pre-warm singleton graph          | `bootstrap(tokens?)`                                     | Eager resolve + `onInit` execution            |
+| Lock runtime registration surface | `lock()` / `isLocked`                                    | Prevents `register` / `unregister` calls      |
+| Inspect runtime path and cache    | `explain(token)` / `snapshot()`                          | Debug lookup path and cache state             |
+| Export dependency nodes and edges | `exportGraph()`                                          | Structured graph for diagnostics and tooling  |
+| Compose plain modules             | `composeModules(container, modules)`                     | `IDIModule` import/export contract            |
+| Compose decorated module classes  | `composeDecoratedModules(container, modules)`            | Accepts `@Module` classes and plain modules   |
+| Release resources                 | `scope.dispose()` / `container.dispose()`                | Always call in `finally` or shutdown flow     |
 
 ## 🧱 Production Bootstrap
 
@@ -578,7 +636,7 @@ process.once("SIGTERM", () => {
 
 ### Does ClaDI require `reflect-metadata` or experimental decorators?
 
-No. ClaDI works entirely without reflection metadata. The optional `@Injectable()` and `@Inject()` decorators store metadata directly on the class constructor using a symbol key — no `reflect-metadata` polyfill needed. You can also skip decorators entirely and use `createAutowireProvider()` or plain `useFactory` / `useClass` registrations.
+No. ClaDI works entirely without reflection metadata. Optional decorators (`@Injectable`, `@Inject`, `@Module`, `@OnInit`, `@AfterResolve`, `@OnDispose`) store metadata directly on class constructors/prototypes using symbol keys — no `reflect-metadata` polyfill needed. You can also skip decorators entirely and use plain providers, `createAutowireProvider()`, and `createModule()`.
 
 ### How does ClaDI compare to InversifyJS or tsyringe?
 

@@ -1,6 +1,7 @@
 export type { IAliasProvider } from "./alias-provider.interface";
 export type { IClassProvider } from "./class-provider.interface";
-export type { IContainerSnapshot } from "./container-snapshot.interface";
+export type { IContainerSnapshot, IContainerSnapshotTokenRegistration } from "./container-snapshot.interface";
+export type { IDependencyGraph, IDependencyGraphEdge, IDependencyGraphNode } from "./dependency-graph.interface";
 export type { IFactoryProvider } from "./factory-provider.interface";
 export type { ILazyProvider } from "./lazy-provider.interface";
 export type { IDiModule as IDIModule } from "./module.interface";

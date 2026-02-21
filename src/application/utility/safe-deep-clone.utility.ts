@@ -1,3 +1,8 @@
+type TBufferApi = {
+	from: (value: ArrayLike<number>) => Uint8Array;
+	isBuffer: (value: unknown) => boolean;
+};
+
 /**
  * Utility method to safely deep clone objects that may contain functions.
  * Unlike structuredClone, this can handle functions by preserving their reference
@@ -8,6 +13,24 @@
  */
 export function safeDeepClone<T>(source: T): T {
 	return cloneRecursive(source, new WeakMap<object, unknown>());
+}
+
+/**
+ * Clones DataView and typed array instances.
+ * @param {ArrayBufferView} source Typed array or DataView to clone.
+ * @returns {ArrayBufferView} Cloned buffer view.
+ */
+function cloneArrayBufferView(source: ArrayBufferView): ArrayBufferView {
+	if (source instanceof DataView) {
+		const clonedDataViewBuffer: ArrayBufferLike = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+
+		return new DataView(clonedDataViewBuffer);
+	}
+
+	type TTypedArrayConstructor = new (source: ArrayLike<bigint> | ArrayLike<number>) => ArrayBufferView;
+	const typedArrayConstructor: TTypedArrayConstructor = source.constructor as TTypedArrayConstructor;
+
+	return new typedArrayConstructor(source as unknown as ArrayLike<bigint> | ArrayLike<number>);
 }
 
 /**
@@ -34,6 +57,37 @@ function cloneRecursive<T>(source: T, references: WeakMap<object, unknown>): T {
 
 	if (source instanceof RegExp) {
 		return new RegExp(source.source, source.flags) as unknown as T;
+	}
+
+	if (source instanceof ArrayBuffer) {
+		const clonedArrayBuffer: ArrayBuffer = Uint8Array.from(new Uint8Array(source)).buffer;
+		references.set(sourceObject, clonedArrayBuffer);
+
+		return clonedArrayBuffer as unknown as T;
+	}
+
+	if (isSharedArrayBuffer(source)) {
+		const clonedSharedArrayBuffer: SharedArrayBuffer = new SharedArrayBuffer(source.byteLength);
+		new Uint8Array(clonedSharedArrayBuffer).set(new Uint8Array(source));
+		references.set(sourceObject, clonedSharedArrayBuffer);
+
+		return clonedSharedArrayBuffer as unknown as T;
+	}
+
+	const bufferApi: TBufferApi | undefined = getBufferApi();
+
+	if (bufferApi?.isBuffer(source)) {
+		const clonedBuffer: Uint8Array = bufferApi.from(source as unknown as ArrayLike<number>);
+		references.set(sourceObject, clonedBuffer);
+
+		return clonedBuffer as unknown as T;
+	}
+
+	if (ArrayBuffer.isView(source)) {
+		const clonedArrayBufferView: ArrayBufferView = cloneArrayBufferView(source);
+		references.set(sourceObject, clonedArrayBufferView);
+
+		return clonedArrayBufferView as unknown as T;
 	}
 
 	if (Array.isArray(source)) {
@@ -90,4 +144,23 @@ function cloneRecursive<T>(source: T, references: WeakMap<object, unknown>): T {
 	}
 
 	return clonedObject as T;
+}
+
+/**
+ * Returns Buffer API when running in Node.js.
+ * @returns {TBufferApi | undefined} Node Buffer helpers or undefined.
+ */
+function getBufferApi(): TBufferApi | undefined {
+	const globalWithBuffer: { Buffer?: TBufferApi } = globalThis as { Buffer?: TBufferApi };
+
+	return globalWithBuffer.Buffer;
+}
+
+/**
+ * Checks whether value is a SharedArrayBuffer instance.
+ * @param {unknown} value Value to inspect.
+ * @returns {value is SharedArrayBuffer} True when value is SharedArrayBuffer.
+ */
+function isSharedArrayBuffer(value: unknown): value is SharedArrayBuffer {
+	return typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer;
 }

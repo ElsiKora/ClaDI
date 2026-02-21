@@ -12,7 +12,10 @@ ClaDI container usage is centered on explicit composition roots.
 - `createScope(name?)`
 - `dispose()`
 - `validate()`
+- `bootstrap(tokens?)`
+- `lock()` and `isLocked`
 - `explain(token)` and `snapshot()`
+- `exportGraph()`
 
 ## Provider Shape
 
@@ -45,5 +48,7 @@ Supported strategies:
 1. Create root container.
 2. Register all composition providers.
 3. Run `validate()` once at startup.
-4. Create per-request/per-job scopes.
-5. Dispose scopes in `finally`.
+4. Optionally run `bootstrap()` to pre-warm singleton providers.
+5. Lock root registrations with `lock()` when startup wiring is complete.
+6. Create per-request/per-job scopes.
+7. Dispose scopes in `finally`.

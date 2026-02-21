@@ -1,9 +1,13 @@
+import { BaseError } from "@infrastructure/class/base/error.class";
+
 export class DisposalManager {
 	private activeAsyncResolutions: number;
 
 	private readonly DISPOSAL_WAITERS: Array<() => void>;
 
 	private readonly DISPOSE_INTERNAL: () => Promise<void>;
+
+	private readonly GET_ASYNC_RESOLUTION_DRAIN_TIMEOUT_MS: () => number | undefined;
 
 	private readonly GET_DISPOSE_PROMISE: () => Promise<void> | undefined;
 
@@ -15,8 +19,9 @@ export class DisposalManager {
 
 	private readonly SET_IS_DISPOSING: (value: boolean) => void;
 
-	constructor(options: { disposeInternal: () => Promise<void>; getDisposePromise: () => Promise<void> | undefined; isDisposed: () => boolean; isDisposing: () => boolean; setDisposePromise: (disposePromise?: Promise<void>) => void; setIsDisposing: (isDisposing: boolean) => void }) {
+	constructor(options: { disposeInternal: () => Promise<void>; getAsyncResolutionDrainTimeoutMs: () => number | undefined; getDisposePromise: () => Promise<void> | undefined; isDisposed: () => boolean; isDisposing: () => boolean; setDisposePromise: (disposePromise?: Promise<void>) => void; setIsDisposing: (isDisposing: boolean) => void }) {
 		this.DISPOSE_INTERNAL = options.disposeInternal;
+		this.GET_ASYNC_RESOLUTION_DRAIN_TIMEOUT_MS = options.getAsyncResolutionDrainTimeoutMs;
 		this.GET_DISPOSE_PROMISE = options.getDisposePromise;
 		this.IS_DISPOSED = options.isDisposed;
 		this.IS_DISPOSING = options.isDisposing;
@@ -54,11 +59,25 @@ export class DisposalManager {
 	}
 
 	public async waitForInFlightAsyncResolutions(): Promise<void> {
+		const asyncResolutionDrainTimeoutMs: number | undefined = this.GET_ASYNC_RESOLUTION_DRAIN_TIMEOUT_MS();
+		const hasTimeout: boolean = typeof asyncResolutionDrainTimeoutMs === "number" && Number.isFinite(asyncResolutionDrainTimeoutMs) && asyncResolutionDrainTimeoutMs >= 0;
+		const normalizedTimeoutMs: number | undefined = hasTimeout ? asyncResolutionDrainTimeoutMs : undefined;
+		const deadlineAtMs: number | undefined = normalizedTimeoutMs === undefined ? undefined : Date.now() + normalizedTimeoutMs;
+
 		while (this.activeAsyncResolutions > 0) {
-			await new Promise<void>((resolve: () => void) => {
-				this.DISPOSAL_WAITERS.push(resolve);
-			});
+			await this.waitForIdleSignal(deadlineAtMs, normalizedTimeoutMs);
 		}
+	}
+
+	private createAsyncResolutionDrainTimeoutError(asyncResolutionDrainTimeoutMs: number): BaseError {
+		return new BaseError("Timed out waiting for in-flight async resolutions during disposal", {
+			code: "SCOPE_DISPOSE_ASYNC_DRAIN_TIMEOUT",
+			context: {
+				activeAsyncResolutions: this.activeAsyncResolutions,
+				timeoutMs: asyncResolutionDrainTimeoutMs,
+			},
+			source: "DIContainer",
+		});
 	}
 
 	private releaseDisposalWaitersIfIdle(): void {
@@ -72,5 +91,39 @@ export class DisposalManager {
 		for (const waiter of pendingWaiters) {
 			waiter();
 		}
+	}
+
+	private async waitForIdleSignal(deadlineAtMs?: number, configuredTimeoutMs?: number): Promise<void> {
+		if (deadlineAtMs === undefined) {
+			await new Promise<void>((resolve: () => void) => {
+				this.DISPOSAL_WAITERS.push(resolve);
+			});
+
+			return;
+		}
+
+		const remainingTimeoutMs: number = deadlineAtMs - Date.now();
+
+		if (remainingTimeoutMs <= 0) {
+			throw this.createAsyncResolutionDrainTimeoutError(configuredTimeoutMs ?? 0);
+		}
+
+		await new Promise<void>((resolve: () => void, reject: (reason?: unknown) => void) => {
+			const waiter = (): void => {
+				clearTimeout(timeoutHandle);
+				resolve();
+			};
+
+			const timeoutHandle: ReturnType<typeof setTimeout> = setTimeout(() => {
+				const waiterIndex: number = this.DISPOSAL_WAITERS.indexOf(waiter);
+
+				if (waiterIndex !== -1) {
+					this.DISPOSAL_WAITERS.splice(waiterIndex, 1);
+				}
+
+				reject(this.createAsyncResolutionDrainTimeoutError(configuredTimeoutMs ?? remainingTimeoutMs));
+			}, remainingTimeoutMs);
+			this.DISPOSAL_WAITERS.push(waiter);
+		});
 	}
 }

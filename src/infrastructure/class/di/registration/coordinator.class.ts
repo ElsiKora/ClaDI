@@ -22,7 +22,7 @@ export class RegistrationCoordinator {
 
 	private readonly ON_AFTER_SINGLE_BINDING_REGISTERED: (providerKey: symbol, existingRegistrations: ReadonlyArray<IProviderRegistration<unknown>>, registration: IProviderRegistration<unknown>) => void;
 
-	private readonly ON_BEFORE_OVERWRITE: (providerKey: symbol) => void;
+	private readonly ON_BEFORE_OVERWRITE: (providerKey: symbol, existingRegistrations: ReadonlyArray<IProviderRegistration<unknown>>) => void;
 
 	private readonly SET_REGISTRATIONS_FOR_PROVIDER_KEY: (providerKey: symbol, registrations: Array<IProviderRegistration<unknown>>) => void;
 
@@ -35,7 +35,7 @@ export class RegistrationCoordinator {
 		getScopeId: () => string;
 		logger: ILogger;
 		onAfterSingleBindingRegistered: (providerKey: symbol, existingRegistrations: ReadonlyArray<IProviderRegistration<unknown>>, registration: IProviderRegistration<unknown>) => void;
-		onBeforeOverwrite: (providerKey: symbol) => void;
+		onBeforeOverwrite: (providerKey: symbol, existingRegistrations: ReadonlyArray<IProviderRegistration<unknown>>) => void;
 		setRegistrationsForProviderKey: (providerKey: symbol, registrations: Array<IProviderRegistration<unknown>>) => void;
 	}) {
 		this.ASSERT_KEY = options.assertKey;
@@ -79,7 +79,7 @@ export class RegistrationCoordinator {
 		}
 
 		if (existingRegistrations.length > 0) {
-			this.ON_BEFORE_OVERWRITE(providerKey);
+			this.ON_BEFORE_OVERWRITE(providerKey, existingRegistrations);
 		}
 
 		this.SET_REGISTRATIONS_FOR_PROVIDER_KEY(providerKey, [registration]);

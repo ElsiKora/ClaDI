@@ -34,6 +34,7 @@ const InvalidFactoryToken = createToken<number>("InvalidFactory");
 const InvalidClassToken = createToken<{ id: string }>("InvalidClass");
 const InvalidOnDisposeToken = createToken<number>("InvalidOnDispose");
 const OverwriteCleanupToken = createToken<{ close: () => void; id: string }>("OverwriteCleanup");
+const OverwriteCleanupBarrierToken = createToken<{ id: string }>("OverwriteCleanupBarrier");
 const ScopedNameToken = createToken<number>("ScopedName");
 const SingletonOverrideToken = createToken<{ owner: string }>("SingletonOverride");
 const DisposeRaceToken = createToken<{ close: () => void; id: string }>("DisposeRace");
@@ -46,6 +47,7 @@ const AsyncAfterResolveToken = createToken<number>("AsyncAfterResolve");
 const ThenableOnInitToken = createToken<number>("ThenableOnInit");
 const InvalidAfterResolveToken = createToken<number>("InvalidAfterResolve");
 const InvalidOnInitToken = createToken<number>("InvalidOnInit");
+const UnregisterCleanupFailureToken = createToken<{ id: string }>("UnregisterCleanupFailure");
 
 class ExampleService {
 	constructor(private readonly value: number) {}
@@ -509,6 +511,39 @@ describe("DIContainer", () => {
 		expect(closeSpy).toHaveBeenCalledTimes(1);
 	});
 
+	it("blocks sync resolves while overwrite cleanup is in progress", async () => {
+		let releaseCleanup: (() => void) | undefined;
+		const cleanupGate: Promise<void> = new Promise<void>((resolve: () => void) => {
+			releaseCleanup = resolve;
+		});
+		const onDisposeSpy = vi.fn(async () => {
+			await cleanupGate;
+		});
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			onDispose: onDisposeSpy,
+			provide: OverwriteCleanupBarrierToken,
+			useFactory: () => ({
+				id: "v1",
+			}),
+		});
+		expect(container.resolve(OverwriteCleanupBarrierToken).id).toBe("v1");
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: OverwriteCleanupBarrierToken,
+			useFactory: () => ({
+				id: "v2",
+			}),
+		});
+
+		expect(() => container.resolve(OverwriteCleanupBarrierToken)).toThrow("Provider cleanup is in progress after overwrite");
+		const pendingResolve: Promise<{ id: string }> = container.resolveAsync(OverwriteCleanupBarrierToken);
+		await Promise.resolve();
+		expect(onDisposeSpy).toHaveBeenCalledTimes(1);
+		releaseCleanup?.();
+		await expect(pendingResolve).resolves.toEqual({ id: "v2" });
+	});
+
 	it("cleans up descendant scoped instances for overwritten parent provider token", async () => {
 		const onDisposeSpy = vi.fn();
 		const closeSpy = vi.fn();
@@ -902,6 +937,37 @@ describe("DIContainer", () => {
 		expect(closeSpy).toHaveBeenCalledTimes(1);
 	});
 
+	it("fails disposal when in-flight async resolutions exceed configured drain timeout", async () => {
+		let releaseFactory: (() => void) | undefined;
+		const timeoutContainer = new DIContainer({
+			asyncResolutionDrainTimeoutMs: 5,
+		});
+		const timeoutToken = createToken<{ id: string }>("AsyncDrainTimeout");
+		const factoryGate = new Promise<void>((resolve: () => void) => {
+			releaseFactory = resolve;
+		});
+		timeoutContainer.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: timeoutToken,
+			useFactory: async () => {
+				await factoryGate;
+
+				return { id: "ready" };
+			},
+		});
+		const pendingResolution: Promise<{ id: string }> = timeoutContainer.resolveAsync(timeoutToken);
+
+		await Promise.resolve();
+		await expect(timeoutContainer.dispose()).rejects.toMatchObject({
+			code: "SCOPE_DISPOSE_ASYNC_DRAIN_TIMEOUT",
+		});
+		expect(() => timeoutContainer.snapshot()).not.toThrow();
+		releaseFactory?.();
+		await expect(pendingResolution).resolves.toEqual({ id: "ready" });
+		await expect(timeoutContainer.dispose()).resolves.toBeUndefined();
+		expect(() => timeoutContainer.resolve(timeoutToken)).toThrow("Scope is already disposed");
+	});
+
 	it("does not commit stale async singleton value after provider re-registration", async () => {
 		let releaseOldFactory: ((value: string) => void) | undefined;
 		const oldFactoryPromise = new Promise<string>((resolve) => {
@@ -927,6 +993,33 @@ describe("DIContainer", () => {
 		expect(container.resolve(AsyncReregisterToken)).toBe("new-value");
 	});
 
+	it("does not return stale async singleton to concurrent waiters after provider re-registration", async () => {
+		let releaseOldFactory: ((value: string) => void) | undefined;
+		const oldFactoryPromise = new Promise<string>((resolve) => {
+			releaseOldFactory = resolve;
+		});
+
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: AsyncReregisterToken,
+			useFactory: async () => await oldFactoryPromise,
+		});
+
+		const firstResolution: Promise<string> = container.resolveAsync(AsyncReregisterToken);
+		const secondResolution: Promise<string> = container.resolveAsync(AsyncReregisterToken);
+
+		await Promise.resolve();
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: AsyncReregisterToken,
+			useValue: "new-value",
+		});
+		releaseOldFactory?.("old-value");
+
+		await expect(firstResolution).resolves.toBe("new-value");
+		await expect(secondResolution).resolves.toBe("new-value");
+	});
+
 	it("does not commit stale sync singleton value after provider re-registration", () => {
 		let shouldReregister = true;
 
@@ -949,6 +1042,35 @@ describe("DIContainer", () => {
 
 		expect(container.resolve(SyncReregisterToken)).toBe("new-sync-value");
 		expect(container.resolve(SyncReregisterToken)).toBe("new-sync-value");
+	});
+
+	it("disposes stale sync singleton instance when provider changes during construction", async () => {
+		const staleSyncToken = createToken<{ close: () => void; id: string }>("StaleSyncCleanup");
+		const onDisposeSpy = vi.fn();
+		const closeSpy = vi.fn();
+		let shouldReregister = true;
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			onDispose: onDisposeSpy,
+			provide: staleSyncToken,
+			useFactory: () => {
+				if (shouldReregister) {
+					shouldReregister = false;
+					container.register({
+						lifecycle: EDependencyLifecycle.SINGLETON,
+						provide: staleSyncToken,
+						useValue: { close: vi.fn(), id: "new-sync" },
+					});
+				}
+
+				return { close: closeSpy, id: "old-sync" };
+			},
+		});
+
+		expect(container.resolve(staleSyncToken).id).toBe("new-sync");
+		await Promise.resolve();
+		expect(onDisposeSpy).toHaveBeenCalledTimes(1);
+		expect(closeSpy).toHaveBeenCalledTimes(1);
 	});
 
 	it("detects circular dependencies via validate without resolve", () => {
@@ -1225,6 +1347,45 @@ describe("DIContainer", () => {
 		for (const postDisposeOperation of postDisposeOperations) {
 			expect(postDisposeOperation).toThrow("Scope is already disposed");
 		}
+	});
+
+	it("unregisters providers and disposes cached instances", async () => {
+		const unregisterToken = createToken<{ close: () => void; id: string }>("UnregisterToken");
+		const onDisposeSpy = vi.fn();
+		const closeSpy = vi.fn();
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			onDispose: onDisposeSpy,
+			provide: unregisterToken,
+			useFactory: () => ({ close: closeSpy, id: "instance" }),
+		});
+		expect(container.resolve(unregisterToken).id).toBe("instance");
+
+		await expect(container.unregister(unregisterToken)).resolves.toBe(true);
+		expect(container.has(unregisterToken)).toBe(false);
+		expect(container.resolveOptional(unregisterToken)).toBeUndefined();
+		expect(onDisposeSpy).toHaveBeenCalledTimes(1);
+		expect(closeSpy).toHaveBeenCalledTimes(1);
+		await expect(container.unregister(unregisterToken)).resolves.toBe(false);
+	});
+
+	it("keeps provider unregistered when cleanup fails during unregister", async () => {
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			onDispose: () => {
+				throw new Error("unregister cleanup failed");
+			},
+			provide: UnregisterCleanupFailureToken,
+			useFactory: () => ({ id: "broken" }),
+		});
+		expect(container.resolve(UnregisterCleanupFailureToken).id).toBe("broken");
+
+		await expect(container.unregister(UnregisterCleanupFailureToken)).rejects.toMatchObject({
+			code: "PROVIDER_UNREGISTER_CLEANUP_FAILED",
+		});
+		expect(container.has(UnregisterCleanupFailureToken)).toBe(false);
+		expect(container.resolveOptional(UnregisterCleanupFailureToken)).toBeUndefined();
+		await expect(container.dispose()).resolves.toBeUndefined();
 	});
 
 	it("disposes nested scope tree and runs each scope cleanup exactly once", async () => {
@@ -1551,7 +1712,49 @@ describe("DIContainer", () => {
 
 		expect(explanation.isFound).toBe(true);
 		expect(explanation.providerType).toBe(EProviderType.VALUE);
+		expect(explanation.isAsyncFactory).toBe(false);
 		expect(snapshot.providerCount).toBeGreaterThanOrEqual(1);
 		expect(snapshot.tokens).toContain("Symbol(Value)");
+		expect(snapshot.tokenRegistrations).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					hasMultiBinding: false,
+					registrationCount: 1,
+					token: "Symbol(Value)",
+				}),
+			]),
+		);
+	});
+
+	it("reports async factory and multi-binding diagnostics", () => {
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: AsyncToken,
+			useFactory: async () => 1,
+		});
+		container.register({
+			isMultiBinding: true,
+			provide: MultiBindingToken,
+			useFactory: () => ({ id: "first" }),
+		});
+		container.register({
+			isMultiBinding: true,
+			provide: MultiBindingToken,
+			useFactory: () => ({ id: "second" }),
+		});
+
+		const explanation = container.explain(AsyncToken);
+		const snapshot = container.snapshot();
+
+		expect(explanation.isAsyncFactory).toBe(true);
+		expect(snapshot.tokenRegistrations).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					hasMultiBinding: true,
+					registrationCount: 2,
+					token: "Symbol(MultiBinding)",
+				}),
+			]),
+		);
 	});
 });

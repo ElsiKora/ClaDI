@@ -28,8 +28,8 @@ describe("createLogger Utility", () => {
 
 		expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
 		expect(ConsoleLoggerService).toHaveBeenCalledWith(CONSOLE_LOGGER_DEFAULT_OPTIONS);
-		expect((logger as { __type: string }).__type).toBe("MockLogger");
-		expect((logger as { options: IConsoleLoggerOptions }).options).toEqual(CONSOLE_LOGGER_DEFAULT_OPTIONS);
+		expect((logger as unknown as { __type: string }).__type).toBe("MockLogger");
+		expect((logger as unknown as { options: IConsoleLoggerOptions }).options).toEqual(CONSOLE_LOGGER_DEFAULT_OPTIONS);
 	});
 
 	it("should create a ConsoleLoggerService instance with provided options", () => {
@@ -41,7 +41,7 @@ describe("createLogger Utility", () => {
 
 		expect(ConsoleLoggerService).toHaveBeenCalledTimes(1);
 		expect(ConsoleLoggerService).toHaveBeenCalledWith(options);
-		expect((logger as { __type: string }).__type).toBe("MockLogger");
-		expect((logger as { options: IConsoleLoggerOptions }).options).toEqual(options);
+		expect((logger as unknown as { __type: string }).__type).toBe("MockLogger");
+		expect((logger as unknown as { options: IConsoleLoggerOptions }).options).toEqual(options);
 	});
 });

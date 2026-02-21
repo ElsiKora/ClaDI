@@ -187,6 +187,27 @@ describe("ergonomics layer", () => {
 		expect(strictContainer.resolve(SharedConfigToken)).toBe("shared-config");
 	});
 
+	it("does not duplicate multi-binding providers when module mode upgrades to root", () => {
+		const sharedMultiBindingToken = createToken<string>("SharedMultiBindingToken");
+		const sharedModule = createModule({
+			exports: [sharedMultiBindingToken],
+			name: "shared-multi-binding-module",
+			providers: [
+				{ isMultiBinding: true, provide: sharedMultiBindingToken, useValue: "first" },
+				{ isMultiBinding: true, provide: sharedMultiBindingToken, useValue: "second" },
+			],
+		});
+		const appModule = createModule({
+			imports: [sharedModule],
+			name: "shared-multi-binding-app-module",
+		});
+		const container = new DIContainer();
+
+		composeModules(container, [appModule, sharedModule]);
+
+		expect(container.resolveAll(sharedMultiBindingToken)).toEqual(["first", "second"]);
+	});
+
 	it("allows re-exported imported tokens without local provider registration", () => {
 		const sharedModule = createModule({
 			exports: [ReExportedConfigToken],

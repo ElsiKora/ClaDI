@@ -4,6 +4,7 @@ export interface IResolutionExplanation {
 	dependencies: Array<string>;
 	hasRootSingletonCache: boolean;
 	hasScopeCache: boolean;
+	isAsyncFactory?: boolean;
 	isFound: boolean;
 	lifecycle?: EDependencyLifecycle;
 	lookupPath: Array<string>;

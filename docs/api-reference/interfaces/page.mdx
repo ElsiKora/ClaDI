@@ -86,3 +86,28 @@ export interface InfraFactoryContracts {
 }
 export default InfraFactoryContracts`}
 />
+
+## Graph and Decorator Contracts
+
+### `IDependencyGraph`, `IDependencyGraphNode`, `IDependencyGraphEdge`
+
+<TSDoc
+	code={`import type { IDependencyGraph, IDependencyGraphNode, IDependencyGraphEdge } from "@elsikora/cladi";
+export interface GraphContracts {
+  graph: IDependencyGraph;
+  node: IDependencyGraphNode;
+  edge: IDependencyGraphEdge;
+}
+export default GraphContracts`}
+/>
+
+### `IInjectableMetadata` and `IModuleDecoratorOptions`
+
+<TSDoc
+	code={`import type { IInjectableMetadata, IModuleDecoratorOptions } from "@elsikora/cladi";
+export interface DecoratorMetadataContracts {
+  injectable: IInjectableMetadata;
+  module: IModuleDecoratorOptions;
+}
+export default DecoratorMetadataContracts`}
+/>

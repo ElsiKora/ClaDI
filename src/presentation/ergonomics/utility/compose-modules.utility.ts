@@ -21,7 +21,7 @@ const MODULE_REGISTRATION_MODE_RANK: Record<TModuleRegistrationMode, number> = {
 export function composeModules(container: IDIContainer, modules: Array<IDIModule>): void {
 	const processingModules: Set<IDIModule> = new Set<IDIModule>();
 	const registeredModuleModes: WeakMap<IDIModule, TModuleRegistrationMode> = new WeakMap<IDIModule, TModuleRegistrationMode>();
-	const registeredModuleProvidersByToken: WeakMap<IDIModule, Map<symbol, Provider>> = new WeakMap<IDIModule, Map<symbol, Provider>>();
+	const registeredModuleProvidersByToken: WeakMap<IDIModule, Map<symbol, Set<Provider>>> = new WeakMap<IDIModule, Map<symbol, Set<Provider>>>();
 
 	const registerModule = (moduleDefinition: IDIModule, mode: TModuleRegistrationMode, modulePath: Array<IDIModule>): void => {
 		const previousMode: TModuleRegistrationMode | undefined = registeredModuleModes.get(moduleDefinition);
@@ -53,18 +53,20 @@ export function composeModules(container: IDIContainer, modules: Array<IDIModule
 			}
 
 			const providersToRegister: ReadonlyArray<Provider> = mode === "root" ? moduleDefinition.providers : collectImportableProviders(moduleDefinition, localProvidersByToken);
-			const previouslyRegisteredProvidersByToken: Map<symbol, Provider> = registeredModuleProvidersByToken.get(moduleDefinition) ?? new Map<symbol, Provider>();
-			const nextRegisteredProvidersByToken: Map<symbol, Provider> = new Map<symbol, Provider>(previouslyRegisteredProvidersByToken);
+			const previouslyRegisteredProvidersByToken: Map<symbol, Set<Provider>> = registeredModuleProvidersByToken.get(moduleDefinition) ?? new Map<symbol, Set<Provider>>();
+			const nextRegisteredProvidersByToken: Map<symbol, Set<Provider>> = new Map<symbol, Set<Provider>>(previouslyRegisteredProvidersByToken);
 
 			for (const provider of providersToRegister) {
-				const previouslyRegisteredProvider: Provider | undefined = previouslyRegisteredProvidersByToken.get(provider.provide);
+				const previouslyRegisteredProviders: Set<Provider> = nextRegisteredProvidersByToken.get(provider.provide) ?? new Set<Provider>();
 
-				if (previouslyRegisteredProvider === provider) {
+				if (previouslyRegisteredProviders.has(provider)) {
 					continue;
 				}
 
 				container.register(provider);
-				nextRegisteredProvidersByToken.set(provider.provide, provider);
+				const nextProviders: Set<Provider> = new Set<Provider>(previouslyRegisteredProviders);
+				nextProviders.add(provider);
+				nextRegisteredProvidersByToken.set(provider.provide, nextProviders);
 			}
 
 			registeredModuleModes.set(moduleDefinition, mode);

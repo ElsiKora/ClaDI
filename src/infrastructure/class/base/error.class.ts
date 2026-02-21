@@ -7,7 +7,7 @@ import type { IBaseErrorOptions } from "@infrastructure/interface";
  */
 export class BaseError extends Error implements IError {
 	public get cause(): Error | undefined {
-		return this.CAUSE;
+		return super.cause as Error | undefined;
 	}
 
 	public get code(): string {
@@ -21,8 +21,6 @@ export class BaseError extends Error implements IError {
 	public get source(): string | undefined {
 		return this.SOURCE;
 	}
-
-	private readonly CAUSE?: Error;
 
 	private readonly CODE: string;
 
@@ -38,7 +36,6 @@ export class BaseError extends Error implements IError {
 	constructor(message: string, options: IBaseErrorOptions) {
 		super(message, options.cause ? { cause: options.cause } : undefined);
 		this.name = this.constructor.name;
-		this.CAUSE = options.cause;
 		this.CODE = options.code;
 		this.CONTEXT = options.context;
 		this.SOURCE = options.source;

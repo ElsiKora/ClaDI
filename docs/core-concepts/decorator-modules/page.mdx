@@ -1,0 +1,69 @@
+# Decorator Modules
+
+ClaDI supports decorator-based module composition without reflection metadata.
+
+## Core Decorators
+
+- `@Injectable({ token, lifecycle, deps? })`
+- `@Inject(token)` constructor parameter decorator
+- `@Module({ imports, providers, exports, name })`
+- `@OnInit()`, `@AfterResolve()`, `@OnDispose()`
+
+## `autowire()`
+
+`autowire()` creates a class provider from `@Injectable` metadata:
+
+```ts filename="src/autowire.ts" copy
+import { Injectable, autowire, createDIContainer, createToken, EDependencyLifecycle } from "@elsikora/cladi";
+
+const ServiceToken = createToken<{ run(): string }>("Service");
+
+@Injectable({ lifecycle: EDependencyLifecycle.SINGLETON, token: ServiceToken })
+class Service {
+	public run(): string {
+		return "ok";
+	}
+}
+
+const container = createDIContainer();
+container.register(autowire(Service));
+```
+
+## Module Composition Options
+
+### Option A: compose decorated modules directly
+
+Use `composeDecoratedModules()` for the cleanest composition-root API:
+
+```ts filename="src/compose-decorated.ts" copy
+import { Module, composeDecoratedModules, createDIContainer } from "@elsikora/cladi";
+
+@Module({ providers: [], exports: [], imports: [], name: "app" })
+class AppModule {}
+
+const container = createDIContainer();
+composeDecoratedModules(container, [AppModule]);
+```
+
+### Option B: convert explicitly, then compose
+
+Use `createModuleFromDecorator()` when you need plain `IDIModule` objects:
+
+```ts filename="src/compose-explicit.ts" copy
+import { composeModules, createDIContainer, createModuleFromDecorator } from "@elsikora/cladi";
+
+const moduleDefinition = createModuleFromDecorator(AppModule);
+const container = createDIContainer();
+composeModules(container, [moduleDefinition]);
+```
+
+## Metadata Introspection
+
+Decorator metadata can be read for tests and diagnostics:
+
+```ts filename="src/metadata.ts" copy
+import { getInjectableMetadata, getModuleMetadata } from "@elsikora/cladi";
+
+const injectableMetadata = getInjectableMetadata(Service);
+const moduleMetadata = getModuleMetadata(AppModule);
+```
