@@ -1,6 +1,6 @@
 {
 	"name": "@elsikora/cladi",
-	"version": "2.1.1",
+	"version": "2.1.2-dev.1",
 	"description": "Zero-dependency TypeScript DI toolkit with typed tokens and scoped lifecycles.",
 	"keywords": [
 		"clean-architecture",
