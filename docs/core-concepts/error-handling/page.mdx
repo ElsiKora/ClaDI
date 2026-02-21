@@ -1,4 +1,4 @@
-import { unstable_TSDoc as TSDoc } from "nextra/tsdoc";
+import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 # Error Handling
 
@@ -60,6 +60,8 @@ try {
 ## `IBaseErrorOptions`
 
 <TSDoc
-	code={`import type { IBaseErrorOptions } from "@elsikora/cladi";
-export default IBaseErrorOptions`}
+	definition={generateDefinition({
+		code: `import type { IBaseErrorOptions } from "@elsikora/cladi";
+export default IBaseErrorOptions`,
+	})}
 />
