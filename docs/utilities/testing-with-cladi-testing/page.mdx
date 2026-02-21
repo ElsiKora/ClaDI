@@ -1,0 +1,78 @@
+# Testing with ClaDI Testing
+
+`@elsikora/cladi-testing` is the companion package for test setup in ClaDI applications.
+
+It keeps tests explicit and composition-root friendly while reducing repetitive wiring.
+
+## Installation
+
+```bash copy
+npm install -D @elsikora/cladi @elsikora/cladi-testing
+```
+
+Compatibility:
+
+- `@elsikora/cladi-testing` requires `@elsikora/cladi >= 2.1.0`
+
+## Core Helpers
+
+- `createTestingContainer(options?)` - create a container preconfigured for test scenarios.
+- `mockProvider(token, valueOrFactory, options?)` - build value or factory-based test doubles.
+- `overrideProvider(container, provider)` - replace a registered provider in current scope.
+- `resetTestingContainer(container)` - dispose and clean all resources between tests.
+- `composeTestingModules(container, modules)` - compose mixed plain and decorator-based modules.
+
+## Minimal Example
+
+```ts filename="test/user-service.test.ts" copy
+import { createModule, createToken } from "@elsikora/cladi";
+import { createTestingContainer, mockProvider, overrideProvider, resetTestingContainer } from "@elsikora/cladi-testing";
+import { afterEach, describe, expect, it } from "vitest";
+
+interface IUserRepository {
+	findNameById(id: string): string | undefined;
+}
+
+interface IUserService {
+	readName(id: string): string;
+}
+
+const UserRepositoryToken = createToken<IUserRepository>("UserRepository");
+const UserServiceToken = createToken<IUserService>("UserService");
+
+const appModule = createModule({
+	exports: [UserServiceToken],
+	providers: [
+		mockProvider(UserRepositoryToken, { findNameById: () => "Alice" }),
+		{
+			deps: [UserRepositoryToken],
+			provide: UserServiceToken,
+			useFactory: (repo): IUserService => ({
+				readName: (id: string): string => repo.findNameById(id) ?? "unknown",
+			}),
+		},
+	],
+});
+
+const container = createTestingContainer({
+	modules: [appModule],
+	shouldValidateOnCreate: true,
+});
+
+afterEach(async () => {
+	await resetTestingContainer(container);
+});
+
+describe("UserService", () => {
+	it("reads name from default mock", () => {
+		const service = container.resolve(UserServiceToken);
+		expect(service.readName("u1")).toBe("Alice");
+	});
+
+	it("supports provider override per scenario", async () => {
+		await overrideProvider(container, mockProvider(UserRepositoryToken, { findNameById: () => "Bob" }));
+		const service = container.resolve(UserServiceToken);
+		expect(service.readName("u2")).toBe("Bob");
+	});
+});
+```
