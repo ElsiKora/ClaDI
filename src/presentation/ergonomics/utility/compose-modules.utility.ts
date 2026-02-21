@@ -42,32 +42,36 @@ export function composeModules(container: IDIContainer, modules: Array<IDIModule
 		}
 
 		processingModules.add(moduleDefinition);
-		const localProvidersByToken: Map<symbol, Array<Provider>> = getLocalProvidersByToken(moduleDefinition);
-		validateModuleExports(moduleDefinition, localProvidersByToken);
-		const nextModulePath: Array<IDIModule> = [...modulePath, moduleDefinition];
 
-		for (const importedModule of moduleDefinition.imports) {
-			registerModule(importedModule, "import", nextModulePath);
-		}
+		try {
+			const localProvidersByToken: Map<symbol, Array<Provider>> = getLocalProvidersByToken(moduleDefinition);
+			validateModuleExports(moduleDefinition, localProvidersByToken);
+			const nextModulePath: Array<IDIModule> = [...modulePath, moduleDefinition];
 
-		const providersToRegister: ReadonlyArray<Provider> = mode === "root" ? moduleDefinition.providers : collectImportableProviders(moduleDefinition, localProvidersByToken);
-		const previouslyRegisteredProvidersByToken: Map<symbol, Provider> = registeredModuleProvidersByToken.get(moduleDefinition) ?? new Map<symbol, Provider>();
-		const nextRegisteredProvidersByToken: Map<symbol, Provider> = new Map<symbol, Provider>(previouslyRegisteredProvidersByToken);
-
-		for (const provider of providersToRegister) {
-			const previouslyRegisteredProvider: Provider | undefined = previouslyRegisteredProvidersByToken.get(provider.provide);
-
-			if (previouslyRegisteredProvider === provider) {
-				continue;
+			for (const importedModule of moduleDefinition.imports) {
+				registerModule(importedModule, "import", nextModulePath);
 			}
 
-			container.register(provider);
-			nextRegisteredProvidersByToken.set(provider.provide, provider);
-		}
+			const providersToRegister: ReadonlyArray<Provider> = mode === "root" ? moduleDefinition.providers : collectImportableProviders(moduleDefinition, localProvidersByToken);
+			const previouslyRegisteredProvidersByToken: Map<symbol, Provider> = registeredModuleProvidersByToken.get(moduleDefinition) ?? new Map<symbol, Provider>();
+			const nextRegisteredProvidersByToken: Map<symbol, Provider> = new Map<symbol, Provider>(previouslyRegisteredProvidersByToken);
 
-		processingModules.delete(moduleDefinition);
-		registeredModuleModes.set(moduleDefinition, mode);
-		registeredModuleProvidersByToken.set(moduleDefinition, nextRegisteredProvidersByToken);
+			for (const provider of providersToRegister) {
+				const previouslyRegisteredProvider: Provider | undefined = previouslyRegisteredProvidersByToken.get(provider.provide);
+
+				if (previouslyRegisteredProvider === provider) {
+					continue;
+				}
+
+				container.register(provider);
+				nextRegisteredProvidersByToken.set(provider.provide, provider);
+			}
+
+			registeredModuleModes.set(moduleDefinition, mode);
+			registeredModuleProvidersByToken.set(moduleDefinition, nextRegisteredProvidersByToken);
+		} finally {
+			processingModules.delete(moduleDefinition);
+		}
 	};
 
 	for (const moduleDefinition of modules) {

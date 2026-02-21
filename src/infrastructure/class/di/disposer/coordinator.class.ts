@@ -33,14 +33,18 @@ export class DisposerCoordinator {
 
 			for (const disposer of [...providerDisposers].reverse()) {
 				void Promise.resolve(disposer()).catch((error: unknown) => {
-					this.LOGGER.error("Provider cleanup failed during token overwrite", {
-						context: {
-							error: this.TO_ERROR(error).message,
-							scopeId: scope.id,
-							token: this.STRINGIFY_KEY(dependencyKeySymbol),
-						},
-						source: "DIContainer",
-					});
+					try {
+						this.LOGGER.error("Provider cleanup failed during token overwrite", {
+							context: {
+								error: this.TO_ERROR(error).message,
+								scopeId: scope.id,
+								token: this.STRINGIFY_KEY(dependencyKeySymbol),
+							},
+							source: "DIContainer",
+						});
+					} catch {
+						// Ignore logger failures to avoid unhandled rejections in fire-and-forget cleanup.
+					}
 				});
 			}
 		}
@@ -64,7 +68,10 @@ export class DisposerCoordinator {
 			pushDisposer: (scopeNode: TScope, disposer: () => Promise<void>) => void;
 			setProviderDisposersByToken: (scopeNode: TScope, dependencyKeySymbol: symbol, disposers: Array<() => Promise<void>>) => void;
 		},
-	): void {
+		registrationOptions: {
+			shouldTrack?: boolean;
+		} = {},
+	): (() => Promise<void>) | undefined {
 		const callbacks: Array<() => Promise<void> | void> = [];
 		const providerWithHooks: IProviderBase<unknown> = provider as IProviderBase<unknown>;
 
@@ -93,7 +100,7 @@ export class DisposerCoordinator {
 		}
 
 		if (callbacks.length === 0) {
-			return;
+			return undefined;
 		}
 
 		let isAlreadyDisposed: boolean = false;
@@ -127,10 +134,15 @@ export class DisposerCoordinator {
 				});
 			}
 		};
-		const providerDisposers: Array<() => Promise<void>> = options.getProviderDisposersByToken(disposerScope, dependencyKeySymbol) ?? [];
 
-		providerDisposers.push(disposerForToken);
-		options.setProviderDisposersByToken(disposerScope, dependencyKeySymbol, providerDisposers);
-		options.pushDisposer(disposerScope, disposerForToken);
+		if (registrationOptions.shouldTrack ?? true) {
+			const providerDisposers: Array<() => Promise<void>> = options.getProviderDisposersByToken(disposerScope, dependencyKeySymbol) ?? [];
+
+			providerDisposers.push(disposerForToken);
+			options.setProviderDisposersByToken(disposerScope, dependencyKeySymbol, providerDisposers);
+			options.pushDisposer(disposerScope, disposerForToken);
+		}
+
+		return disposerForToken;
 	}
 }

@@ -1,8 +1,9 @@
 import type { IResolveInterceptor } from "@domain/interface";
-import type { Token } from "@domain/type";
+import type { Provider, Token } from "@domain/type";
 
 import { EDependencyLifecycle, EDiContainerCaptiveDependencyPolicy, EDiContainerDuplicateProviderPolicy, EProviderType } from "@domain/enum";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BaseError } from "@infrastructure/class/base";
 import { DIContainer } from "@infrastructure/class/di";
 import { createToken } from "@presentation/utility/create";
 
@@ -64,6 +65,16 @@ describe("DIContainer", () => {
 
 		expect(container.resolve(ValueToken)).toBe(42);
 		expect(container.has(ValueToken)).toBe(true);
+	});
+
+	it("registers providers from array input", () => {
+		container.register([
+			{ provide: ValueToken, useValue: 7 },
+			{ provide: DuplicatePolicyToken, useValue: 9 },
+		]);
+
+		expect(container.resolve(ValueToken)).toBe(7);
+		expect(container.resolve(DuplicatePolicyToken)).toBe(9);
 	});
 
 	it("resolves class providers with dependencies", () => {
@@ -522,6 +533,34 @@ describe("DIContainer", () => {
 
 		expect(() => warnContainer.resolve(CaptiveSingletonToken)).not.toThrow();
 		expect(warnLogger.warn).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not warn on captive singleton dependency when policy is disabled", () => {
+		const disabledLogger = {
+			debug: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
+			trace: vi.fn(),
+			warn: vi.fn(),
+		};
+		const disabledContainer = new DIContainer({
+			captiveDependencyPolicy: EDiContainerCaptiveDependencyPolicy.DISABLED,
+			logger: disabledLogger,
+		});
+		disabledContainer.register({
+			lifecycle: EDependencyLifecycle.SCOPED,
+			provide: CaptiveScopedToken,
+			useFactory: () => ({ id: "scoped-instance" }),
+		});
+		disabledContainer.register({
+			deps: [CaptiveScopedToken],
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: CaptiveSingletonToken,
+			useFactory: (scopedValue: { id: string }) => ({ scoped: scopedValue }),
+		});
+
+		expect(() => disabledContainer.resolve(CaptiveSingletonToken)).not.toThrow();
+		expect(disabledLogger.warn).toHaveBeenCalledTimes(0);
 	});
 
 	it("uses singleton lifecycle cache", () => {
@@ -998,7 +1037,7 @@ describe("DIContainer", () => {
 		}
 	});
 
-	it("does not run transient disposer callbacks on scope disposal", async () => {
+	it("runs transient disposer callbacks on scope disposal", async () => {
 		const disposeSpy = vi.fn();
 		const closeSpy = vi.fn();
 		const transientDisposeToken = createToken<{ close: () => void }>("TransientDisposable");
@@ -1014,8 +1053,8 @@ describe("DIContainer", () => {
 		container.resolve(transientDisposeToken);
 		await container.dispose();
 
-		expect(disposeSpy).toHaveBeenCalledTimes(0);
-		expect(closeSpy).toHaveBeenCalledTimes(0);
+		expect(disposeSpy).toHaveBeenCalledTimes(2);
+		expect(closeSpy).toHaveBeenCalledTimes(2);
 	});
 
 	it("continues cleanup and marks scope disposed even when one cleanup step fails", async () => {
@@ -1068,6 +1107,19 @@ describe("DIContainer", () => {
 		await childScope.dispose();
 		expect(childOnDisposeSpy).toHaveBeenCalledTimes(1);
 		expect(container.snapshot().singletonCacheSize).toBe(0);
+	});
+
+	it("throws SCOPE_DISPOSED from stateful APIs after disposal", async () => {
+		const postDisposeToken = createToken<number>("PostDisposeToken");
+		container.register({ provide: postDisposeToken, useValue: 1 });
+
+		await container.dispose();
+
+		const postDisposeOperations: Array<() => unknown> = [() => container.register({ provide: postDisposeToken, useValue: 2 }), () => container.createScope("post-dispose-child"), () => container.has(postDisposeToken), () => container.explain(postDisposeToken), () => container.snapshot(), () => container.validate(), () => container.getRegisteredTokens()];
+
+		for (const postDisposeOperation of postDisposeOperations) {
+			expect(postDisposeOperation).toThrow("Scope is already disposed");
+		}
 	});
 
 	it("disposes nested scope tree and runs each scope cleanup exactly once", async () => {
@@ -1146,6 +1198,50 @@ describe("DIContainer", () => {
 		).toThrow("Factory provider useFactory must be a function");
 	});
 
+	it("throws TOKEN_NOT_SYMBOL when provider token is not a symbol", () => {
+		try {
+			container.register({
+				provide: "invalid-token" as unknown as Token<number>,
+				useValue: 1,
+			});
+			expect.unreachable("register should throw when token is not a symbol");
+		} catch (error) {
+			expect(error).toBeInstanceOf(BaseError);
+			expect((error as BaseError).code).toBe("TOKEN_NOT_SYMBOL");
+			expect((error as Error).message).toContain("Token must be a symbol");
+		}
+	});
+
+	it("throws PROVIDER_INVALID_STRATEGY when provider defines multiple strategies", () => {
+		try {
+			container.register({
+				provide: InvalidFactoryToken,
+				useFactory: () => 1,
+				useValue: 1,
+			} as unknown as Provider);
+			expect.unreachable("register should throw when provider has multiple strategies");
+		} catch (error) {
+			expect(error).toBeInstanceOf(BaseError);
+			expect((error as BaseError).code).toBe("PROVIDER_INVALID_STRATEGY");
+			expect((error as Error).message).toContain("Provider must define exactly one strategy");
+		}
+	});
+
+	it("throws PROVIDER_DEPS_NOT_ARRAY when deps is not an array", () => {
+		try {
+			container.register({
+				deps: "invalid-deps" as unknown as ReadonlyArray<Token<unknown>>,
+				provide: InvalidClassToken,
+				useClass: ExampleService as unknown as new (...arguments_: Array<never>) => { id: string },
+			} as unknown as Provider);
+			expect.unreachable("register should throw when deps is not an array");
+		} catch (error) {
+			expect(error).toBeInstanceOf(BaseError);
+			expect((error as BaseError).code).toBe("PROVIDER_DEPS_NOT_ARRAY");
+			expect((error as Error).message).toContain("Provider deps must be an array");
+		}
+	});
+
 	it("validates provider runtime shape for constructable class providers", () => {
 		expect(() =>
 			container.register({
@@ -1205,6 +1301,54 @@ describe("DIContainer", () => {
 		expect(afterResolveSpy).toHaveBeenCalledTimes(2);
 	});
 
+	it("throws PROVIDER_HOOK_FAILED when onInit throws", () => {
+		container.register({
+			onInit: () => {
+				throw new Error("onInit exploded");
+			},
+			provide: HookedSingletonToken,
+			useFactory: () => ({ id: 1 }),
+		});
+
+		try {
+			container.resolve(HookedSingletonToken);
+			expect.unreachable("resolve should throw when onInit throws");
+		} catch (error) {
+			expect(error).toBeInstanceOf(BaseError);
+			expect((error as BaseError).code).toBe("PROVIDER_HOOK_FAILED");
+			expect((error as Error).message).toContain("Provider onInit hook failed");
+		}
+	});
+
+	it("throws PROVIDER_STALE_REGISTRATION when resolveAllAsync detects stale registration", async () => {
+		const staleResolveAllToken = createToken<string>("StaleResolveAll");
+		let releaseCreation: (() => void) | undefined;
+		const waitForRelease: Promise<void> = new Promise<void>((resolve: () => void) => {
+			releaseCreation = resolve;
+		});
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: staleResolveAllToken,
+			useFactory: async () => {
+				await waitForRelease;
+
+				return "first";
+			},
+		});
+		const pendingResolution: Promise<Array<string>> = container.resolveAllAsync(staleResolveAllToken);
+
+		await Promise.resolve();
+		container.register({
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			provide: staleResolveAllToken,
+			useFactory: async () => "second",
+		});
+		releaseCreation?.();
+		await expect(pendingResolution).rejects.toMatchObject({
+			code: "PROVIDER_STALE_REGISTRATION",
+		});
+	});
+
 	it("requires resolveAsync when onInit hook is async", async () => {
 		container.register({
 			onInit: async () => undefined,
@@ -1225,6 +1369,16 @@ describe("DIContainer", () => {
 
 		expect(() => container.resolve(AsyncAfterResolveToken)).toThrow("Provider afterResolve hook requires resolveAsync()");
 		await expect(container.resolveAsync(AsyncAfterResolveToken)).resolves.toBe(10);
+	});
+
+	it("returns isFound false from explain when token is not registered", () => {
+		const missingExplainToken = createToken<number>("MissingExplainToken");
+		const explanation = container.explain(missingExplainToken);
+
+		expect(explanation.isFound).toBe(false);
+		expect(explanation.dependencies).toEqual([]);
+		expect(explanation.lookupPath).toContain(container.id);
+		expect(explanation.token).toBe("Symbol(MissingExplainToken)");
 	});
 
 	it("returns diagnostics via explain and snapshot", () => {

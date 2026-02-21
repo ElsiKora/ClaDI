@@ -17,6 +17,7 @@ import { LookupCoordinator } from "@infrastructure/class/di/lookup/coordinator.c
 import { RegistrationCoordinator } from "@infrastructure/class/di/registration/coordinator.class";
 import { ResolutionCoordinator } from "@infrastructure/class/di/resolution/coordinator.class";
 import { ConsoleLoggerService } from "@infrastructure/service";
+import { toError } from "@infrastructure/utility/to-error.utility";
 
 /**
  * Advanced DI container with scoped and async resolution support.
@@ -107,7 +108,7 @@ export class DIContainer implements IDIContainer {
 		this.DISPOSER_COORDINATOR = new DisposerCoordinator({
 			logger: this.LOGGER,
 			stringifyKey: (dependencyKeySymbol: symbol): string => this.describeToken(dependencyKeySymbol),
-			toError: (error: unknown): Error => this.toError(error),
+			toError,
 		});
 		this.CHILD_SCOPES = new Set<DIContainer>();
 		this.DISPOSERS = [];
@@ -117,7 +118,7 @@ export class DIContainer implements IDIContainer {
 			logger: this.LOGGER,
 			resolveInterceptors: this.RESOLVE_INTERCEPTORS,
 			stringifyKey: (dependencyKeySymbol: symbol): string => this.describeToken(dependencyKeySymbol),
-			toError: (error: unknown): Error => this.toError(error),
+			toError,
 		});
 		this.disposePromise = undefined;
 		this.isDisposed = false;
@@ -166,7 +167,7 @@ export class DIContainer implements IDIContainer {
 			releaseSingletonCacheForScopeProviders: (): void => {
 				this.CACHE_COORDINATOR.removeSingletonCacheForOwnerRegistrations(this.ROOT_SINGLETON_CACHE, this, this.PROVIDERS);
 			},
-			toError: (error: unknown): Error => this.toError(error),
+			toError,
 			waitForInFlightAsyncResolutions: async (): Promise<void> => {
 				await this.DISPOSAL_MANAGER.waitForInFlightAsyncResolutions();
 			},
@@ -215,17 +216,31 @@ export class DIContainer implements IDIContainer {
 			findProvider: (requestScope: DIContainer, dependencyKeySymbol: symbol): IProviderLookup<DIContainer> => this.DEPENDENCY_GRAPH_COORDINATOR.findProvider(requestScope, dependencyKeySymbol),
 			getScopedCacheForLifecycle: (lifecycle: EDependencyLifecycle, requestScope: DIContainer, providerOwner: DIContainer): Map<symbol, unknown> | undefined => this.CACHE_COORDINATOR.getScopedCacheForLifecycle(lifecycle, requestScope.SCOPED_CACHE, this.ROOT_SINGLETON_CACHE, providerOwner),
 			isRegistrationCurrent: (ownerScope: DIContainer, dependencyKeySymbol: symbol, registration: IProviderRegistration<unknown>): boolean => this.isRegistrationCurrent(ownerScope, dependencyKeySymbol, registration),
-			registerDisposer: (disposerScope: DIContainer, provider: Provider, instance: unknown, dependencyKeySymbol: symbol): void => {
-				this.DISPOSER_COORDINATOR.registerDisposer(disposerScope, provider, instance, dependencyKeySymbol, {
-					getProviderDisposersByToken: (scopeNode: DIContainer, tokenSymbol: symbol): Array<() => Promise<void>> | undefined => scopeNode.DISPOSERS_BY_TOKEN.get(tokenSymbol),
-					pushDisposer: (scopeNode: DIContainer, disposer: () => Promise<void>): void => {
-						scopeNode.DISPOSERS.push(disposer);
+			registerDisposer: (
+				disposerScope: DIContainer,
+				provider: Provider,
+				instance: unknown,
+				dependencyKeySymbol: symbol,
+				registrationOptions?: {
+					shouldTrack?: boolean;
+				},
+			): (() => Promise<void>) | undefined =>
+				this.DISPOSER_COORDINATOR.registerDisposer(
+					disposerScope,
+					provider,
+					instance,
+					dependencyKeySymbol,
+					{
+						getProviderDisposersByToken: (scopeNode: DIContainer, tokenSymbol: symbol): Array<() => Promise<void>> | undefined => scopeNode.DISPOSERS_BY_TOKEN.get(tokenSymbol),
+						pushDisposer: (scopeNode: DIContainer, disposer: () => Promise<void>): void => {
+							scopeNode.DISPOSERS.push(disposer);
+						},
+						setProviderDisposersByToken: (scopeNode: DIContainer, tokenSymbol: symbol, providerDisposers: Array<() => Promise<void>>): void => {
+							scopeNode.DISPOSERS_BY_TOKEN.set(tokenSymbol, providerDisposers);
+						},
 					},
-					setProviderDisposersByToken: (scopeNode: DIContainer, tokenSymbol: symbol, providerDisposers: Array<() => Promise<void>>): void => {
-						scopeNode.DISPOSERS_BY_TOKEN.set(tokenSymbol, providerDisposers);
-					},
-				});
-			},
+					registrationOptions,
+				),
 			validateCaptiveDependency: (parentRegistration: IProviderRegistration<unknown>, dependencyToken: Token<unknown>, resolutionScope: DIContainer): void => {
 				this.DEPENDENCY_GRAPH_COORDINATOR.validateCaptiveDependency(parentRegistration, dependencyToken, resolutionScope);
 			},
@@ -446,13 +461,5 @@ export class DIContainer implements IDIContainer {
 		const currentRegistrations: Array<IProviderRegistration<unknown>> | undefined = ownerScope.PROVIDERS.get(tokenSymbol);
 
 		return currentRegistrations?.includes(registration) ?? false;
-	}
-
-	private toError(error: unknown): Error {
-		if (error instanceof Error) {
-			return error;
-		}
-
-		return new Error(String(error));
 	}
 }

@@ -36,7 +36,7 @@ export class BaseError extends Error implements IError {
 	 * @param {IBaseErrorOptions} options Error options.
 	 */
 	constructor(message: string, options: IBaseErrorOptions) {
-		super(message);
+		super(message, options.cause ? { cause: options.cause } : undefined);
 		this.name = this.constructor.name;
 		this.CAUSE = options.cause;
 		this.CODE = options.code;

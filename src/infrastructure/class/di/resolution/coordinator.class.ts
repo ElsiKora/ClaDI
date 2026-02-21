@@ -5,6 +5,7 @@ import type { IProviderLookup, IProviderRegistration } from "@infrastructure/cla
 
 import { EDependencyLifecycle, EProviderType } from "@domain/enum";
 import { BaseError } from "@infrastructure/class/base/error.class";
+import { toError } from "@infrastructure/utility/to-error.utility";
 
 export class ResolutionCoordinator {
 	private readonly ASSERT_KEY: <T>(dependencyKey: Token<T>) => symbol;
@@ -21,7 +22,15 @@ export class ResolutionCoordinator {
 
 	private readonly IS_REGISTRATION_CURRENT: (ownerScope: DIContainer, dependencyKeySymbol: symbol, registration: IProviderRegistration<unknown>) => boolean;
 
-	private readonly REGISTER_DISPOSER: (disposerScope: DIContainer, provider: Provider, instance: unknown, dependencyKeySymbol: symbol) => void;
+	private readonly REGISTER_DISPOSER: (
+		disposerScope: DIContainer,
+		provider: Provider,
+		instance: unknown,
+		dependencyKeySymbol: symbol,
+		options?: {
+			shouldTrack?: boolean;
+		},
+	) => (() => Promise<void>) | undefined;
 
 	private readonly VALIDATE_CAPTIVE_DEPENDENCY: (parentRegistration: IProviderRegistration<unknown>, dependencyToken: Token<unknown>, resolutionScope: DIContainer) => void;
 
@@ -33,7 +42,15 @@ export class ResolutionCoordinator {
 		findProvider: (requestScope: DIContainer, dependencyKeySymbol: symbol) => IProviderLookup<DIContainer>;
 		getScopedCacheForLifecycle: (lifecycle: EDependencyLifecycle, requestScope: DIContainer, providerOwner: DIContainer) => Map<symbol, unknown> | undefined;
 		isRegistrationCurrent: (ownerScope: DIContainer, dependencyKeySymbol: symbol, registration: IProviderRegistration<unknown>) => boolean;
-		registerDisposer: (disposerScope: DIContainer, provider: Provider, instance: unknown, dependencyKeySymbol: symbol) => void;
+		registerDisposer: (
+			disposerScope: DIContainer,
+			provider: Provider,
+			instance: unknown,
+			dependencyKeySymbol: symbol,
+			options?: {
+				shouldTrack?: boolean;
+			},
+		) => (() => Promise<void>) | undefined;
 		validateCaptiveDependency: (parentRegistration: IProviderRegistration<unknown>, dependencyToken: Token<unknown>, resolutionScope: DIContainer) => void;
 	}) {
 		this.ASSERT_KEY = options.assertKey;
@@ -124,9 +141,46 @@ export class ResolutionCoordinator {
 		});
 	}
 
+	private createLazyResolver(lazyDependencyKeySymbol: symbol, dependencyResolutionScope: DIContainer): () => Promise<unknown> {
+		const scopeReference: WeakRef<DIContainer> = new WeakRef<DIContainer>(dependencyResolutionScope);
+		const scopeId: string = dependencyResolutionScope.id;
+
+		return async (): Promise<unknown> => {
+			const resolutionScope: DIContainer | undefined = scopeReference.deref();
+
+			if (!resolutionScope) {
+				throw this.createLazyScopeDisposedError(lazyDependencyKeySymbol, scopeId);
+			}
+
+			try {
+				return await this.resolveAsyncInternal(lazyDependencyKeySymbol, resolutionScope, [], new Set<symbol>());
+			} catch (error) {
+				const normalizedError: Error = toError(error);
+
+				if (normalizedError instanceof BaseError && normalizedError.code === "SCOPE_DISPOSED") {
+					throw this.createLazyScopeDisposedError(lazyDependencyKeySymbol, scopeId, normalizedError);
+				}
+
+				throw normalizedError;
+			}
+		};
+	}
+
+	private createLazyScopeDisposedError(dependencyKeySymbol: symbol, scopeId: string, cause?: Error): BaseError {
+		return new BaseError("Lazy provider invoked after scope disposal", {
+			cause,
+			code: "LAZY_SCOPE_DISPOSED",
+			context: {
+				scopeId,
+				token: this.DESCRIBE_KEY(dependencyKeySymbol),
+			},
+			source: "DIContainer",
+		});
+	}
+
 	private createProviderHookFailedError(dependencyKeySymbol: symbol, hookName: "afterResolve" | "onInit", error: unknown): BaseError {
 		return new BaseError(`Provider ${hookName} hook failed`, {
-			cause: this.toError(error),
+			cause: toError(error),
 			code: "PROVIDER_HOOK_FAILED",
 			context: {
 				hook: hookName,
@@ -158,6 +212,10 @@ export class ResolutionCoordinator {
 		});
 	}
 
+	private getDisposerScope(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer): DIContainer {
+		return registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
+	}
+
 	private async instantiateAsync(registration: IProviderRegistration<unknown>, dependencyResolutionScope: DIContainer, path: Array<symbol>, visitedTokens: ReadonlySet<symbol>): Promise<unknown> {
 		if (registration.type === EProviderType.VALUE) {
 			return (registration.provider as IValueProvider<unknown>).useValue;
@@ -175,7 +233,7 @@ export class ResolutionCoordinator {
 			this.VALIDATE_CAPTIVE_DEPENDENCY(registration, lazyProvider.useLazy, dependencyResolutionScope);
 			const lazyDependencyKeySymbol: symbol = this.ASSERT_KEY(lazyProvider.useLazy);
 
-			return async (): Promise<unknown> => await this.resolveAsyncInternal(lazyDependencyKeySymbol, dependencyResolutionScope, [], new Set<symbol>());
+			return this.createLazyResolver(lazyDependencyKeySymbol, dependencyResolutionScope);
 		}
 
 		if (registration.type === EProviderType.CLASS) {
@@ -220,7 +278,7 @@ export class ResolutionCoordinator {
 			this.VALIDATE_CAPTIVE_DEPENDENCY(registration, lazyProvider.useLazy, dependencyResolutionScope);
 			const lazyDependencyKeySymbol: symbol = this.ASSERT_KEY(lazyProvider.useLazy);
 
-			return async (): Promise<unknown> => await this.resolveAsyncInternal(lazyDependencyKeySymbol, dependencyResolutionScope, [], new Set<symbol>());
+			return this.createLazyResolver(lazyDependencyKeySymbol, dependencyResolutionScope);
 		}
 
 		if (registration.type === EProviderType.CLASS) {
@@ -304,13 +362,21 @@ export class ResolutionCoordinator {
 						cache.delete(cacheKey);
 					}
 
+					await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
 					throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
 				}
 
-				await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+				try {
+					await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+				} catch (error) {
+					await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+					throw error;
+				}
 
 				cache.set(cacheKey, createdValue);
-				const disposerScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
+				const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
 				this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 				return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, createdValue);
@@ -324,7 +390,16 @@ export class ResolutionCoordinator {
 		}
 
 		const createdValue: unknown = await this.instantiateAsync(registration, dependencyResolutionScope, path, visitedTokens);
-		await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+
+		try {
+			await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+		} catch (error) {
+			await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+			throw error;
+		}
+		const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
+		this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 		return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, createdValue);
 	}
@@ -354,16 +429,30 @@ export class ResolutionCoordinator {
 				throw this.createStaleRegistrationError(providerOwner, dependencyKeySymbol);
 			}
 
-			this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+			try {
+				this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+			} catch (error) {
+				this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+				throw error;
+			}
 
 			cache.set(cacheKey, createdValue);
-			const disposerScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
+			const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
 			this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 			return this.invokeAfterResolveSync(registration, dependencyKeySymbol, createdValue);
 		}
 
-		this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+		try {
+			this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+		} catch (error) {
+			this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+			throw error;
+		}
+		const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
+		this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 		return this.invokeAfterResolveSync(registration, dependencyKeySymbol, createdValue);
 	}
@@ -399,13 +488,21 @@ export class ResolutionCoordinator {
 						cache.delete(cacheKey);
 					}
 
+					await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
 					return await this.resolveAsyncInternal(dependencyKeySymbol, requestScope, path, visitedTokens);
 				}
 
-				await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+				try {
+					await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+				} catch (error) {
+					await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+					throw error;
+				}
 
 				cache.set(cacheKey, createdValue);
-				const disposerScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
+				const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
 				this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 				return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, createdValue);
@@ -419,7 +516,16 @@ export class ResolutionCoordinator {
 		}
 
 		const createdValue: unknown = await this.instantiateAsync(registration, dependencyResolutionScope, nextPath, nextVisitedTokens);
-		await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+
+		try {
+			await this.invokeOnInitAsync(registration, dependencyKeySymbol, createdValue);
+		} catch (error) {
+			await this.tryDisposeAfterOnInitFailureAsync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+			throw error;
+		}
+		const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
+		this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 		return await this.invokeAfterResolveAsync(registration, dependencyKeySymbol, createdValue);
 	}
@@ -454,16 +560,30 @@ export class ResolutionCoordinator {
 				return this.resolveSyncInternal(dependencyKeySymbol, requestScope, path, visitedTokens);
 			}
 
-			this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+			try {
+				this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+			} catch (error) {
+				this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+				throw error;
+			}
 
 			cache.set(cacheKey, createdValue);
-			const disposerScope: DIContainer = registration.lifecycle === EDependencyLifecycle.SINGLETON ? providerOwner : requestScope;
+			const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
 			this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 			return this.invokeAfterResolveSync(registration, dependencyKeySymbol, createdValue);
 		}
 
-		this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+		try {
+			this.invokeOnInitSync(registration, dependencyKeySymbol, createdValue);
+		} catch (error) {
+			this.tryDisposeAfterOnInitFailureSync(registration, providerOwner, requestScope, dependencyKeySymbol, createdValue);
+
+			throw error;
+		}
+		const disposerScope: DIContainer = this.getDisposerScope(registration, providerOwner, requestScope);
+		this.REGISTER_DISPOSER(disposerScope, registration.provider, createdValue, dependencyKeySymbol);
 
 		return this.invokeAfterResolveSync(registration, dependencyKeySymbol, createdValue);
 	}
@@ -516,11 +636,33 @@ export class ResolutionCoordinator {
 		}
 	}
 
-	private toError(error: unknown): Error {
-		if (error instanceof Error) {
-			return error;
+	private async tryDisposeAfterOnInitFailureAsync(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer, dependencyKeySymbol: symbol, instance: unknown): Promise<void> {
+		const disposer: (() => Promise<void>) | undefined = this.REGISTER_DISPOSER(this.getDisposerScope(registration, providerOwner, requestScope), registration.provider, instance, dependencyKeySymbol, {
+			shouldTrack: false,
+		});
+
+		if (!disposer) {
+			return;
 		}
 
-		return new Error(String(error));
+		try {
+			await disposer();
+		} catch {
+			// Preserve the original onInit error if rollback cleanup fails.
+		}
+	}
+
+	private tryDisposeAfterOnInitFailureSync(registration: IProviderRegistration<unknown>, providerOwner: DIContainer, requestScope: DIContainer, dependencyKeySymbol: symbol, instance: unknown): void {
+		const disposer: (() => Promise<void>) | undefined = this.REGISTER_DISPOSER(this.getDisposerScope(registration, providerOwner, requestScope), registration.provider, instance, dependencyKeySymbol, {
+			shouldTrack: false,
+		});
+
+		if (!disposer) {
+			return;
+		}
+
+		void disposer().catch(() => {
+			// Preserve the original onInit error if rollback cleanup fails.
+		});
 	}
 }

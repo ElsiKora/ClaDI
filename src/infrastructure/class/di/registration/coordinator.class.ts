@@ -5,6 +5,10 @@ import type { IProviderRegistration } from "@infrastructure/class/di/interface/p
 import { EDependencyLifecycle, EDiContainerDuplicateProviderPolicy, EProviderType } from "@domain/enum";
 import { BaseError } from "@infrastructure/class/base/error.class";
 
+const ASYNC_FUNCTION_PROTOTYPE: object = Object.getPrototypeOf(async function asyncFactoryPrototypeMarker(): Promise<void> {
+	await Promise.resolve();
+}) as object;
+
 export class RegistrationCoordinator {
 	private readonly ASSERT_KEY: <T>(dependencyKey: Token<T>) => symbol;
 
@@ -193,7 +197,7 @@ export class RegistrationCoordinator {
 	}
 
 	private isAsyncFactoryFunction(factoryFunction: (...arguments_: Array<never>) => unknown): boolean {
-		return factoryFunction.constructor.name === "AsyncFunction";
+		return Object.getPrototypeOf(factoryFunction) === ASYNC_FUNCTION_PROTOTYPE;
 	}
 
 	private isConstructable(candidate: unknown): boolean {

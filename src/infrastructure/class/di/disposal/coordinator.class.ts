@@ -91,12 +91,44 @@ export class DisposalCoordinator<TScope extends { dispose: () => Promise<void> }
 		this.DETACH_FROM_PARENT();
 
 		if (disposalErrors.length > 0) {
+			const serializedErrors: Array<{
+				code?: string;
+				context?: Record<string, unknown>;
+				message: string;
+				name: string;
+				source?: string;
+				stack?: string;
+			}> = disposalErrors.map((error: unknown) => {
+				const normalizedError: Error = this.TO_ERROR(error);
+
+				const serializedError: {
+					code?: string;
+					context?: Record<string, unknown>;
+					message: string;
+					name: string;
+					source?: string;
+					stack?: string;
+				} = {
+					message: normalizedError.message,
+					name: normalizedError.name,
+					stack: normalizedError.stack,
+				};
+
+				if (normalizedError instanceof BaseError) {
+					serializedError.code = normalizedError.code;
+					serializedError.context = normalizedError.context;
+					serializedError.source = normalizedError.source;
+				}
+
+				return serializedError;
+			});
+
 			throw new BaseError("Scope disposed with cleanup errors", {
 				cause: this.TO_ERROR(disposalErrors[0]),
 				code: "SCOPE_DISPOSE_CLEANUP_FAILED",
 				context: {
 					errorCount: disposalErrors.length,
-					errors: disposalErrors.map((error: unknown) => this.TO_ERROR(error).message),
+					errors: serializedErrors,
 					scopeId: this.GET_SCOPE_ID(),
 				},
 				source: "DIContainer",

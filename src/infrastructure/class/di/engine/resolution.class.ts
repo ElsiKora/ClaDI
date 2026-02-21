@@ -1,5 +1,7 @@
 import type { Token } from "@domain/type";
 
+import { toError } from "@infrastructure/utility/to-error.utility";
+
 export class ResolutionEngine {
 	private readonly ASSERT_KEY: <T>(dependencyKey: Token<T>) => symbol;
 
@@ -70,7 +72,7 @@ export class ResolutionEngine {
 
 			return resolvedValue;
 		} catch (error) {
-			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, false, false, scopeId, this.toError(error));
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, false, false, scopeId, toError(error));
 
 			throw error;
 		}
@@ -89,7 +91,7 @@ export class ResolutionEngine {
 
 			return resolvedValues;
 		} catch (error) {
-			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, true, false, scopeId, this.toError(error));
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, true, false, scopeId, toError(error));
 
 			throw error;
 		}
@@ -109,7 +111,7 @@ export class ResolutionEngine {
 
 			return resolvedValues;
 		} catch (error) {
-			this.NOTIFY_ON_ERROR(dependencyKeySymbol, true, true, false, scopeId, this.toError(error));
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, true, true, false, scopeId, toError(error));
 
 			throw error;
 		} finally {
@@ -131,7 +133,7 @@ export class ResolutionEngine {
 
 			return resolvedValue;
 		} catch (error) {
-			this.NOTIFY_ON_ERROR(dependencyKeySymbol, true, false, false, scopeId, this.toError(error));
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, true, false, false, scopeId, toError(error));
 
 			throw error;
 		} finally {
@@ -158,17 +160,9 @@ export class ResolutionEngine {
 
 			return resolvedValue;
 		} catch (error) {
-			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, false, true, scopeId, this.toError(error));
+			this.NOTIFY_ON_ERROR(dependencyKeySymbol, false, false, true, scopeId, toError(error));
 
 			throw error;
 		}
-	}
-
-	private toError(error: unknown): Error {
-		if (error instanceof Error) {
-			return error;
-		}
-
-		return new Error(String(error));
 	}
 }
