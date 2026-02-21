@@ -1,3 +1,11 @@
+# [2.1.0](https://github.com/ElsiKora/ClaDI/compare/v2.0.2...v2.1.0) (2026-02-21)
+
+
+### Features
+
+* **container:** add advanced container operations and decorator modules ([3bcd8aa](https://github.com/ElsiKora/ClaDI/commit/3bcd8aa4f761c506d7ae3f4fbf72b98e07712f9f))
+* **di:** add async optional resolution and scope creation options ([72b4dac](https://github.com/ElsiKora/ClaDI/commit/72b4dac721e8486588f1c1e2f99ef61c58d4fda9))
+
 ## [2.0.2](https://github.com/ElsiKora/ClaDI/compare/v2.0.1...v2.0.2) (2025-04-08)
 
 ## [2.0.1](https://github.com/ElsiKora/ClaDI/compare/v2.0.0...v2.0.1) (2025-04-08)
