@@ -13,7 +13,7 @@ export default defineConfig({
 		environment: "node",
 		exclude: ["node_modules/**/*"],
 		globals: true,
-		include: ["test/unit/**/*.test.ts"],
+		include: ["test/contract/**/*.test.ts", "test/perf/**/*.test.ts", "test/unit/**/*.test.ts"],
 		root: ".",
 		testTimeout: 10_000,
 		watch: false,

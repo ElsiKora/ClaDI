@@ -1,7 +1,8 @@
 import type { IConsoleLoggerOptions } from "@infrastructure/interface";
 
 import { ELoggerLogLevel } from "@domain/enum";
-import { CONSOLE_LOGGER_DEFAULT_OPTIONS, ConsoleLoggerService } from "src";
+import { CONSOLE_LOGGER_DEFAULT_OPTIONS } from "@infrastructure/constant";
+import { ConsoleLoggerService } from "@infrastructure/service";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Helper to check formatted message structure (adjust regex as needed for exact format)

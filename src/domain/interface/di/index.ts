@@ -1,0 +1,12 @@
+export type { IAliasProvider } from "./alias-provider.interface";
+export type { IClassProvider } from "./class-provider.interface";
+export type { IContainerSnapshot } from "./container-snapshot.interface";
+export type { IFactoryProvider } from "./factory-provider.interface";
+export type { ILazyProvider } from "./lazy-provider.interface";
+export type { IDiModule as IDIModule } from "./module.interface";
+export type { IProviderBase } from "./provider-base.interface";
+export type { IResolutionExplanation } from "./resolution-explanation.interface";
+export type { IResolveInterceptor } from "./resolve-interceptor.interface";
+export type { IDiResolver as IDIResolver } from "./resolver.interface";
+export type { IDiScope as IDIScope } from "./scope.interface";
+export type { IValueProvider } from "./value-provider.interface";

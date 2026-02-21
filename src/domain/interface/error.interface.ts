@@ -6,15 +6,20 @@ export interface IError extends Error {
 	/**
 	 * Original error that caused this error, if any.
 	 */
-	CAUSE?: Error;
+	cause?: Error;
 
 	/**
 	 * Error code to uniquely identify error types.
 	 */
-	CODE: string;
+	code: string;
 
 	/**
 	 * Additional context about the error.
 	 */
 	context?: Record<string, unknown>;
+
+	/**
+	 * Source identifier where the error originated.
+	 */
+	source?: string;
 }

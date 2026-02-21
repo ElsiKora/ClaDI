@@ -1,59 +1,88 @@
-import { unstable_TSDoc as TSDoc } from 'nextra/tsdoc'
+import { unstable_TSDoc as TSDoc } from "nextra/tsdoc";
 
 # Interfaces
 
-This page details the core interfaces used throughout the library.
+This page groups the primary exported contracts used for container setup, providers, logging, and error handling.
 
-## Core Component Interfaces
+## Container Contracts
 
-### `IContainer`
+### `IDIContainer`, `IDIScope`, `IDIResolver`
 
-Defines the contract for a dependency injection container.
-*Defined in: `src/domain/interface/container.interface.ts`*
+<TSDoc
+	code={`import type { IDIContainer, IDIScope, IDIResolver } from "@elsikora/cladi";
+export interface ContainerContracts {
+  container: IDIContainer;
+  scope: IDIScope;
+  resolver: IDIResolver;
+}
+export default ContainerContracts`}
+/>
 
-<TSDoc code={`import type { IContainer } from '@elsikora/cladi';
-export default IContainer`} />
+### `IDIContainerOptions`
 
-*(See Core Concepts: [Container Pattern](/docs/cladi/core-concepts/container))*
+<TSDoc
+	code={`import type { IDIContainerOptions } from "@elsikora/cladi";
+export default IDIContainerOptions`}
+/>
 
-### `IRegistry<T>`
+### `IResolveInterceptor`
 
-Defines the contract for a registry storing items of type `T`, where `T` must have a `name: string` property.
-*Defined in: `src/domain/interface/registry.interface.ts`*
+<TSDoc
+	code={`import type { IResolveInterceptor } from "@elsikora/cladi";
+export default IResolveInterceptor`}
+/>
 
-<TSDoc code={`import type { IRegistry } from '@elsikora/cladi';
-export default IRegistry`} />
+## Provider Contracts
 
-*(See Core Concepts: [Registry Pattern](/docs/cladi/core-concepts/registry))*
+### `Provider` and `Token<T>`
 
-### `IFactory<T>`
+<TSDoc
+	code={`import type { Provider, Token } from "@elsikora/cladi";
+export interface ProviderReference {
+  provider: Provider;
+  token: Token<unknown>;
+}
+export default ProviderReference`}
+/>
 
-Defines the contract for a factory creating items of type `T`.
-*Defined in: `src/domain/interface/factory.interface.ts`*
+### `ILazyProvider`
 
-<TSDoc code={`import type { IFactory } from '@elsikora/cladi';
-export default IFactory`} />
+<TSDoc
+	code={`import type { ILazyProvider } from "@elsikora/cladi";
+export default ILazyProvider`}
+/>
 
-*(See Core Concepts: [Factory Pattern](/docs/cladi/core-concepts/factory))*
+## Logging and Errors
 
-### `ILogger`
+### `ILogger` and `ILoggerMethodOptions`
 
-Defines the contract for a logging service.
-*Defined in: `src/domain/interface/logger/interface.ts`*
+<TSDoc
+	code={`import type { ILogger, ILoggerMethodOptions } from "@elsikora/cladi";
+export interface LoggerContracts {
+  logger: ILogger;
+  options: ILoggerMethodOptions;
+}
+export default LoggerContracts`}
+/>
 
-<TSDoc code={`import type { ILogger, ILoggerMethodOptions } from '@elsikora/cladi';
-// We need to export both ILogger and ILoggerMethodOptions if ILogger references it
-export interface ProcessedLogger extends ILogger {} // Helper to ensure ILoggerMethodOptions is picked up if referenced
-export default ProcessedLogger`} />
+### `IError` and `IBaseErrorOptions`
 
-*(See Services: [Logging Service](/docs/cladi/services/logging))*
+<TSDoc
+	code={`import type { IError, IBaseErrorOptions } from "@elsikora/cladi";
+export interface ErrorContracts {
+  error: IError;
+  options: IBaseErrorOptions;
+}
+export default ErrorContracts`}
+/>
 
-### `IError`
+### `IConsoleLoggerOptions` and `ICoreFactoryOptions`
 
-Extends the standard `Error` interface with additional structured properties.
-*Defined in: `src/domain/interface/error.interface.ts`*
-
-<TSDoc code={`import type { IError } from '@elsikora/cladi';
-export default IError`} />
-
-*(See Core Concepts: [Error Handling](/docs/cladi/core-concepts/error-handling))*
+<TSDoc
+	code={`import type { IConsoleLoggerOptions, ICoreFactoryOptions } from "@elsikora/cladi";
+export interface InfraFactoryContracts {
+  logger: IConsoleLoggerOptions;
+  factory: ICoreFactoryOptions;
+}
+export default InfraFactoryContracts`}
+/>

@@ -1,18 +1,24 @@
 ---
-title: Cladi
+title: ClaDI
 asIndexPage: true
 ---
 
-# Introduction
+# Documentation
 
-Welcome to the documentation for the ClaDI - TypeScript Core Utilities library.
+ClaDI is a zero-dependency TypeScript toolkit for modular dependency injection and composition-root architecture.
 
-This library provides a set of foundational classes and interfaces for building robust applications, focusing on dependency injection, registry patterns, factories, and standardized logging and error handling.
+## What You Get
 
-Explore the sections to learn how to leverage these core components:
+- Typed contracts via `createToken<T>()`
+- Provider-based composition (`useValue`, `useClass`, `useFactory`, `useExisting`, `useLazy`)
+- Scope-aware lifecycles (`singleton`, `scoped`, `transient`)
+- Runtime diagnostics (`validate`, `explain`, `snapshot`)
+- Optional ergonomics for modules and decorators
 
-- **Getting Started**: Quick guide to ClaDI installation and basic setup.
-- **Core Concepts**: Understand the fundamental patterns like Container, Registry, Factory, and Error handling.
-- **Services**: Learn about available services like the Console Logger.
-- **Utilities**: Discover helper functions for creating core components.
-- **API Reference**: Detailed reference for all public interfaces, classes, and enums. 
+## Documentation Map
+
+- **Getting Started** - install, bootstrap, and first composition root
+- **Core Concepts** - container behavior, provider patterns, and architecture guidance
+- **Utilities** - helper APIs for container/token/provider/logging setup
+- **Services** - logger contracts and implementation
+- **API Reference** - exported enums and interfaces

@@ -6,13 +6,29 @@ import type { IBaseErrorOptions } from "@infrastructure/interface";
  * @see {@link https://elsikora.com/docs/cladi/core-concepts/error-handling}
  */
 export class BaseError extends Error implements IError {
-	public readonly CAUSE?: Error;
+	public get cause(): Error | undefined {
+		return this.CAUSE;
+	}
 
-	public readonly CODE: string;
+	public get code(): string {
+		return this.CODE;
+	}
 
-	public readonly CONTEXT?: Record<string, unknown>;
+	public get context(): Record<string, unknown> | undefined {
+		return this.CONTEXT;
+	}
 
-	public readonly SOURCE?: string;
+	public get source(): string | undefined {
+		return this.SOURCE;
+	}
+
+	private readonly CAUSE?: Error;
+
+	private readonly CODE: string;
+
+	private readonly CONTEXT?: Record<string, unknown>;
+
+	private readonly SOURCE?: string;
 
 	/**
 	 * Creates a new base error.

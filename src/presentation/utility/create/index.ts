@@ -1,4 +1,4 @@
-export { createContainer } from "./container.utility";
-export { createFactory } from "./factory.utility";
+export { createDIContainer } from "./di-container.utility";
+export { createLazyProvider } from "./lazy-provider.utility";
 export { createLogger } from "./logger.utility";
-export { createRegistry } from "./registry.utility";
+export { createToken } from "./token.utility";

@@ -1,42 +1,271 @@
+<a id="top"></a>
+
 <p align="center">
-  <img src="https://6jft62zmy9nx2oea.public.blob.vercel-storage.com/cladi-eBDDJPOc5fj21RO45PzAwrdkkqGCHi.png" width="500" alt="project-logo">
+  <img src="https://6jft62zmy9nx2oea.public.blob.vercel-storage.com/cladi-eBDDJPOc5fj21RO45PzAwrdkkqGCHi.png" width="700" alt="project-logo">
 </p>
 
-<h1 align="center">ClaDI 🧩</h1>
-<p align="center"><em>ClaDI is a library for creating and managing classes in TypeScript</em></p>
+<h1 align="center">🏗️ ClaDI</h1>
+<p align="center"><em>A zero-dependency TypeScript dependency injection toolkit for composition-root architecture and clean, modular applications</em></p>
 
 <p align="center">
     <a aria-label="ElsiKora logo" href="https://elsikora.com">
   <img src="https://img.shields.io/badge/MADE%20BY%20ElsiKora-333333.svg?style=for-the-badge" alt="ElsiKora">
-</a> <img src="https://img.shields.io/badge/typescript-blue.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="typescript"> <img src="https://img.shields.io/badge/npm-red.svg?style=for-the-badge&logo=npm&logoColor=white" alt="npm"> <img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=for-the-badge&logo=license&logoColor=white" alt="license-MIT"> <img src="https://img.shields.io/badge/Node.js-green.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"> <img src="https://img.shields.io/badge/ESM-orange.svg?style=for-the-badge&logo=javascript&logoColor=white" alt="ESM"> <img src="https://img.shields.io/badge/CJS-teal.svg?style=for-the-badge&logo=javascript&logoColor=white" alt="CJS"> <img src="https://img.shields.io/badge/zero-deps-brightgreen.svg?style=for-the-badge&logo=checkmarx&logoColor=white" alt="zero-deps">
+</a> <img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"> <img src="https://img.shields.io/badge/Node.js-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"> <img src="https://img.shields.io/badge/npm-CB3837.svg?style=for-the-badge&logo=npm&logoColor=white" alt="npm"> <img src="https://img.shields.io/badge/Rollup-EC4A3F.svg?style=for-the-badge&logo=rollup&logoColor=white" alt="Rollup"> <img src="https://img.shields.io/badge/Vitest-6E9F18.svg?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest"> <img src="https://img.shields.io/badge/ESLint-4B32C3.svg?style=for-the-badge&logo=eslint&logoColor=white" alt="ESLint"> <img src="https://img.shields.io/badge/Prettier-F7B93E.svg?style=for-the-badge&logo=prettier&logoColor=black" alt="Prettier"> <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF.svg?style=for-the-badge&logo=github-actions&logoColor=white" alt="GitHub Actions">
 </p>
 
+## 💡 Highlights
+
+- 🪶 Zero runtime dependencies — the entire DI container ships at minimal bundle cost with no transitive dependency risk
+- 🔒 Fully type-safe tokens via `createToken<T>()` — dependency mismatches are caught at compile time, not runtime
+- 🧩 Scope-aware lifecycles with deterministic disposal — singleton, scoped, and transient providers with automatic cleanup in correct order
+- 🏛️ Clean Architecture native — domain and application layers never import DI APIs; only the composition root touches the container
 
 ## 📚 Table of Contents
+
 - [Description](#-description)
+- [Tech Stack](#-tech-stack)
 - [Features](#-features)
+- [Architecture](#-architecture)
+- [Project Structure](#-project-structure)
+- [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [API Quick Reference](#-api-quick-reference)
+- [Production Bootstrap](#-production-bootstrap)
+- [Common Pitfalls](#-common-pitfalls)
 - [Roadmap](#-roadmap)
 - [FAQ](#-faq)
 - [License](#-license)
-
+- [Acknowledgments](#-acknowledgments)
 
 ## 📖 Description
-ClaDI is a powerful TypeScript library that provides a robust foundation for building scalable applications through class-based dependency injection. With ClaDI, you can easily create, manage, and organize your application's classes and dependencies with a clean, modular architecture. The library offers a comprehensive set of tools for class instantiation, dependency registration, and lifecycle management, making it ideal for both small projects and enterprise-level applications. Whether you're building a simple utility or a complex system, ClaDI helps establish a solid architectural foundation with minimal overhead.
+
+ClaDI (Class Dependency Injection) is a production-grade, zero-dependency TypeScript library that provides a complete dependency injection container with scope-aware lifecycles, typed tokens, and deterministic cleanup.
+
+Unlike heavyweight DI frameworks that rely on decorators, reflection metadata, or runtime magic, ClaDI embraces **explicit composition roots** — giving you full control over how your dependency graph is assembled, resolved, and disposed.
+
+### Real-World Use Cases
+
+- **Backend Services**: Wire up HTTP handlers, database connections, and middleware with request-scoped isolation. Each incoming request gets its own scope with automatic cleanup.
+- **CLI Tools**: Parse arguments, register them as scoped values, resolve command handlers, and dispose cleanly after execution.
+- **Microservices**: Manage singleton adapters (database pools, message queues) alongside per-job transient workers with lifecycle guarantees.
+- **Modular Monoliths**: Use the module system (`composeModules`) to define bounded contexts with explicit export contracts — no accidental cross-boundary coupling.
+- **Testing**: Swap out any provider at any scope level without touching production code. The typed token system catches mismatches at compile time.
+
+ClaDI ships with **5 provider strategies** (`useValue`, `useClass`, `useFactory`, `useExisting`, `useLazy`), **3 lifecycle modes** (`singleton`, `scoped`, `transient`), built-in **circular dependency detection**, **captive dependency warnings**, and full **async resolution** support — all in a package with zero runtime dependencies.
+
+## 🛠️ Tech Stack
+
+| Category            | Technologies                     |
+| ------------------- | -------------------------------- |
+| **Language**        | TypeScript                       |
+| **Runtime**         | Node.js                          |
+| **Build Tool**      | Rollup                           |
+| **Testing**         | Vitest                           |
+| **Linting**         | ESLint, Prettier                 |
+| **CI/CD**           | GitHub Actions, Semantic Release |
+| **Package Manager** | npm                              |
+| **Documentation**   | MDX, Nextra                      |
 
 ## 🚀 Features
-- ✨ **🚀 Zero dependencies - Lightweight footprint with no external runtime dependencies**
-- ✨ **📦 Registry system - Store, retrieve, and manage class templates efficiently**
-- ✨ **🏭 Factory pattern - Create class instances with automatic deep cloning**
-- ✨ **💉 Dependency injection - Simple yet powerful container for managing application services**
-- ✨ **🔄 Caching mechanism - Performance optimization for frequently used classes**
-- ✨ **🧩 Modular architecture - Clean separation of concerns with domain, infrastructure, and presentation layers**
-- ✨ **📝 Comprehensive logging - Built-in logging system with multiple log levels and context support**
-- ✨ **🔌 Multiple format support - Works with both ESM and CommonJS module systems**
-- ✨ **✅ Fully tested - Extensive unit and E2E test coverage ensures reliability**
+
+- ✨ **Typed Token System** — `createToken<T>()` produces branded symbols that carry type information through the entire resolution chain, eliminating `any` casts and runtime type errors
+- ✨ **5 Provider Strategies** — `useValue`, `useClass`, `useFactory`, `useExisting` (alias), and `useLazy` (deferred async) cover common dependency wiring patterns
+- ✨ **Scope-Aware Lifecycles** — Singleton (process-wide), Scoped (per-request/job), and Transient (per-resolve) with deterministic cache semantics
+- ✨ **Hierarchical Scope Tree** — Child scopes inherit parent registrations, can add local overrides, and dispose independently without affecting siblings
+- ✨ **Async Resolution Pipeline** — `resolveAsync()` handles async factories, deduplicates concurrent singleton creation, and tracks in-flight resolutions during disposal
+- ✨ **Lifecycle Hooks** — `onInit`, `afterResolve`, and `onDispose` hooks per provider for warmup, instrumentation, and cleanup
+- ✨ **Multi-Binding Support** — Register multiple implementations for a single token and resolve all with `resolveAll()` / `resolveAllAsync()`
+- ✨ **Circular Dependency Detection** — Detected both at resolution time and proactively via `validate()` at startup
+- ✨ **Captive Dependency Guard** — Warns or errors when a singleton captures a scoped dependency, preventing subtle lifecycle bugs
+- ✨ **Module System** — `createModule()` and `composeModules()` enable declarative, bounded-context module composition with explicit export contracts
+- ✨ **Decorator Support** — Optional `@Injectable()` and `@Inject()` decorators for class-based DI without requiring `reflect-metadata`
+- ✨ **Runtime Diagnostics** — `explain(token)` shows resolution path and cache state; `snapshot()` provides full container introspection
+- ✨ **Deterministic Disposal** — `dispose()` waits for in-flight async resolutions, runs disposers in reverse order, and supports `Symbol.dispose` / `Symbol.asyncDispose`
+- ✨ **Resolve Interceptors** — Hook into every resolution with `onStart`, `onSuccess`, and `onError` callbacks for logging, metrics, or tracing
+- ✨ **Safe Deep Clone Utility** — `safeDeepClone()` handles circular references, functions, Maps, Sets, and class instances unlike `structuredClone`
+
+## 🏗 Architecture
+
+### System Architecture
+
+```mermaid
+flowchart TD
+    presentation[Presentation Layer]
+    application[Application Layer]
+    domain[Domain Layer]
+    infrastructure[Infrastructure Layer]
+
+    presentation --> application
+    presentation --> infrastructure
+    application --> domain
+    infrastructure --> domain
+
+    presentation --- ergonomics[Ergonomics]
+    presentation --- utilities[Create Utilities]
+    ergonomics --- decorators[Decorators]
+    ergonomics --- modules[Module Composer]
+
+    infrastructure --- diContainer[DI Container]
+    infrastructure --- coreFactory[Core Factory]
+    infrastructure --- loggerService[Console Logger]
+
+    diContainer --- cacheCoord[Cache Coordinator]
+    diContainer --- resolutionEngine[Resolution Engine]
+    diContainer --- registrationCoord[Registration Coordinator]
+    diContainer --- disposalCoord[Disposal Coordinator]
+
+    domain --- tokens[Tokens and Types]
+    domain --- enums[Enums]
+    domain --- interfaces[Contracts]
+```
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Container as DI Container
+    participant Registry as Registration Coordinator
+    participant Engine as Resolution Engine
+    participant Cache as Cache Coordinator
+    participant Disposal as Disposal Coordinator
+
+    App->>Container: createDIContainer(options)
+    App->>Container: register(provider)
+    Container->>Registry: registerProvider(provider)
+    Registry->>Registry: validate provider shape
+    Registry->>Container: store registration
+
+    App->>Container: validate()
+    Container->>Container: walk dependency graph
+
+    App->>Container: resolve(token)
+    Container->>Engine: resolve(tokenSymbol)
+    Engine->>Container: findProvider(scope, key)
+    Container->>Cache: getScopedCacheForLifecycle()
+    alt Cache Hit
+        Cache-->>Engine: cached instance
+    else Cache Miss
+        Engine->>Engine: instantiate provider
+        Engine->>Engine: run onInit hook
+        Engine->>Cache: store in cache
+        Engine->>Disposal: register disposer
+    end
+    Engine->>Engine: run afterResolve hook
+    Engine-->>App: resolved instance
+
+    App->>Container: dispose()
+    Container->>Disposal: disposeInternal()
+    Disposal->>Disposal: wait for in-flight async
+    Disposal->>Disposal: dispose child scopes
+    Disposal->>Disposal: run disposers in reverse
+    Disposal->>Cache: clear all caches
+```
+
+## 📁 Project Structure
+
+<details>
+<summary>Click to expand</summary>
+
+```
+ClaDI/
+├── .github/
+│   ├── workflows/
+│   │   ├── mirror-docs-to-docviewer.yml
+│   │   ├── mirror-to-codecommit.yml
+│   │   ├── qodana-quality-scan.yml
+│   │   ├── release.yml
+│   │   ├── snyk-security-scan.yml
+│   │   └── test.yml
+│   └── dependabot.yml
+├── docs/
+│   ├── api-reference/
+│   │   ├── enums/
+│   │   ├── interfaces/
+│   │   ├── _meta.js
+│   │   └── page.mdx
+│   ├── core-concepts/
+│   │   ├── advanced-di/
+│   │   ├── clean-architecture-playbook/
+│   │   ├── container/
+│   │   ├── error-handling/
+│   │   ├── factory/
+│   │   ├── registry/
+│   │   ├── _meta.js
+│   │   └── page.mdx
+│   ├── getting-started/
+│   │   ├── _meta.js
+│   │   ├── composition-root-checklist.mdx
+│   │   └── page.mdx
+│   ├── services/
+│   │   ├── logging/
+│   │   ├── _meta.js
+│   │   └── page.mdx
+│   ├── utilities/
+│   │   ├── creation-helpers/
+│   │   ├── _meta.js
+│   │   └── page.mdx
+│   ├── _meta.js
+│   └── page.mdx
+├── src/
+│   ├── application/
+│   │   └── utility/
+│   ├── domain/
+│   │   ├── enum/
+│   │   ├── interface/
+│   │   ├── type/
+│   │   └── index.ts
+│   ├── infrastructure/
+│   │   ├── class/
+│   │   ├── constant/
+│   │   ├── factory/
+│   │   ├── interface/
+│   │   ├── service/
+│   │   └── index.ts
+│   ├── presentation/
+│   │   ├── ergonomics/
+│   │   └── utility/
+│   └── index.ts
+├── test/
+│   ├── contract/
+│   │   └── di-container.contract.test.ts
+│   ├── e2e/
+│   │   └── core-integration.e2e.test.ts
+│   ├── perf/
+│   │   └── di-container.perf.test.ts
+│   └── unit/
+│       ├── application/
+│       ├── ergonomics/
+│       ├── infrastructure/
+│       └── presentation/
+├── CHANGELOG.md
+├── commitlint.config.js
+├── eslint.config.js
+├── LICENSE
+├── lint-staged.config.js
+├── package-lock.json
+├── package.json
+├── prettier.config.js
+├── release.config.js
+├── rollup.config.js
+├── rollup.test.config.js
+├── tsconfig.build.json
+├── tsconfig.json
+├── vitest.e2e.config.js
+└── vitest.unit.config.js
+```
+
+</details>
+
+## 📋 Prerequisites
+
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+- TypeScript >= 5.0.0 (for development)
 
 ## 🛠 Installation
+
 ```bash
 # Using npm
 npm install @elsikora/cladi
@@ -51,275 +280,375 @@ pnpm add @elsikora/cladi
 bun add @elsikora/cladi
 ```
 
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/ElsiKora/ClaDI.git
+cd ClaDI
+
+# Install dependencies
+npm install
+
+# Build the project (ESM + CJS dual output)
+npm run build
+
+# Run all tests
+npm run test:all
+
+# Run linting
+npm run lint:all
+```
+
 ## 💡 Usage
-## Basic Usage
 
-The following example demonstrates how to create and use the core components of ClaDI:
+### Quick Start — Your First Composition Root
 
 ```typescript
-import { createContainer, createFactory, createLogger, createRegistry, ELoggerLogLevel } from '@elsikora/cladi';
+import { createDIContainer, createToken, EDependencyLifecycle } from "@elsikora/cladi";
 
-// Define a simple model with required 'name' property
-interface User {
-  name: string;
-  email: string;
-  role: string;
+// 1. Define typed tokens
+const ConfigToken = createToken<{ apiUrl: string }>("Config");
+const HttpClientToken = createToken<{ get(path: string): Promise<unknown> }>("HttpClient");
+
+// 2. Create the container
+const container = createDIContainer({ scopeName: "root" });
+
+// 3. Register providers
+container.register({
+	provide: ConfigToken,
+	useValue: { apiUrl: "https://api.example.com" },
+});
+
+container.register({
+	provide: HttpClientToken,
+	lifecycle: EDependencyLifecycle.SCOPED,
+	deps: [ConfigToken],
+	useFactory: (config) => ({
+		get: async (path: string) => fetch(`${config.apiUrl}${path}`).then((r) => r.json()),
+	}),
+});
+
+// 4. Validate at startup
+container.validate();
+
+// 5. Resolve dependencies
+const http = container.resolve(HttpClientToken);
+```
+
+---
+
+### Request-Scoped Resolution
+
+```typescript
+async function handleRequest(requestId: string) {
+	const scope = container.createScope("request");
+
+	try {
+		// Register request-specific context
+		const RequestIdToken = createToken<string>("RequestId");
+		scope.register({ provide: RequestIdToken, useValue: requestId });
+
+		// Resolve scoped services
+		const http = scope.resolve(HttpClientToken);
+		return await http.get("/data");
+	} finally {
+		// Always dispose the scope
+		await scope.dispose();
+	}
 }
-
-// Create a logger
-const logger = createLogger({ 
-  level: ELoggerLogLevel.DEBUG,
-  source: 'UserModule' 
-});
-
-// Create a registry to store user templates
-const registry = createRegistry<User>({ logger });
-
-// Register user templates
-registry.register({ name: 'admin', email: 'admin@example.com', role: 'admin' });
-registry.register({ name: 'user', email: 'user@example.com', role: 'user' });
-
-// Create a factory to instantiate users from templates
-const factory = createFactory<User>({ registry, logger });
-
-// Create a user instance (returns a deep clone of the template)
-const adminUser = factory.create('admin');
-console.log(adminUser); // { name: 'admin', email: 'admin@example.com', role: 'admin' }
-
-// Modify instance (won't affect the original template)
-adminUser.email = 'new-admin@example.com';
 ```
 
-## Dependency Injection Container
+---
 
-Use the container to manage application services:
+### Lazy Providers (Deferred Resolution)
 
 ```typescript
-import { createContainer, ELoggerLogLevel, type ILogger } from '@elsikora/cladi';
+import { createLazyProvider, createToken } from "@elsikora/cladi";
 
-// Create symbols for service identification
-const LoggerToken = Symbol('Logger');
-const DatabaseToken = Symbol('Database');
+const DbToken = createToken<Database>("Database");
+const LazyDbToken = createToken<() => Promise<Database>>("LazyDatabase");
 
-// Create a container
-const container = createContainer({});
-
-// Register services
-container.register(LoggerToken, createLogger({ 
-  level: ELoggerLogLevel.INFO,
-  source: 'AppRoot' 
-}));
-
-container.register(DatabaseToken, {
-  connect: () => console.log('Connected to database'),
-  query: (sql: string) => console.log(`Executing query: ${sql}`)
+container.register({
+	provide: DbToken,
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	useFactory: async () => await connectToDatabase(),
 });
 
-// Retrieve services
-const logger = container.get<ILogger>(LoggerToken);
-const db = container.get(DatabaseToken);
+// Lazy provider defers resolution until invoked
+container.register(createLazyProvider(LazyDbToken, DbToken));
 
-logger?.info('Application started');
-db?.connect();
-db?.query('SELECT * FROM users');
+// Database connection is NOT created yet
+const getDb = container.resolve(LazyDbToken);
+
+// Now it resolves
+const db = await getDb();
 ```
 
-## Advanced Logging
+---
 
-The built-in logger provides extensive capabilities:
+### Multi-Binding Pattern
 
 ```typescript
-import { createLogger, ELoggerLogLevel } from '@elsikora/cladi';
+const MiddlewareToken = createToken<Middleware>("Middleware");
 
-const logger = createLogger({
-  level: ELoggerLogLevel.TRACE,  // Most detailed logging level
-  source: 'PaymentService'
+container.register({
+	provide: MiddlewareToken,
+	isMultiBinding: true,
+	useFactory: () => createAuthMiddleware(),
 });
 
-// Basic logging
-logger.info('Processing payment');
-
-// Logging with context data
-logger.debug('Payment details received', {
-  context: {
-    paymentId: '12345',
-    amount: 99.99,
-    currency: 'USD'
-  }
+container.register({
+	provide: MiddlewareToken,
+	isMultiBinding: true,
+	useFactory: () => createLoggingMiddleware(),
 });
 
-// Method-specific source
-logger.warn('Retry attempt required', {
-  source: 'PaymentGateway',  // Will be combined with constructor source
-  context: {
-    attempt: 2,
-    maxAttempts: 3
-  }
-});
-
-// Sample output:
-// [2023-07-15T12:34:56.789Z] INFO: [PaymentService] Processing payment
-// [2023-07-15T12:34:56.790Z] DEBUG: [PaymentService] Payment details received {"paymentId":"12345","amount":99.99,"currency":"USD"}
-// [2023-07-15T12:34:56.791Z] WARN: [PaymentService → PaymentGateway] Retry attempt required {"attempt":2,"maxAttempts":3}
+// Resolve all implementations
+const middlewares = container.resolveAll(MiddlewareToken);
+// => [authMiddleware, loggingMiddleware]
 ```
 
-## Core Factory Pattern
+---
 
-For more advanced scenarios, use the CoreFactory singleton:
+### Module System
 
 ```typescript
-import { CoreFactory, ELoggerLogLevel, type IRegistry, type IFactory, type IContainer } from '@elsikora/cladi';
+import { createModule, composeModules, createDIContainer } from "@elsikora/cladi";
 
-// Create the core factory instance with options
-const coreFactory = CoreFactory.getInstance({
-  logger: createLogger({
-    level: ELoggerLogLevel.INFO,
-    source: 'CoreFactory'
-  })
+const databaseModule = createModule({
+	name: "database",
+	exports: [DbConnectionToken],
+	providers: [
+		{ provide: DbConfigToken, useValue: { host: "localhost" } },
+		{
+			provide: DbConnectionToken,
+			deps: [DbConfigToken],
+			lifecycle: EDependencyLifecycle.SINGLETON,
+			useFactory: (config) => createConnection(config),
+		},
+	],
 });
 
-// Define a product model
-interface Product {
-  name: string;
-  price: number;
-  inStock: boolean;
-}
+const appModule = createModule({
+	name: "app",
+	imports: [databaseModule],
+	providers: [
+		{
+			provide: UserRepoToken,
+			deps: [DbConnectionToken],
+			useFactory: (db) => new UserRepository(db),
+		},
+	],
+});
 
-// Create infrastructure components
-const productRegistry = coreFactory.createRegistry<Product>({});
-const productFactory = coreFactory.createFactory<Product>({ registry: productRegistry });
-const appContainer = coreFactory.createContainer({});
-
-// Register product templates
-productRegistry.register({ name: 'Basic Widget', price: 9.99, inStock: true });
-productRegistry.register({ name: 'Premium Widget', price: 19.99, inStock: false });
-
-// Create product instances
-const basicWidget = productFactory.create('Basic Widget');
-console.log(basicWidget); // { name: 'Basic Widget', price: 9.99, inStock: true }
+const container = createDIContainer();
+composeModules(container, [appModule]);
 ```
 
-## Custom Transformers
+---
 
-You can provide custom transformers to modify objects during instantiation:
+### Lifecycle Hooks
 
 ```typescript
-import { createFactory, createRegistry } from '@elsikora/cladi';
-
-interface OrderTemplate {
-  name: string;
-  basePrice: number;
-  discountPercent: number;
-}
-
-// Create registry and register templates
-const orderRegistry = createRegistry<OrderTemplate>({});
-orderRegistry.register({
-  name: 'standard',
-  basePrice: 100,
-  discountPercent: 0
+container.register({
+	provide: CacheToken,
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	useFactory: () => new RedisCache(),
+	onInit: (cache) => cache.warmup(),
+	afterResolve: (cache) => cache.recordUsage(),
+	onDispose: async (cache) => await cache.disconnect(),
 });
-orderRegistry.register({
-  name: 'sale',
-  basePrice: 100,
-  discountPercent: 20
-});
+```
 
-// Custom transformer that adds calculated fields
-const orderTransformer = (template: OrderTemplate) => {
-  const discount = template.basePrice * (template.discountPercent / 100);
-  return {
-    ...template,
-    discount,
-    finalPrice: template.basePrice - discount,
-    timestamp: new Date().toISOString()
-  };
+---
+
+### Diagnostics
+
+```typescript
+// Explain resolution path for a token
+const explanation = container.explain(HttpClientToken);
+console.log(explanation);
+// { isFound: true, lifecycle: 'scoped', providerType: 'factory',
+//   dependencies: ['Symbol(Config)'], lookupPath: ['root'], ... }
+
+// Full container snapshot
+const snapshot = container.snapshot();
+console.log(snapshot);
+// { scopeId: 'root', providerCount: 3, singletonCacheSize: 1,
+//   tokens: ['Symbol(Config)', 'Symbol(HttpClient)', ...], ... }
+```
+
+## 🧭 API Quick Reference
+
+| Goal                             | API                                            | Notes                                         |
+| -------------------------------- | ---------------------------------------------- | --------------------------------------------- | -------------------------------- |
+| Resolve one dependency (sync)    | `resolve(token)`                               | Throws if provider path is async              |
+| Resolve one dependency (async)   | `resolveAsync(token)`                          | Works with async factories and async hooks    |
+| Resolve many implementations     | `resolveAll(token)` / `resolveAllAsync(token)` | For multi-binding registrations               |
+| Resolve optional dependency      | `resolveOptional(token)`                       | Returns `undefined` if not found              |
+| Create isolated runtime boundary | `createScope(name?)`                           | Use for request/job/command context           |
+| Register providers               | `register(provider                             | provider[])`                                  | Supports all provider strategies |
+| Validate graph at startup        | `validate()`                                   | Checks missing deps, cycles, and policy rules |
+| Inspect runtime graph            | `explain(token)` / `snapshot()`                | Debug lookup path and cache state             |
+| Release resources                | `scope.dispose()` / `container.dispose()`      | Always call in `finally` or shutdown flow     |
+
+## 🧱 Production Bootstrap
+
+Use explicit policies and graceful shutdown in your root composition setup:
+
+```typescript
+import { createDIContainer, EDiContainerCaptiveDependencyPolicy, EDiContainerDuplicateProviderPolicy, type IResolveInterceptor } from "@elsikora/cladi";
+
+const metricsInterceptor: IResolveInterceptor = {
+	onError: ({ tokenDescription, error }) => {
+		console.error("resolve error", tokenDescription, error.message);
+	},
+	onStart: ({ tokenDescription }) => {
+		console.debug("resolve start", tokenDescription);
+	},
+	onSuccess: ({ tokenDescription }) => {
+		console.debug("resolve success", tokenDescription);
+	},
 };
 
-// Create factory with custom transformer
-const orderFactory = createFactory<ReturnType<typeof orderTransformer>>({
-  registry: orderRegistry as any,
-  transformer: orderTransformer
+const container = createDIContainer({
+	captiveDependencyPolicy: EDiContainerCaptiveDependencyPolicy.ERROR,
+	duplicateProviderPolicy: EDiContainerDuplicateProviderPolicy.ERROR,
+	resolveInterceptors: [metricsInterceptor],
+	scopeName: "root",
 });
 
-// Create instances with transformed properties
-const standardOrder = orderFactory.create('standard');
-console.log(standardOrder);
-// {
-//   name: 'standard',
-//   basePrice: 100,
-//   discountPercent: 0,
-//   discount: 0,
-//   finalPrice: 100,
-//   timestamp: '2023-07-15T12:34:56.789Z'
-// }
+// register providers...
+container.validate();
 
-const saleOrder = orderFactory.create('sale');
-console.log(saleOrder);
-// {
-//   name: 'sale',
-//   basePrice: 100,
-//   discountPercent: 20,
-//   discount: 20,
-//   finalPrice: 80,
-//   timestamp: '2023-07-15T12:34:56.790Z'
-// }
+const shutdown = async (): Promise<void> => {
+	await container.dispose();
+};
+
+process.once("SIGINT", () => {
+	void shutdown();
+});
+
+process.once("SIGTERM", () => {
+	void shutdown();
+});
 ```
 
+## ⚠️ Common Pitfalls
+
+- Using `resolve()` for async providers or async hooks. Use `resolveAsync()` for those tokens.
+- Registering multi-binding providers and calling `resolve()` instead of `resolveAll()` / `resolveAllAsync()`.
+- Skipping `validate()` at startup and finding graph issues only at runtime.
+- Forgetting `scope.dispose()` in request/job flows, causing leaked scoped resources.
+- Treating optional dependencies as required. Use `resolveOptional()` for truly optional contracts.
+
 ## 🛣 Roadmap
-| Task / Feature | Status |
-|----------------|--------|
-| Core Registry implementation | ✅ Done |
-| Core Factory implementation | ✅ Done |
-| Dependency Injection Container | ✅ Done |
-| Logging System | ✅ Done |
-| Support for ESM and CJS modules | ✅ Done |
-| Registry caching mechanism | ✅ Done |
-| Factory deep cloning | ✅ Done |
-| Custom transformers | ✅ Done |
-| API documentation | 🚧 In Progress |
-| Type safety improvements | 🚧 In Progress |
-| Async factory support | 🚧 In Progress |
-| Schema validation | 🚧 In Progress |
-| Event system | 🚧 In Progress |
-| Circular dependency detection | 🚧 In Progress |
-| Lifecycle hooks | 🚧 In Progress |
-| Lazy loading | 🚧 In Progress |
-| Serialization/deserialization utilities | 🚧 In Progress |
-| Performance benchmarks | 🚧 In Progress |
-| Web framework integrations | 🚧 In Progress |
+
+<details>
+<summary>Click to expand</summary>
+
+| Task / Feature                                    | Status         |
+| ------------------------------------------------- | -------------- |
+| Core DI container with typed tokens               | ✅ Done        |
+| Singleton, Scoped, and Transient lifecycles       | ✅ Done        |
+| Async resolution with deduplication               | ✅ Done        |
+| Lazy provider strategy (`useLazy`)                | ✅ Done        |
+| Multi-binding support (`resolveAll`)              | ✅ Done        |
+| Module composition system (`composeModules`)      | ✅ Done        |
+| Lifecycle hooks (onInit, afterResolve, onDispose) | ✅ Done        |
+| Circular dependency detection and validation      | ✅ Done        |
+| Captive dependency policy (warn/error/disabled)   | ✅ Done        |
+| Resolve interceptors for observability            | ✅ Done        |
+| Decorator-based DI (`@Injectable`, `@Inject`)     | ✅ Done        |
+| Safe deep clone utility                           | ✅ Done        |
+| Comprehensive documentation with MDX              | ✅ Done        |
+| Hierarchical scope disposal with async drain      | ✅ Done        |
+| Tagged/conditional provider resolution            | 🚧 In Progress |
+| Provider middleware pipeline                      | 🚧 In Progress |
+| Scope-level event emitter for lifecycle events    | 🚧 In Progress |
+| Performance benchmarking suite                    | 🚧 In Progress |
+
+</details>
 
 ## ❓ FAQ
-## Frequently Asked Questions
 
-### Is ClaDI suitable for small projects?
-Yes, ClaDI is designed to be scalable for projects of all sizes. For small projects, you can use just the components you need, such as the Registry and Factory, without implementing the full dependency injection system.
+<details>
+<summary>Click to expand</summary>
 
-### How does ClaDI compare to other DI frameworks like InversifyJS or TypeDI?
-ClaDI is more lightweight and focused, with zero external dependencies. It provides core building blocks rather than a full-featured DI framework. It's suitable for projects that need a clean, extensible foundation with minimal overhead.
+### Does ClaDI require `reflect-metadata` or experimental decorators?
 
-### Does ClaDI work with browser environments?
-Yes, ClaDI is designed to work in both Node.js and browser environments. It's built with ES modules and also provides CommonJS compatibility.
+No. ClaDI works entirely without reflection metadata. The optional `@Injectable()` and `@Inject()` decorators store metadata directly on the class constructor using a symbol key — no `reflect-metadata` polyfill needed. You can also skip decorators entirely and use `createAutowireProvider()` or plain `useFactory` / `useClass` registrations.
 
-### How does the registry's caching mechanism work?
-The registry implements an internal cache for `getAll()` and `getMany()` operations. When you register or unregister items, the cache is automatically cleared to ensure you always get fresh data.
+### How does ClaDI compare to InversifyJS or tsyringe?
 
-### Can I use ClaDI with React, Angular, or Vue?
-Yes, ClaDI can be used with any frontend framework. It's framework-agnostic and provides core infrastructure that can be integrated into your component system.
+ClaDI takes a fundamentally different approach: **explicit composition roots** over implicit decorator-driven wiring. There's no global container, no automatic class scanning, and no hidden metadata. Every dependency relationship is visible at the registration site. This makes the DI graph auditable, testable, and refactoring-friendly.
 
-### How do I handle circular dependencies?
-Currently, circular dependencies must be managed manually. However, the roadmap includes adding circular dependency detection to help identify and resolve these issues.
+### Can I use ClaDI in the browser?
 
-### Is there a performance penalty for using the factory pattern?
-The factory performs deep cloning of templates using `structuredClone()`, which has better performance than JSON serialization methods. For most applications, this overhead is negligible, and the benefits of immutability outweigh the performance cost.
+ClaDI ships ESM and CJS bundles and is designed to be runtime-agnostic. It is tested in Node.js. Bun, Deno, and browser usage is generally viable when your environment supports standard JavaScript runtime features used by your providers.
+
+### How do I handle async initialization (e.g., database connections)?
+
+Use `useFactory` with an async function and resolve with `resolveAsync()`:
+
+```typescript
+container.register({
+	provide: DbToken,
+	lifecycle: EDependencyLifecycle.SINGLETON,
+	useFactory: async () => await createDatabasePool(),
+	onDispose: async (pool) => await pool.end(),
+});
+
+const db = await container.resolveAsync(DbToken);
+```
+
+Concurrent `resolveAsync()` calls for the same singleton are automatically deduplicated — the factory runs exactly once.
+
+### What happens if I forget to dispose a scope?
+
+Scoped and singleton instances with `onDispose` hooks or `dispose()` / `close()` methods will not be cleaned up, potentially causing resource leaks. Always wrap scope usage in `try/finally`:
+
+```typescript
+const scope = container.createScope("request");
+try {
+	// ... use scope
+} finally {
+	await scope.dispose();
+}
+```
+
+### Can I override a provider in a child scope for testing?
+
+Absolutely. Child scopes can register local overrides that shadow parent registrations:
+
+```typescript
+const testScope = container.createScope("test");
+testScope.register({ provide: DbToken, useValue: mockDatabase });
+const service = testScope.resolve(ServiceToken); // uses mockDatabase
+```
+
+### Is the module system required?
+
+No. The module system (`createModule` / `composeModules`) is entirely optional. You can register all providers directly on the container. Modules are useful for organizing large applications into bounded contexts with explicit export boundaries.
+
+</details>
 
 ## 🔒 License
-This project is licensed under **MIT License
 
-Copyright (c) 2025 ElsiKora
+This project is licensed under **MIT**.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+## 🙏 Acknowledgments
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+- Built and maintained by [ElsiKora](https://github.com/ElsiKora)
+- Inspired by the dependency injection patterns from Angular, NestJS, and InversifyJS — adapted for explicit composition-root workflows
+- Thanks to all [contributors](https://github.com/ElsiKora/ClaDI/graphs/contributors) who helped shape the API and test suite
+- Documentation powered by [Nextra](https://nextra.site/) with MDX
+- Release automation via [semantic-release](https://github.com/semantic-release/semantic-release)
+- Code quality enforced by [Qodana](https://www.jetbrains.com/qodana/) and [Snyk](https://snyk.io/)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.**.
+---
+
+<p align="center">
+  <a href="#top">Back to Top</a>
+</p>

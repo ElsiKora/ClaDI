@@ -1,6 +1,8 @@
 export default {
-	container: "Container Pattern",
+	"advanced-di": "Advanced DI Container",
+	"clean-architecture-playbook": "Clean Architecture Playbook",
+	container: "Container Fundamentals",
 	"error-handling": "Error Handling",
-	factory: "Factory Pattern",
-	registry: "Registry Pattern",
+	factory: "Factory Providers",
+	registry: "Configuration Registries",
 };
