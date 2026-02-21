@@ -29,6 +29,7 @@
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
+- [Testing Toolkit](#-testing-toolkit)
 - [Usage](#-usage)
 - [API Quick Reference](#-api-quick-reference)
 - [Production Bootstrap](#-production-bootstrap)
@@ -81,6 +82,7 @@ ClaDI ships with **5 provider strategies** (`useValue`, `useClass`, `useFactory`
 - ✨ **Module System** — `createModule()` and `composeModules()` enable declarative, bounded-context module composition with explicit export contracts
 - ✨ **Decorator Support** — Optional `@Injectable()`, `@Inject()`, `@Module()`, `@OnInit()`, `@AfterResolve()`, and `@OnDispose()` without requiring `reflect-metadata`
 - ✨ **Decorator Composition Helpers** — `autowire()`, `createModuleFromDecorator()`, and `composeDecoratedModules()` keep decorator workflows explicit but concise
+- ✨ **Companion Testing Toolkit** — `@elsikora/cladi-testing` adds test container helpers (`createTestingContainer`, `mockProvider`, `overrideProvider`) for app-level integration and unit tests
 - ✨ **Runtime Diagnostics** — `explain(token)`, `snapshot()`, and `exportGraph()` provide operational visibility into provider lookup and dependency edges
 - ✨ **Deterministic Disposal** — `dispose()` waits for in-flight async resolutions, runs disposers in reverse order, and supports `Symbol.dispose` / `Symbol.asyncDispose`
 - ✨ **Resolve Interceptors** — Hook into every resolution with `onStart`, `onSuccess`, and `onError` callbacks for logging, metrics, or tracing
@@ -299,6 +301,40 @@ npm run test:all
 
 # Run linting
 npm run lint:all
+```
+
+## 🧪 Testing Toolkit
+
+For application tests, use the companion package `@elsikora/cladi-testing` with ClaDI `>=2.1.0`:
+
+```bash
+npm install -D @elsikora/cladi @elsikora/cladi-testing
+```
+
+```typescript
+import { createModule, createToken } from "@elsikora/cladi";
+import { createTestingContainer, mockProvider, overrideProvider, resetTestingContainer } from "@elsikora/cladi-testing";
+
+const UserRepoToken = createToken<{ findNameById(id: string): string | undefined }>("UserRepo");
+const UserServiceToken = createToken<{ readName(id: string): string }>("UserService");
+
+const appModule = createModule({
+	exports: [UserServiceToken],
+	providers: [
+		mockProvider(UserRepoToken, { findNameById: () => "Alice" }),
+		{
+			deps: [UserRepoToken],
+			provide: UserServiceToken,
+			useFactory: (repository) => ({
+				readName: (id: string): string => repository.findNameById(id) ?? "unknown",
+			}),
+		},
+	],
+});
+
+const container = createTestingContainer({ modules: [appModule], shouldValidateOnCreate: true });
+await overrideProvider(container, mockProvider(UserRepoToken, { findNameById: () => "Bob" }));
+await resetTestingContainer(container);
 ```
 
 ## 💡 Usage
